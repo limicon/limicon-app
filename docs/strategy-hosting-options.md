@@ -66,7 +66,7 @@ Supabase Free can work for this app, with conditions:
 - **Project slots.** Each person gets two active free projects across every organisation they own or administer.
 - **Organisations.** Supabase doesn't mix plans within an organisation, so moving this app to Pro for busy months needs an organisation of its own.
 
-Supabase is plain Postgres, so it can also be the database for Cloudflare (through Hyperdrive), Railway or Render. On Cloudflare, Supabase Free in place of PlanetScale would bring a quiet month to about $5.
+Supabase is plain Postgres, so it can also be the database for Cloudflare (through Hyperdrive), Railway or Render. On Cloudflare, Supabase Free in place of PlanetScale would bring a quiet month to about $5. [`strategy-database-selection.md`](strategy-database-selection.md) compares the databases on their own.
 
 Render's free server and free database won't do for production: the server sleeps after 15 minutes without traffic, and the database expires after 30 days.
 

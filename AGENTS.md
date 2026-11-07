@@ -21,6 +21,7 @@ Each entry names the work that calls for reading the doc.
 
 - [`devjournal.md`](docs/devjournal.md): catching up on significant code changes and architectural decisions, or adding an entry.
 - [`config-github.md`](docs/config-github.md): GitHub settings, branch protection, CI, Dependabot.
+- [`strategy-database-selection.md`](docs/strategy-database-selection.md): choosing the Postgres service and sign-in, or connecting the app to them.
 - [`strategy-hosting-options.md`](docs/strategy-hosting-options.md): choosing or setting up hosting, database, logging, alerting, email.
 
 ## Writing
