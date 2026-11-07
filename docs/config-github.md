@@ -1,24 +1,21 @@
 # GitHub configuration
 
-How limicon-app is set up on GitHub, and what's still to decide. Org `limicon`, repo `limicon-app`, default branch `main`.
+How limicon-app is set up on GitHub, and what's still to decide. Org `limicon` on GitHub, public repo `limicon-app`, default branch `main`.
 
-Status: Current as of 2026-11-01.
+Status: Current as of 2026-11-06.
 
 ## Decisions open
 
-1. **Public or private?** It's private now. On GitHub's free plan, protecting `main` and the automatic security checks only work on public repos, so this decides whether most of the rest is available at all. Only an org owner can change it.
-2. **Commit straight to `main`, or go through pull requests?** Pull requests let tests run, and someone review, before a change reaches `main`. Committing straight to `main` is quicker, but a broken change lands first and gets fixed after. This decides how much of the next section applies.
-3. **Track work in GitHub Issues, or somewhere else?** Issues and Projects are on by default. If work is tracked elsewhere, turning them off avoids a second to-do list nobody reads.
-
-Where a setting below says **needs public**, it waits on decision 1, or on a paid GitHub Team plan.
+1. **Commit straight to `main`, or go through pull requests?** Pull requests let tests run, and someone review, before a change reaches `main`. Committing straight to `main` is quicker, but a broken change lands first and gets fixed after. This decides how much of the next section applies.
+2. **Track work in GitHub Issues, or somewhere else?** Issues and Projects are on by default. If work is tracked elsewhere, turning them off avoids a second to-do list nobody reads.
 
 ## Branch protection and pull requests
 
 How changes get into `main`, and who can change it.
 
-These settings follow from decision 2. They go together:
+These settings follow from decision 1. They go together:
 
-- **Commit directly to `main`.** The pull request settings barely matter. Branch protection shrinks to blocking force pushes and deletion of `main` (**needs public**). CI runs after each push instead of gating it, so a broken commit sits on `main` until the next one fixes it.
+- **Commit directly to `main`.** The pull request settings barely matter. Branch protection shrinks to blocking force pushes and deletion of `main`. CI runs after each push instead of gating it, so a broken commit sits on `main` until the next one fixes it.
 - **Short-lived branches merged into `main` by PR.** The two tables below apply.
 
 ### Pull request settings
@@ -40,7 +37,7 @@ The Candidate column configures "merge commits only" for detailed semi-linear hi
 
 ### Branch protection on `main`
 
-`limicon-app` has no branch protection. All of this **needs public**: on Free, neither rulesets nor classic branch protection are available on private repos.
+`limicon-app` has no branch protection.
 
 The candidate below is a repository ruleset targeting the default branch (`~DEFAULT_BRANCH`), modelled on `is-app`'s. Keeping the ruleset as code in a script would put rule changes through review.
 
@@ -75,23 +72,20 @@ A way to lock production passwords behind an approval step. None yet. An environ
 
 ### Security
 
-Right now: no automatic security checks, because the repo is private.
+`limicon-app` uses the org's default security configuration, `limicon-org-config-1` (org Settings → Advanced Security → Configurations), which checks for leaked passwords and vulnerable libraries. It's enforced, so repo admins can't switch its features off. Only an org owner or security manager can change which configuration a repo uses.
 
-The org's default security configuration, `limicon-org-config-1` (Settings → Advanced Security → Configurations), checks for leaked passwords and vulnerable libraries. It **failed to attach** to `limicon-app`: on Free, a configuration with Advanced Security features can't attach to a private repo. If the repo goes public, the configuration can be applied from its **Repositories** tab. Whether it attaches on its own when visibility changes is untested. It's enforced, so repo admins can't switch its features off.
-
-| Feature | In the configuration | Notes |
+| Feature | Setting | Notes |
 |---|---|---|
 | Dependency graph, Dependabot alerts | on | Alerts on known-vulnerable dependencies. |
 | Dependabot security updates | on, grouped | Dependabot opens fix PRs. Grouping is an org setting that bundles fixes into one PR per package manager and directory. |
 | Secret scanning and push protection | on | Push protection blocks a commit containing a recognized secret before it reaches GitHub. |
 | Private vulnerability reporting | on | Gives outside reporters a private channel on the Security tab. |
-| Code scanning | CodeQL default setup | Default setup needs no workflow file. |
+| Code scanning | CodeQL default setup | Default setup needs no workflow file. It has no languages to scan until the repo has code or workflow files. |
 
 ### Settings that should be kept in files
 
-As much as possible, settings should live in the repo and be versioned with the code. `limicon-app` has none yet:
+As much as possible, settings should live in the repo and be versioned with the code. `limicon-app` has `SECURITY.md`, which points reporters to private vulnerability reporting. It doesn't have these yet:
 
 - `.github/CODEOWNERS`: the paths that need code owner review.
 - `.github/dependabot.yml`: version-update PRs. One pattern: run weekly, group minor and patch bumps, and wait a few days after a release before proposing it.
-- `SECURITY.md`: points reporters to private vulnerability reporting.
 - `.github/PULL_REQUEST_TEMPLATE.md`: shapes the PR body, which becomes the merge commit message if the merge commit settings use the PR description.

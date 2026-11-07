@@ -14,6 +14,7 @@ limicon-app is limicon's application. The stack isn't chosen yet.
   - feature: requirements, design and implementation of the app's features
   - strategy: more abstract or cross-cutting specifications
 - When you add, rename or remove a doc, update the table of contents below. Keep the docs and this file in sync with changes.
+- In docs and code comments, describe things as they are now. Leave out past states that no longer matter; git history keeps them.
 
 ### Docs table of contents
 
