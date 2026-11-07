@@ -87,5 +87,28 @@ A way to lock production passwords behind an approval step. None yet. An environ
 As much as possible, settings should live in the repo and be versioned with the code. `limicon-app` has `SECURITY.md`, which points reporters to private vulnerability reporting. It doesn't have these yet:
 
 - `.github/CODEOWNERS`: the paths that need code owner review.
-- `.github/dependabot.yml`: version-update PRs. One pattern: run weekly, group minor and patch bumps, and wait a few days after a release before proposing it.
 - `.github/PULL_REQUEST_TEMPLATE.md`: shapes the PR body, which becomes the merge commit message if the merge commit settings use the PR description.
+- `.github/dependabot.yml`: version-update PRs. Add it in the commit that adds the first manifest (such as `package.json`) or workflow; until then Dependabot has nothing to read. The draft below runs weekly, groups npm minor and patch bumps and all Actions bumps, and waits 3 days after a release before proposing it. Keep one entry per ecosystem the repo uses.
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3
+    groups:
+      actions:
+        patterns: ["*"]
+```

@@ -36,7 +36,8 @@ Each entry names the work that calls for reading the doc.
 
 ## Workflow
 
-- Hold a dependency back by adding it to its group's `exclude-patterns` in `.github/dependabot.yml`, with a comment saying why and what green looks like. Never use an `ignore` rule: the standalone weekly PR is the signal that upstream fixed it.
+- The commit that adds the first manifest (such as `package.json`) or workflow also adds `.github/dependabot.yml`, from the draft in `docs/config-github.md`.
+- Hold a dependency back with its group's `exclude-patterns` in `.github/dependabot.yml`, not a blanket `ignore`; remove the exclusion when its own PR goes green.
 
 ## Testing
 
