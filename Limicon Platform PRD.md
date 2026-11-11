@@ -86,7 +86,9 @@ This PRD covers Phases 0 to 2 in detail. Phases 3 and 4 appear as a roadmap.
 | 3. Wish list | Built-in video rooms with automatic recording, AI harvesting and summaries, Updates tab, participant matching, recognition and bounty system, Liminal Calendar import, network map | After launch, by consensus |
 | 4. Fine-tuning | Finalize the session form after the AI consensus. End-to-end test of the ticket, host, edit, attend, content and feedback flows | Before the event |
 
-A January prototype for team testing covers sign-in, Stripe checkout in test mode, hosting a session, and the calendar with RSVP.
+A January prototype covers sign-in, Stripe checkout in test mode, hosting a session, and the calendar with RSVP. Testing runs throughout the build: weekly in the tech group, every two weeks with the Organizing Team, and ad hoc in between.
+
+During the event, admins add relevant Liminal Calendar events to the Limicon calendar. The Members area does not link to the Liminal Calendar, which covers events outside Limicon's month.
 
 **Out of scope for now**
 
@@ -161,13 +163,17 @@ A January prototype for team testing covers sign-in, Stripe checkout in test mod
 
 ### Contribution log
 
-- **CON-1** From launch, the app records contribution activity per person. This covers:
-  - sessions hosted
-  - forms submitted
-  - posts, comments and replies
-  - admin actions such as edits to site content, answered contact messages and moderation
-  - time spent in admin tasks, where it can be measured
-- **CON-2** The privacy notice tells members that the app records this activity and why.
+Happy Money pays admins and volunteers for the work of running Limicon, so the contribution log records that work only. General conference participation is not a contribution.
+
+- **CON-1** From launch, the app records contribution activity by admins and volunteers on the Limicon container. This covers:
+  - edits to site content and pages
+  - newsletters and announcements
+  - answers to questions about Limicon itself (not about a specific session)
+  - posts and replies about the Limicon container
+  - data exports and analysis, discount codes, comp tickets and moderation actions
+  - time spent on these tasks, where the app can measure it
+- **CON-2** The team records anything the app cannot capture by hand, as it does today.
+- **CON-3** The app may also record general participation (sessions hosted, RSVPs, forms and posts) for event statistics. This is kept apart from contributions, and the privacy notice tells members it is recorded.
 
 ## Phase 1B requirements: sessions
 
@@ -293,7 +299,7 @@ The session editor is shared for host create, host edit and admin edit. It adapt
 - **MSG-1** One-to-one direct messages between members who allow messages, with unread indicators and email notification preferences.
 - **MSG-2** Group conversations that any member can create, with a title, replies and emoji reactions.
 - **MSG-3** A discussion feed with an admin-only announcements channel and a member channel for requests and offers.
-- **MSG-4** Moderation follows the model used on the Festival for Re-imagining the Economy site and the Code of Conduct. Members can report a message or member. Admins review reports and can mute or deactivate an account.
+- **MSG-4** The Organizing Team moderates together and informally, guided by the Code of Conduct. Members can report a message or member, and every admin sees the report. Admins can mute or deactivate an account.
 - **MSG-5** Message content is visible only to the people in the thread. Admins see a message only when someone reports it.
 - **MSG-6** Alumni keep their own messages and contacts from the editions they attended.
 
@@ -306,7 +312,9 @@ The session editor is shared for host create, host edit and admin edit. It adapt
 
 ### Surveys
 
-- **FBK-1** Admins build surveys from text, rating and multiple-choice questions and attach them to the event or to a session.
+The host feedback survey (FRM-3), emailed to hosts after each session, is the only survey Limicon runs.
+
+- **FBK-1** Admins can build further surveys from text, rating and multiple-choice questions and attach them to the event or to a session, if the team adds one later.
 - **FBK-2** Admins see responses in the console and export them as CSV.
 
 ### Stitchfest
@@ -320,8 +328,8 @@ Stitchfest gives members with outside projects a set time to present, after whic
 
 ### Contribution report
 
-- **CON-3** Admins see a contribution report per person and per edition, built from the contribution log, to support the Happy Money discussion.
-- **CON-4** Members can see their own contribution record.
+- **CON-4** Admins see a contribution report per person and per edition, built from the contribution log, to support the Happy Money discussion. Only admins can see it.
+- **CON-5** Happy Money voting stays live on the closing call. The app supplies the report, not the vote.
 
 ## Phase 3 roadmap
 
@@ -417,14 +425,10 @@ Phase 1 collects each host's AI consent choices and stores them with the session
 | 2 | Admin permission levels: which permissions exist (for example team inbox, site content, finance) and who holds each? | Organizing Team meeting |
 | 3 | Volunteer roles such as Stewardship: which projects are there, and what can each see and do? | Organizing Team meeting |
 | 4 | Which Hylo functions (proposals, projects, requests and offers, feed, DMs) must Phase 2 replace? | Organizing Team |
-| 5 | Which surveys run today, and what do they ask? | Organizing Team |
-| 6 | How involved can AI be, and what is the final session form wording for privacy and AI consent? | AI co-creation sessions |
-| 7 | When do the AI sessions conclude, and who records the consensus? | Organizing Team |
-| 8 | Is the Liminal Calendar link kept in the Members area, and how? | Organizing Team |
-| 9 | Should the Happy Money and Stitchfest votes happen in the app or stay on the live call? | Organizing Team |
-| 10 | What fields does a Stitchfest submission need, and is the Stitchfest page public or members-only? | Organizing Team |
-| 11 | Which contribution activities count for Happy Money, and is time spent measured or self-reported? | Organizing Team |
-| 12 | What is the moderation model on the Festival for Re-imagining the Economy site? It should be written up here. | Naryan |
-| 13 | Should Airtable session records from past years move into the app for the History and Content pages? | Organizing Team |
-| 14 | Do recordings move into Limicon storage, and at what cost per month? | Lead builder, James |
-| 15 | Magic link or password for email sign-in? | Team, Phase 0 |
+| 5 | How involved can AI be, and what is the final session form wording for privacy and AI consent? | AI co-creation sessions |
+| 6 | When do the AI sessions conclude, and who records the consensus? | Organizing Team |
+| 7 | What fields does a Stitchfest submission need, is the Stitchfest page public or members-only, and does its vote happen in the app or on the live call? | Organizing Team |
+| 8 | Can contact and purchase records be shared with AI tools during the migration? | Organizing Team |
+| 9 | Do recordings move into Limicon storage, and at what cost per month? | Lead builder, James |
+| 10 | Magic link or password for email sign-in? | Team, Phase 0 |
+| 11 | Which laws does the Privacy Policy name, and how long are recordings, transcripts, messages and the contribution log kept? | Organizing Team |
