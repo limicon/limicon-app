@@ -2,7 +2,7 @@
 
 Which Postgres service limicon-app uses. [`strategy-hosting-options.md`](strategy-hosting-options.md) pairs a database with each hosting option; this doc compares the databases on their own. Supabase, Neon and PlanetScale work with any host. Railway, Render, Fly.io and AWS also offer their own. Nothing is chosen yet.
 
-Status: Checked against vendor docs on 2026-11-07. Railway, Render and Fly.io figures come from the hosting doc, checked 2026-11-04 to 2026-11-06. Prices are USD per month, before tax. Figures marked *(estimate)* weren't on the vendor pages that were read; confirm them before relying on them.
+Status: Checked against vendor docs on 2026-11-07. Railway, Render and Fly.io figures come from the hosting doc, checked 2026-11-04 to 2026-11-06. [Testing](#testing) was checked on 2026-11-10. Prices are USD per month, before tax. Figures marked *(estimate)* weren't on the vendor pages that were read; confirm them before relying on them.
 
 ## What the choice depends on
 
@@ -58,19 +58,48 @@ The other databases get sign-in from one of these:
 
 Every free allowance covers at least 10,000 users a month, so cost is unlikely to decide it. The choice is about where users live and what it ties the app to. Neon Auth is built on Better Auth, so Neon Auth and Better Auth in the app work much the same way.
 
+## Testing
+
+Tests need a database on a developer's machine, in CI (the checks GitHub runs on each pull request), and sometimes for a preview deploy of a pull request.
+
+### On a developer's machine and in CI
+
+| | What it is | Works with | Limits |
+|---|---|---|---|
+| **Postgres in Docker** | The official Postgres image, at the same major version as production. GitHub Actions runs it as a service container, free on a public repo. | Every option here, since all are plain Postgres. Railway's own image is built on the official one. | No vendor sign-in, file storage or pooler. |
+| **Supabase CLI** | `supabase start` runs Supabase's stack in Docker: Postgres, Auth, Storage and more. | Supabase, especially with Supabase Auth and row-level security. | Many containers, so heavier than plain Postgres. |
+| **PGlite** | Postgres compiled to WebAssembly, running inside the Node test process without Docker. Each test file can have its own in-memory database. | Fast unit tests, with any option. `pglite-socket` lets ordinary Postgres drivers connect to it. | One connection, shared through a multiplexer that its docs say doesn't behave exactly like a normal server. No SSL. Not for testing concurrency or the pooler. |
+
+Neon Local looks like a local database, but it's a Docker proxy to a Neon branch in the cloud. It can create a branch when it starts and delete it when it stops. PlanetScale has no local version; its docs assume development happens on its cloud branches.
+
+Local Postgres accepts what a transaction-mode pooler rejects, such as prepared statements and `SET`. An app that will connect through a pooler can run PgBouncer in transaction mode locally to catch that before deploying.
+
+### In the cloud
+
+A branch is a separate database made for a pull request or test run and deleted afterwards.
+
+| | Starts with | Created and deleted | Cost |
+|---|---|---|---|
+| **Neon** | The parent branch's schema and data, copied instantly. Storage costs nothing until the branch is written to. | By API, CLI or Neon Local. Pauses after 5 minutes idle. | Free: 10 branches per project, sharing its 100 CU-hours a month; an 11th is blocked. Launch: $1.50 a month per branch beyond 10, prorated hourly, plus $0.106 an hour while awake. |
+| **Supabase** | Schema from the repo's migrations, plus a seed file. No production data by default. | One per pull request through the GitHub integration, deleted when it's merged or closed. Long-lived branches, for staging, are also available. | Paid plans only. $0.01344 an hour per branch at the smallest size, not covered by compute credits. |
+| **PlanetScale** | Nothing: no schema or data, unless restored from a backup. | From the dashboard. Up to 100 per database by default. | Billed only while the branch exists. The rate isn't in the docs *(estimate: $5 a month prorated, with about two months of branch hours included per database)*. |
+| **Railway** | A copy of the project's services, database included. The docs don't say whether data is copied *(estimate: empty by default, with an option to copy the volume)*. | One per pull request when switched on, optionally for bot PRs such as Dependabot's. Deleted when it's merged or closed. | Railway's usual usage billing, for the server and database while the environment exists. |
+
 ## Questions that decide it
 
 1. **Always-on server or on-demand?** On-demand means a pooler and its limits. An always-on server can use the host's own database, which needs no pooler.
 2. **Is a wait after quiet periods acceptable?** Neon's few hundred milliseconds rarely shows. Aurora's 15–30 seconds does.
 3. **How far back must data be recoverable, and at what price?** Free plans have little or no backup. Supabase charges $100 a month for restore to any point. PlanetScale, Render and RDS include it, and Neon's costs cents at this size.
 4. **Should sign-in come with the database?** Supabase and Neon include it, which saves setup and ties the app to them. Better Auth keeps users in any Postgres, run by the app itself.
+5. **Do preview deploys need a database of their own?** Neon's branches start with a copy of the data and fit the free plan. Supabase's and PlanetScale's start from migrations or empty, and cost a little per hour.
 
 ## Sources
 
-- Supabase: [Pricing](https://supabase.com/pricing), [Connecting to Postgres](https://supabase.com/docs/guides/database/connecting-to-postgres), [IPv4 add-on pricing](https://supabase.com/docs/guides/platform/manage-your-usage/ipv4), [Auth](https://supabase.com/docs/guides/auth), [Auth email (SMTP)](https://supabase.com/docs/guides/auth/auth-smtp)
-- Neon: [Pricing](https://neon.com/pricing), [Scale to zero](https://neon.com/docs/introduction/scale-to-zero), [Computes](https://neon.com/docs/manage/computes), [Neon Auth](https://neon.com/docs/auth/overview) and [its plans](https://neon.com/docs/auth/about)
+- Supabase: [Pricing](https://supabase.com/pricing), [Connecting to Postgres](https://supabase.com/docs/guides/database/connecting-to-postgres), [IPv4 add-on pricing](https://supabase.com/docs/guides/platform/manage-your-usage/ipv4), [Auth](https://supabase.com/docs/guides/auth), [Auth email (SMTP)](https://supabase.com/docs/guides/auth/auth-smtp), [Local development](https://supabase.com/docs/guides/local-development), [Branching](https://supabase.com/docs/guides/deployment/branching) and [its billing](https://supabase.com/docs/guides/platform/manage-your-usage/branching)
+- Neon: [Pricing](https://neon.com/pricing), [Scale to zero](https://neon.com/docs/introduction/scale-to-zero), [Computes](https://neon.com/docs/manage/computes), [Neon Auth](https://neon.com/docs/auth/overview) and [its plans](https://neon.com/docs/auth/about), [Neon Local](https://neon.com/docs/local/neon-local)
+- PGlite: [Overview](https://pglite.dev/docs/), [pglite-socket](https://pglite.dev/docs/pglite-socket)
 - Sign-in: [Better Auth installation](https://www.better-auth.com/docs/installation), [Clerk pricing](https://clerk.com/pricing), [Cognito pricing](https://aws.amazon.com/cognito/pricing/)
-- PlanetScale: [Pricing](https://planetscale.com/pricing), [Postgres backups](https://planetscale.com/docs/postgres/backups)
-- Railway: [Backups](https://docs.railway.com/reference/backups)
+- PlanetScale: [Pricing](https://planetscale.com/pricing), [Postgres backups](https://planetscale.com/docs/postgres/backups), [Postgres branching](https://planetscale.com/docs/postgres/branching), [Postgres pricing](https://planetscale.com/docs/postgres/pricing)
+- Railway: [Backups](https://docs.railway.com/reference/backups), [Environments](https://docs.railway.com/guides/environments), [Postgres](https://docs.railway.com/guides/postgresql)
 - AWS: [Aurora Serverless auto-pause](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2-auto-pause.html)
 - Render and Fly.io: see [`strategy-hosting-options.md`](strategy-hosting-options.md#sources).
