@@ -1,28 +1,47 @@
 # Limicon Platform PRD
 
-Nov 5, 2026 · @Naryan
+Nov 5, 2026 · @Naryan · Updated Nov 11, 2026
 
-Limicon gets one integrated web app with a mobile PWA, replacing Wix, Airtable, Google Calendar and Google Forms, with a working prototype in January 2027.
+Limicon gets one integrated web app, installable on phones as a PWA, that replaces Wix, Airtable, Google Calendar, Google Forms, Google Drive and YouTube. Registration is expected to open in January 2027, so ticketing ships first and the sessions calendar follows before the event.
+
+## About Limicon
+
+Limicon is an open-space convention that runs for about four weeks each spring around the equinox. More than 90% of it happens online, with a few local in-person gatherings, mostly in Canada. Participants join from around the world. Anyone with a ticket can host a session, and sessions appear on the calendar without approval. The 2027 dates are not set yet.
+
+The Organizing Team works in Eastern time across all four US time zones. The app shows every time in the viewer's own time zone.
+
+**Who builds it**
+
+- **Lead builder:** builds the app and co-owns the repository.
+- **James:** coding expert and repository co-owner. He reviews, approves and troubleshoots.
+- **Naryan:** vibe-coding coach.
+- **Megan:** data architecture support.
+
+The team decides the foundation (database, hosting, data architecture) together. Visual design comes from a collective design session, and the lead builder implements it.
 
 ## Goals and success measures
-
-The rebuild gives members one Limicon account, one place to register, host, schedule and RSVP, and a sessions calendar that updates in close to real time.
 
 **Problems today**
 
 - Members sign in to several platforms: Wix, Airtable, Hylo, Miro, Castalia, Google Forms and YouTube.
 - The Google Calendar embed lags behind session changes.
-- Hosts submit sessions in Airtable, then separate Google Forms for content and feedback.
+- Hosts submit sessions in Airtable, then use separate Google Forms for content, feedback and session harvest.
 - Organizers run tickets in Wix and sessions in Airtable, so registrations and sessions do not connect.
+- Hosts cannot edit a session after they submit it.
+- Recordings reach the Organizing Team by email. The lead builder downloads each one and uploads it to YouTube.
+- Much of the work behind Limicon is invisible at Happy Money, especially behind-the-scenes work.
 
 **Goals**
 
 1. One account per person, with Google sign-in or email, that stays signed in and carries over year to year.
-2. Ticketing with pay-what-you-can, fixed tiers and discount codes, paid through Stripe.
+2. Ticketing with fixed tiers and discount codes, paid through Limicon's existing Stripe account.
 3. A sessions calendar where hosts submit and edit sessions and attendees browse, RSVP and keep a personal schedule.
 4. Calendar changes reach attendees within seconds, with an email when a session they joined changes time.
-5. Keep Hylo out of the stack. Miro and Castalia remain external links.
-6. Keep the build simple enough that a small vibe-coding team can maintain it after launch.
+5. Every Limicon tool lives inside the app except Miro and Castalia, which stay as external links.
+6. Session content, recordings and harvests live on a searchable Content tab instead of Drive and YouTube.
+7. The app records contributions so Happy Money can recognize work people do not see.
+8. Running costs stay between $20 and $100 a month.
+9. The build stays simple enough for one lead builder to maintain, with team support.
 
 **Success measures**
 
@@ -32,50 +51,63 @@ The rebuild gives members one Limicon account, one place to register, host, sche
 | Delay between a host saving a session change and the calendar showing it | Under 10 seconds |
 | Members who complete registration without organizer help | 95% |
 | Sessions submitted through the app rather than Airtable | 100% |
-| Working prototype for team testing | January 2027 |
+| Google Forms in use for Limicon | 0 |
+| Recordings moved by hand by an organizer | 0 once built-in video ships (Phase 3) |
+| Monthly running cost | $20 to $100 |
 
 ## Users and roles
 
-Four roles cover Limicon. A Session Host is a Registered member with extra rights over their own sessions, and Admin is a separate flag on an account.
-
 | Role | Who | Can do |
 | --- | --- | --- |
-| Public | Anyone without an account | Read the home, invitation, co-create, history, FAQ, contact, accessibility, privacy and conduct pages. Join the mailing list. Create an account and buy a ticket. |
-| Registered | Account holder with a ticket for the current year | Everything Public can do, plus the Members area: browse and filter the sessions calendar, RSVP, keep My Schedule, submit a session, edit their profile, send messages, give feedback. |
-| Session Host | Registered member who created or co-hosts a session | Create, edit, unpublish and delete their own sessions. See their RSVP list. Email their registrants. Set the privacy and recording options for their sessions. |
-| Admin | Organizing team | Manage users and tickets, create discount codes, edit or cancel any session, turn the calendar on and off, send email, moderate messages, export data, edit site content. |
+| Public | Anyone without an account | Read the public pages. Join the mailing list. Create an account and buy a ticket. See session titles only. |
+| Registered | Account holder with a ticket for the current edition | Everything Public can do, plus the Members area: calendar, RSVP, My Schedule, host a session, forms, profile, directory, messages, Content tab. |
+| Session Host | Registered member who created or co-hosts a session | Create, edit, unpublish and delete their own sessions. See their RSVP list. Email their registrants. Set privacy and recording options. |
+| Alumni | Account holder whose tickets are all for past editions | Their own account, messages and contacts, plus members and content tagged with the editions they attended. Nothing from editions they did not attend, including the current one. |
+| Volunteer | Member helping with a specific project, such as Stewardship | Permissions to be defined per project (see Open questions). |
+| Admin | Organizing Team (seven people today) | Full access by default. Narrower admin permissions, such as access to the team inbox, can be granted per person. |
 
 **Access rules**
 
 - Each person needs their own account and ticket. There is no guest checkout and no multi-seat purchase.
-- A ticket for a given year unlocks that year's Members area. An account with a past ticket keeps access to alumni content.
+- A ticket for an edition unlocks that edition's Members area. People can register at any time, including during the event.
 - Members-only pages are hidden from the menu for people who lack access, so locked sections do not appear as dead ends.
-- Public visitors see session titles only, matching today's site.
+- Admin access is built as named permissions on top of a single Admin role. The team can then split permissions later without a schema change.
 
 ## Scope and phases
 
-This PRD covers Phases 0 to 2 in detail. Phases 3 and 4 appear as a roadmap. The January prototype is a working slice of Phase 1 that the tech team can test end to end.
+This PRD covers Phases 0 to 2 in detail. Phases 3 and 4 appear as a roadmap.
 
 | Phase | Contents | Target |
 | --- | --- | --- |
-| 0. Bedrock | PRD, design guide, development plan, technology selection, repo and delivery setup | November to December 2026 |
-| Prototype | Account sign-in, Stripe checkout in test mode, host a session, sessions calendar with RSVP, Members area shell | January 2027 |
-| 1. The Basics | Public info pages, accounts, ticketing with discount codes, host a session, sessions calendar, My Schedule, change notifications | Before registration opens |
-| 2. Personalization | Profiles, member directory and search, messaging, feedback surveys, Stitchfest portal | Before the event |
-| 3. Wish list | AI summaries and content tab, built-in video rooms, participant matching, recognition and bounty system, network map | After launch, by consensus |
-| 4. Fine-tuning | End-to-end test of ticket, host, edit, attend and feedback flows | Before the event |
+| 0. Bedrock | PRD, design guide (from the collective design session), development plan, technology selection, repo and delivery setup, coordination process (project board, bug and feedback intake) | November to December 2026 |
+| 1A. Registration | Public pages, admin site editing, accounts, ticketing with discount codes, mailing list, contact migration, contribution log | When registration opens (expected January 2027) |
+| 1B. Sessions | Host a Session, sessions calendar, My Schedule, notifications, session forms (harvest, content, host feedback), Members area | Before the calendar opens |
+| 2. Personalization | Profiles, directory, messaging, surveys, Content tab, Stitchfest portal, contribution report | Before the event |
+| 3. Wish list | Built-in video rooms with automatic recording, AI harvesting and summaries, Updates tab, participant matching, recognition and bounty system, Liminal Calendar import, network map | After launch, by consensus |
+| 4. Fine-tuning | Finalize the session form after the AI consensus. End-to-end test of the ticket, host, edit, attend, content and feedback flows | Before the event |
+
+A January prototype for team testing covers sign-in, Stripe checkout in test mode, hosting a session, and the calendar with RSVP.
 
 **Out of scope for now**
 
-- Liminal Calendar integration. The data model will keep sessions exportable so the integration can follow.
-- Hylo. Replaced by in-app messaging in Phase 2.
-- Miro and Castalia. These stay as external links in the Members area.
+- Automatic import from the Liminal Calendar. The data model keeps sessions exportable so an integration can follow.
 - Native iOS and Android apps. The mobile experience is a PWA.
 - AI recording, transcription and summaries. Phase 1 stores each session's consent choices so Phase 3 can use them.
+- Running the Happy Money and Stitchfest votes. These happen live on a call. The app supplies the information they need (see Open questions).
 
-## Phase 1 requirements
+## Technology
 
-Phase 1 delivers the Must Haves from the planning doc: one account, registration with payment, and a sessions calendar that stays current.
+| Area | Choice |
+| --- | --- |
+| Database, sign-in, file storage, realtime | Supabase (Postgres with row-level security) |
+| Hosting | Cloudflare |
+| Payments | Limicon's existing Stripe account, Stripe Checkout in USD. The statement descriptor stays "Transdisciplinary Lead East York". |
+| Email | Sent from team@limicon.org on the limicon.org domain, which Limicon controls |
+| App install | PWA |
+
+[`docs/strategy-hosting-options.md`](docs/strategy-hosting-options.md) and [`docs/strategy-database-selection.md`](docs/strategy-database-selection.md) compare the options in detail.
+
+## Phase 1A requirements: registration
 
 ### Accounts and sign-in
 
@@ -83,193 +115,316 @@ Phase 1 delivers the Must Haves from the planning doc: one account, registration
 - **AUTH-2** Sessions persist for at least 30 days on a device so members stay signed in.
 - **AUTH-3** One account per person. Accounts persist across years and keep their history.
 - **AUTH-4** Members can reset access themselves and delete their account.
-- **AUTH-5** Admin is a flag on an account. Admins can grant and revoke it.
+- **AUTH-5** Admin is a role with named permissions. Admins with the right permission can grant and revoke admin access.
 
 ### Registration and ticketing
 
 - **REG-1** A visitor creates an account first, then buys a ticket. No guest checkout.
-- **REG-2** Ticket types: pay what you can (member enters an amount) and fixed tiers. Admins set tier names, prices and the pay-what-you-can minimum.
-- **REG-3** Payment runs through Stripe Checkout in USD. The app records the amount paid and the ticket year.
-- **REG-4** Discount codes: admins create codes as a percentage or fixed amount off, with an optional expiry, usage limit and tier restriction. A 100% code completes registration without payment.
-- **REG-5** A completed ticket unlocks the Members area for that year. A confirmation email goes out automatically, and Stripe sends the receipt.
-- **REG-6** Admins can view all registrations, issue comp tickets and mark refunds. Stripe handles the refund itself.
-- **REG-7** Registration can be opened and closed by an admin. When closed, the page shows a message and a mailing list sign-up.
+- **REG-2** The registration form collects:
+  - first and last name, and email
+  - location (city, state or province, country)
+  - how they heard about Limicon
+  - agreement to the Code of Conduct and the Privacy Policy
+  - a confirmation that they will add team@limicon.org to their contacts
+  - a confirmation that they will check the website and FAQ before emailing questions
+
+  Agreements store a timestamp. Admins can edit these questions.
+- **REG-3** Ticket tiers are fixed and all give the same access. 2026 tiers were Community $25, Standard $50, Abundant $100 and Benefactor $200. Admins set the tier names and prices for each edition.
+- **REG-4** The tier picker shows admin-editable text above the tiers. By default it says:
+  - Limicon aims to be financially accessible.
+  - Anyone who can't pay can email team@limicon.org for a discount code.
+  - Anyone who wants to give more than the Benefactor tier can get in touch.
+  - Card statements show "Transdisciplinary Lead East York".
+- **REG-5** Discount codes: admins create codes as a percentage or fixed amount off, with an optional expiry, usage limit and tier restriction. Admins can also create a single-use code for one person. A 100% code completes registration without payment.
+- **REG-6** Payment runs through Stripe Checkout. The app records the tier, amount paid, discount code and edition.
+- **REG-7** A completed ticket unlocks the Members area for that edition. A confirmation email goes out automatically, and Stripe sends the receipt.
+- **REG-8** Refunds are requested by email to team@limicon.org. Admins mark a ticket refunded in the console, and Stripe issues the refund.
+- **REG-9** Admins can view all registrations and issue comp tickets.
+- **REG-10** Admins can open and close registration. When it is closed, the page shows a message and a mailing list sign-up.
+
+### Contacts and migration
+
+- **MIG-1** All existing contacts move into the app: Wix contacts, mailing list sign-ups and past ticket holders.
+- **MIG-2** Past ticket holders get a ticket record for each edition they attended, marked as imported. This gives them alumni access and the year tags (for example Limicon 2026).
+- **MIG-3** Admins can tag contacts and filter and export by tag and edition.
+
+### Public pages and site editing
+
+- **PUB-1** The public pages are Home, Invitation, Co-Create, History, FAQ, Contact, Accessibility, Privacy Policy and Code of Conduct.
+  - Co-Create keeps its Meetings, Sessions and Open Space Technology Principles sections.
+  - History keeps the 2024 and 2025 content as it is, and adds 2026.
+- **PUB-2** Admins have full editing rights over site content without code: page text, images, links, page order and menu items, and publish or unpublish.
+- **PUB-3** The mailing list form stores emails in the app and lets admins export them.
+- **PUB-4** The Contact form sends to team@limicon.org.
+- **PUB-5** The Accessibility page teaches visitors how to adjust their device and browser settings to suit their needs.
+- **PUB-6** The visual design follows the design guide from the collective design session. It is a fresh design, not a copy of the Wix site.
+
+### Contribution log
+
+- **CON-1** From launch, the app records contribution activity per person. This covers:
+  - sessions hosted
+  - forms submitted
+  - posts, comments and replies
+  - admin actions such as edits to site content, answered contact messages and moderation
+  - time spent in admin tasks, where it can be measured
+- **CON-2** The privacy notice tells members that the app records this activity and why.
+
+## Phase 1B requirements: sessions
 
 ### Session submission (Host a Session)
 
 - **SES-1** Registered members open the Host a Session form from the Members area and from the main menu.
-- **SES-2** The form collects the fields in the next section. Hosts can save a draft, publish, edit and delete their own sessions.
-- **SES-3** Published sessions appear on the calendar immediately. Admins can unpublish or edit any session.
-- **SES-4** Hosts can add co-hosts who are registered members.
-- **SES-5** Hosts choose a privacy option (private, recording shared with participants, with all members, or public) and an AI consent option (see the AI and privacy section).
-- **SES-6** Validation runs on the server. Publishing requires a title, date, start and end time, and a meeting link.
-- **SES-7** The form shows host guidance, tips and the session boilerplate that the Host a Session page carries today.
+- **SES-2** Before the form unlocks, the host must open the host guidelines, scroll to the end and click to accept them. The acceptance is stored with a timestamp. Hosts accept once per edition.
+- **SES-3** Hosts can save a draft, publish, edit and delete their own sessions. There is no approval step and no limit on the number of sessions.
+- **SES-4** Published sessions appear on the calendar immediately. Admins can unpublish or edit any session.
+- **SES-5** Hosts can add co-hosts who are registered members.
+- **SES-6** Publishing requires a title, theme, format, date, start and end time. A session can be published without a meeting link. The session page then shows "Link coming soon", and the host gets a reminder to add the link.
+- **SES-7** The form offers help to hosts without a video room, pointing them to team@limicon.org for a shared room.
+- **SES-8** Hosts choose a privacy option and an AI consent option. The final wording of both waits for the AI consensus (see AI and privacy).
+- **SES-9** Admins can mark an entry as an Organizing Team co-creation meeting. These meetings appear on the same calendar and can be filtered.
+- **SES-10** Validation runs on the server.
 
 ### Sessions calendar and RSVP
 
-- **CAL-1** Three views: month calendar, three-day view and chronological list.
-- **CAL-2** Filter and search by day, week, theme, format and keyword.
-- **CAL-3** Times display in the member's local time zone, with a time zone selector. The server stores UTC.
+- **CAL-1** Three views: three-day, month and chronological list. The three-day view is the default on desktop and the list view is the default on phones.
+- **CAL-2** Filter and search by day, week, theme, format, session or co-creation meeting, and keyword.
+- **CAL-3** Times display in the viewer's time zone, with a selector to change it. The server stores UTC and each session's time zone. Daylight-saving changes during the event window display correctly for every viewer.
 - **CAL-4** Any create, edit or cancel shows on every open calendar within 10 seconds, without a page reload.
 - **CAL-5** Members RSVP and cancel an RSVP in one click. An optional capacity and waitlist apply when a host sets them.
-- **CAL-6** My Schedule lists the sessions a member joined and updates the moment they RSVP.
-- **CAL-7** Members subscribe to My Schedule through an ICS feed and add single sessions to Google, Apple or Outlook calendars.
-- **CAL-8** An admin switch turns the calendar on and off. When off, the calendar shows an explanatory message and hosts cannot submit sessions.
-- **CAL-9** Session detail pages show description, theme, format, host, time, meeting link (members only), privacy option and RSVP count.
+- **CAL-6** When a member RSVPs, they choose whether to get a reminder before that session.
+- **CAL-7** My Schedule lists the sessions a member joined and updates the moment they RSVP.
+- **CAL-8** Members subscribe to My Schedule through an ICS feed and add single sessions to Google, Apple or Outlook calendars.
+- **CAL-9** Admins can turn the calendar on and off. When it is off, the calendar shows an explanatory message and hosts cannot submit sessions.
+- **CAL-10** Session detail pages show:
+  - description, theme and format
+  - host and time
+  - the meeting link, to members only
+  - the privacy option and RSVP count
 
 ### Notifications
 
-- **NOT-1** A member receives an email when a session they joined changes date or time, or is cancelled.
-- **NOT-2** A member receives a reminder 24 hours before each session they joined.
-- **NOT-3** A host receives a confirmation when a session is published, and a follow-up after the session with links to submit content and complete feedback.
-- **NOT-4** Members control marketing email preferences. Transactional email always sends.
+- **NOT-1** Everyone who RSVPed gets an email when a session changes date or time, or is cancelled.
+- **NOT-2** Members who opted in at RSVP get a reminder before that session.
+- **NOT-3** Hosts get a reminder before each session they host, including a prompt to add the meeting link if it is missing.
+- **NOT-4** Hosts get a confirmation when a session is published. After the session, they get a follow-up with links to the content submission and host feedback forms.
+- **NOT-5** Ticket holders get event-level emails that admins schedule, such as the opening reminder. They do not get a reminder for every session.
+- **NOT-6** Members control marketing email preferences. Transactional email always sends.
 
-### Public pages and admin
+### Session forms
 
-- **PUB-1** Rebuild Home, Invitation, Co-Create, History (2024, 2025, 2026 when available), FAQ, Contact, Accessibility, Privacy and Code of Conduct. Content stays editable by admins without code changes.
-- **PUB-2** The mailing list form stores emails in the app and lets admins export them.
-- **PUB-3** The Contact form sends to the Limicon team address.
-- **ADM-1** Admin console with tabs for users, tickets, discount codes, sessions, emails and site content.
-- **ADM-2** Export users, registrations and sessions as CSV.
+These in-app forms replace the Google Forms. Admins can edit their questions.
+
+- **FRM-1 Session Harvest.** Any registered member can fill it in, for any session. It asks:
+  - which session they attended
+  - one takeaway
+  - what they would like to feed back into the system
+  - what they felt attracted towards or repelled by
+  - the session summed up in one word
+- **FRM-2 Session Content.** Hosts upload slides, documents, recordings and transcripts, or link to them, to share with members. Uploads attach to the session and appear on the Content tab.
+- **FRM-3 Host Feedback.** Only the session's hosts can fill it in. Host and session are filled in automatically. It asks:
+  - number of participants
+  - general feedback (paragraph)
+  - what the experience was like (check all that apply): had fun, felt nervous or anxious, met my expectations, didn't meet my expectations, went according to my plan, strayed wildly from my plan, made meaningful connections, received meaningful insights or learnings, other
+  - how it went (paragraph)
+  - feedback for organizers (paragraph)
+  - whether any tensions arose
+- **FRM-4** If a host reports tensions, the form asks:
+  - which tensions (check all that apply): interruptions, disrespectful behavior, unsolicited feedback or critiques, conflicts among participants, other
+  - a description of what happened
+  - whether they want support from the Organizing Team
+
+  A request for support alerts admins who hold the moderation permission.
+- **FRM-5** Admins see all responses in the console and export them as CSV.
+
+### Members area
+
+- **MEM-1** The Members home links to the calendar, My Schedule, Host a Session, the session forms, the Content tab (Phase 2), the directory and messages (Phase 2), and Accessibility.
+- **MEM-2** Miro and Castalia appear as external links. Admins set the URLs for each edition.
+- **MEM-3** Host guidance, tips, session attributes and the session boilerplate from today's Host a Session page live in the Members area.
+
+### Admin console
+
+- **ADM-1** The admin console has tabs for users and contacts, tickets, discount codes, sessions, forms, emails, site content, reports, and permissions.
+- **ADM-2** Admins can export users, registrations, sessions and form responses as CSV.
 
 ## Session form fields
 
-These fields adapt the session editor from the Festival for Re-imagining the Economy site (one shared editor for host create, host edit and admin edit) to Limicon's themes, formats and privacy options. Limicon sessions are online, so in-person fields are left out.
+The session editor is shared for host create, host edit and admin edit. It adapts the editor from the Festival for Re-imagining the Economy site. The privacy and AI fields stay provisional until the AI consensus.
 
 | Field | Control | Required | Rules and notes |
 | --- | --- | --- | --- |
 | Session title | Text | Yes | Maximum 60 characters, with a live counter |
 | Description | Textarea | No | What will happen and who it suits |
 | Intention | Textarea | No | Purpose or hoped-for takeaways |
-| Theme | Single select | Yes | The nine Limicon themes: Collective Sensemaking and Systems Thinking; Spirituality, Ritual and Contemplative Practice; Practical Tools, Skills and Resources; Personal Growth and Inner Work; Consciousness Exploration; Play, Games and Experimentation; Community, Belonging and Relational Culture; Creative Expression and Storytelling; Conference Meta and Co-Creation Spaces |
+| Theme | Single select | Yes | Collective Sensemaking and Systems Thinking; Spirituality, Ritual and Contemplative Practice; Practical Tools, Skills and Resources; Personal Growth and Inner Work; Consciousness Exploration; Play, Games and Experimentation; Community, Belonging and Relational Culture; Creative Expression and Storytelling; Conference Meta and Co-Creation Spaces |
 | Format | Single select | Yes | Lecture, Collaborative, Experiential or Embodied, Narrative or Storytelling, Interactive Workshop, Discussion, Playful, Social |
+| Online or in person | Select | Yes | Defaults to online. In-person sessions show a city and a venue note instead of a meeting link |
 | Date | Date picker | Yes to publish | Within the event window set by admins |
 | Start and end time | Time pickers | Yes to publish | End after start. Minimum 15 minutes. Entered in the host's time zone, stored in UTC |
 | Time zone | Select | Yes | Defaults to the host's profile time zone |
-| Meeting link | URL | Yes to publish | Shown to signed-in members only. Warn on invalid or non-https links |
+| Meeting link | URL | No | Shown to signed-in members only. Warn on invalid or non-https links |
 | Maximum participants | Number | No | Blank means unlimited |
 | Waitlist when full | Checkbox | No | Default off |
 | Privacy and recording | Single select | Yes | Private (not recorded); recording available to session participants; recording available to all Limicon members; recording publicly available |
-| AI Assistant consent | Select and checkboxes | Yes | See the AI and privacy section |
+| AI Assistant consent | Select and checkboxes | Yes | See AI and privacy |
 | Co-hosts | Member search | No | Registered members only |
 | Pre-reading | Links and file uploads | No | PDF, DOC, DOCX, TXT; 10 MB maximum per file |
 | Cover image | Image upload | No | JPEG, PNG or WebP; compressed on upload |
+| Co-creation meeting (admin only) | Checkbox | n/a | Marks an Organizing Team meeting |
 | Status (admin only) | Select | n/a | Draft, published, cancelled, completed |
 
 **Actions on the form**
 
-- Save draft: stores the session with status draft and no validation of publish-only fields.
-- Publish to calendar: validates every publish-required field, then sets status published.
+- Save draft: stores the session with status draft and skips publish-only validation.
+- Publish to calendar: validates the publish-required fields, then sets the status to published.
 - Delete session: hosts can delete their own sessions after a confirmation. If members have RSVPed, the app notifies them and marks the session cancelled instead of removing it.
 
-**Session content and feedback**
-
-The two Google Forms the hosts use today become in-app forms: session content submission (links and files for the session record) and host feedback. Both reach the host from the follow-up email in NOT-3.
-
 ## Phase 2 requirements
-
-Phase 2 replaces the Hylo functions the team uses (profiles, discussion, direct messages) and adds feedback and Stitchfest.
 
 ### Profiles and directory
 
 - **PRO-1** Profile fields: first and last name, photo, location, bio (150 characters), extended bio (up to 1,000 words), links, keywords, and organizations.
-- **PRO-2** Members-only directory with search by name and keyword. Emails never appear in the directory.
-- **PRO-3** Each member controls whether they appear in the directory and whether others can message them. Defaults are on, and members can change them in Settings.
-- **PRO-4** Profiles are visible to registered members of the current year and to alumni. They are never public.
+- **PRO-2** A members-only directory with search by name and keyword. Emails never appear in the directory.
+- **PRO-3** Each member controls whether they appear in the directory and whether others can message them. Both default to on.
+- **PRO-4** Current members see current members. Alumni see members tagged with the editions they attended. Profiles are never public.
 
 ### Messaging and discussion
 
 - **MSG-1** One-to-one direct messages between members who allow messages, with unread indicators and email notification preferences.
 - **MSG-2** Group conversations that any member can create, with a title, replies and emoji reactions.
 - **MSG-3** A discussion feed with an admin-only announcements channel and a member channel for requests and offers.
-- **MSG-4** Members can report a message or member. Admins review reports in the console, and can mute or deactivate an account. Moderation follows the Code of Conduct.
-- **MSG-5** Message content is visible to the participants of the thread and to no one else, including admins, except through a report.
+- **MSG-4** Moderation follows the model used on the Festival for Re-imagining the Economy site and the Code of Conduct. Members can report a message or member. Admins review reports and can mute or deactivate an account.
+- **MSG-5** Message content is visible only to the people in the thread. Admins see a message only when someone reports it.
+- **MSG-6** Alumni keep their own messages and contacts from the editions they attended.
 
-### Feedback and surveys
+### Content tab
 
-- **FBK-1** Admins build short surveys from text, rating and multiple-choice questions and attach them to the event or to a session.
-- **FBK-2** Hosts receive a feedback form after their session. Attendees can leave optional feedback on any session they joined.
-- **FBK-3** Admins see responses in the console and export them as CSV.
+- **CNT-1** Sessions are listed in chronological order, with search and filters by edition, theme and format.
+- **CNT-2** Each session page gathers the session details, content uploads (FRM-2), recordings and harvest highlights. What it shows is limited to what the session's privacy option allows.
+- **CNT-3** Recordings play on the site. YouTube embeds remain a fallback if video hosting costs exceed the budget.
+- **CNT-4** Each edition's content stays available to the members of that edition, including as alumni.
+
+### Surveys
+
+- **FBK-1** Admins build surveys from text, rating and multiple-choice questions and attach them to the event or to a session.
+- **FBK-2** Admins see responses in the console and export them as CSV.
 
 ### Stitchfest
 
-- **STI-1** A Stitchfest information page, public or members-only as the team decides.
-- **STI-2** A submission form for registered members, with fields to be defined once the team describes what Stitchfest collects.
-- **STI-3** Admins review, tag and export submissions.
+Stitchfest gives members with outside projects a set time to present, after which participants vote to fund them.
+
+- **STI-1** A Stitchfest information page.
+- **STI-2** A submission form for registered members to propose a project.
+- **STI-3** Admins review submissions, accept presenters and set each presenter's time slot, which appears on the calendar.
+- **STI-4** Admins export submissions and the presenter lineup.
+
+### Contribution report
+
+- **CON-3** Admins see a contribution report per person and per edition, built from the contribution log, to support the Happy Money discussion.
+- **CON-4** Members can see their own contribution record.
+
+## Phase 3 roadmap
+
+- **Built-in video rooms.** Hosts run sessions inside Limicon instead of on their own Zoom. Hosts would no longer need a paid account, organizers could set accessibility options, and recordings and transcripts would flow straight to the Content tab. Cost against the budget needs a check first.
+- **AI harvesting and summaries,** within each session's consent:
+  - transcripts, speaker insights and key takeaways on the Content tab
+  - an Updates tab with Today at Limicon, daily themes, tensions, proposed action items and open questions
+- **Participant matching and session recommendations.**
+- **Recognition and bounty system** that builds on the contribution log.
+- **Liminal Calendar import** and a network map.
 
 ## Data model
 
-The model separates an account (a person, permanent) from a ticket (a person's participation in one year's Limicon). Every year is an edition, so next year's event changes one record rather than the schema. The names below are a starting point for the Phase 0 data architecture review.
+The model separates an account (a person, permanent) from a ticket (a person's participation in one edition). Each Limicon year is an edition. The names below are a starting point for the Phase 0 data architecture review.
 
 | Table | Purpose | Key fields |
 | --- | --- | --- |
-| profiles | One row per person, linked to the auth account | name, photo, bio, extended bio, links, location, keywords, time zone, is\_admin, allow\_messages, show\_in\_directory |
-| editions | One row per Limicon year | year, start and end dates, registration\_open, calendar\_open |
-| ticket\_tiers | Fixed and pay-what-you-can options per edition | edition, name, price, is\_pwyc, pwyc\_minimum |
+| profiles | One row per person, linked to the auth account | name, photo, location, bio, extended bio, links, keywords, time zone, allow\_messages, show\_in\_directory |
+| admin\_permissions | Who holds which admin permission | profile, permission, granted\_by, granted\_at |
+| editions | One row per Limicon year | year, start and end dates, registration\_open, calendar\_open, Miro and Castalia URLs |
+| ticket\_tiers | Tiers per edition | edition, name, price, sort order |
 | discount\_codes | Admin-created codes | code, type (percent or amount), value, expires\_at, max\_uses, tier restriction |
-| tickets | A person's registration for an edition | profile, edition, tier, amount\_paid, discount\_code, stripe\_session\_id, status |
-| sessions | A scheduled session | edition, title, description, intention, theme, format, start, end, time zone, meeting\_link, max\_participants, waitlist\_enabled, privacy\_option, ai\_consent fields, status |
+| tickets | A person's registration for an edition | profile, edition, tier, amount\_paid, discount\_code, stripe\_session\_id, status, imported |
+| registration\_answers | Answers to registration questions | ticket, question, answer, agreed\_at |
+| contacts, contact\_tags | Migrated and mailing list contacts | email, name, source, tags |
+| sessions | A session or co-creation meeting | edition, title, description, intention, theme, format, online or in person, start, end, time zone, meeting\_link, max\_participants, waitlist\_enabled, privacy\_option, ai\_consent fields, is\_cocreation\_meeting, status |
 | session\_hosts | Host and co-host link | session, profile, role |
-| session\_rsvps | Attendance | session, profile, status (registered or waitlisted), created\_at |
-| session\_resources | Pre-reading and content uploads | session, kind, title, url or file path |
+| host\_guideline\_acceptances | Guideline sign-off | profile, edition, accepted\_at |
+| session\_rsvps | Attendance | session, profile, status (registered or waitlisted), wants\_reminder, created\_at |
+| session\_resources | Pre-reading, content uploads and recordings | session, kind, title, url or file path, visibility |
+| forms, form\_questions, form\_responses | Harvest, host feedback, content and surveys | scope (event or session), question type, answer, respondent |
 | notifications\_log | Email sent, for idempotency | profile, type, session, sent\_at |
-| surveys, survey\_questions, survey\_responses | Feedback and surveys | scope (event or session), question type, answer |
+| activity\_log | Contribution log | profile, edition, action type, target, duration where known, created\_at |
 | conversations, conversation\_members, messages, reactions | Direct and group messaging | type, title, body, author, created\_at |
 | reports | Moderation | reporter, target message or profile, reason, status |
-| stitchfest\_submissions | Stitchfest portal | profile, edition, fields to be defined, status |
-| site\_content | Editable page content | slug, title, body, published |
-| mailing\_list | Public signups | email, source, subscribed\_at |
+| stitchfest\_submissions | Stitchfest portal | profile, edition, project fields, status, presentation slot |
+| site\_pages | Editable site content | slug, title, body, menu position, published |
+| mailing\_list | Public sign-ups | email, source, subscribed\_at |
 
 **Rules**
 
-- Row-level security applies to every table. A member reads only what their role allows.
-- The meeting link is hidden from Public visitors and from members without a ticket for the edition.
-- Session times are stored in UTC with the host's time zone for display.
+- Row-level security applies to every table. A member reads only what their role and editions allow.
+- The meeting link is hidden from Public visitors and from accounts without a ticket for the edition.
+- Session times are stored in UTC with the session's time zone.
 - Deleting an account anonymizes its messages and removes personal fields.
 
 ## AI and privacy
 
-Phase 1 collects each host's AI consent choices and stores them with the session. No AI feature ships until the November co-creation sessions on AI reach consensus. The consent fields follow Lauren's proposal, so Phase 3 can build on them without changing the form.
+Phase 1 collects each host's AI consent choices and stores them with the session. No AI feature ships until the AI co-creation sessions reach consensus. The team still has to decide how involved AI will be, and the session form will be reviewed after that. Until then the consent fields follow Lauren's proposal.
 
-**Consent fields on every session**
+**Consent fields on every session (provisional)**
 
 | Question | Answer | Effect |
 | --- | --- | --- |
-| May the Limicon AI Assistant attend this session? | Yes or No | No ends the questions. Without the assistant, the session cannot be recorded or transcribed by Limicon. |
+| May the Limicon AI Assistant attend this session? | Yes or No | No ends the questions. Without the assistant, Limicon cannot record or transcribe the session. |
 | Which permissions are granted? | Recording, transcription, full analysis, anonymized analysis, anonymized themes only (select all that apply) | The assistant may do only what is checked. |
 
 **Rules**
 
-- The consent form carries a plain headline that says what the assistant does and that it acts only within the host's permissions.
-- Hosts can change consent until the session starts. The change is logged with the time and the person.
-- The privacy option (private, participants, all members, public) and the AI consent remain two separate settings. The open question from the team is whether the privacy levels need new wording now that AI bots are in use.
-- Any later AI feature must read the session's stored permissions before it acts. It removes names and avoids direct quotes for sessions that allow anonymized output only, and it skips locked sessions.
-- Recordings and transcripts, when they exist, are stored privately and shown only at the level the host chose.
-
-**Deferred to Phase 3**
-
-- Recordings, transcripts, speaker insights and key takeaways on a Content tab with search.
-- A Today at Limicon summary, daily themes, tensions, proposed action items and open questions.
-- Session recommendations and participant matching.
+- The consent section opens with a plain headline. It says what the assistant does and that it acts only within the host's permissions.
+- Hosts can change consent until the session starts. Each change is logged with the time and the person.
+- Any AI feature must read the session's stored permissions before it acts. Where only anonymized output is allowed, it removes names and avoids direct quotes. It skips sessions where it is not permitted.
+- Recordings and transcripts are stored privately and shown only at the level the host chose.
 
 **Privacy and compliance**
 
-- Members accept a privacy notice and the Code of Conduct at sign-up, and the timestamp is stored.
-- Limicon serves a global audience, so the team confirms which laws to name in the privacy policy (for example GDPR, CCPA and PIPEDA) and sets retention periods for recordings, transcripts and messages.
+- Members accept the Privacy Policy and the Code of Conduct at registration, and the timestamp is stored.
+- Limicon serves a global audience. The team confirms which laws the Privacy Policy names (for example GDPR, CCPA and PIPEDA). It also sets retention periods for recordings, transcripts, messages and the contribution log.
 
 ## Non-functional requirements
 
 | Area | Requirement |
 | --- | --- |
-| Scale | Supports 700 registered members and about 400 expected. Last year's event ran 309 or more sessions, so the calendar must stay fast with 500 sessions and several hundred members browsing at once. |
+| Scale | Supports 700 registered members, with about 400 expected. The calendar stays fast with 500 sessions and several hundred members browsing at once. |
+| Cost | Total running cost of $20 to $100 a month across hosting, database, storage and email. Video storage and streaming are checked against this budget before Phase 2. |
 | Platform | Responsive web app, installable as a PWA on iOS, Android and desktop. Current versions of Chrome, Safari, Firefox and Edge. |
 | PWA | Web manifest and icons, a service worker that caches the app shell, and My Schedule readable offline. Push notifications are optional and follow platform support. |
-| Performance | Pages usable in under 3 seconds on a mid-range phone over 4G. Calendar changes visible to other users within 10 seconds. |
+| Performance | Pages usable in under 3 seconds on a mid-range phone over 4G. Calendar changes visible to others within 10 seconds. |
 | Availability | No planned downtime during the event window. Daily database backups with a tested restore. |
-| Accessibility | WCAG 2.2 AA. Keyboard navigation, screen reader labels, sufficient contrast, reduced-motion support. Accessibility page stays public. |
-| Security | Row-level security on all tables. Stripe handles card data, and the app stores no card numbers. Stripe webhooks verified by signature. Secrets held in the host's environment settings, never in the repo. |
-| Privacy | Least-privilege data access. Admins see only what their tasks require. Meeting links and profiles are visible to ticketed members only. |
-| Email | Transactional email from a verified Limicon domain with SPF, DKIM and DMARC set up. One-click unsubscribe on marketing email. |
-| Global use | All times shown in the user's time zone. Interface in English for 2027, with text kept in a translation-ready structure. |
+| Accessibility | The build targets WCAG 2.2 AA: keyboard navigation, screen reader labels, sufficient contrast, reduced-motion support. Limicon has made no public commitment to a standard. |
+| Security | Row-level security on all tables. Stripe handles card data, and the app stores no card numbers. Stripe webhooks are verified by signature. Secrets live in the host's environment settings, never in the repo. |
+| Privacy | Least-privilege data access. Admins see only what their permissions cover. Meeting links and profiles are visible to ticketed members only. |
+| Email | Sent from team@limicon.org with SPF, DKIM and DMARC set up on limicon.org. One-click unsubscribe on marketing email. |
+| Global use | All times shown in the viewer's time zone. Interface in English for 2027, with text kept in a translation-ready structure. |
 | Maintainability | Typed code, automated tests on the registration, ticketing and calendar flows, preview deployments for every change, and a short runbook for organizers. |
-| Observability | Error tracking and a simple admin view of failed emails and failed payments. |
+| Observability | Error tracking and an admin view of failed emails and failed payments. |
+
+## Open questions
+
+| # | Question | Owner |
+| --- | --- | --- |
+| 1 | What are the 2027 event dates and the registration opening date? | Organizing Team |
+| 2 | Admin permission levels: which permissions exist (for example team inbox, site content, finance) and who holds each? | Organizing Team meeting |
+| 3 | Volunteer roles such as Stewardship: which projects are there, and what can each see and do? | Organizing Team meeting |
+| 4 | Which Hylo functions (proposals, projects, requests and offers, feed, DMs) must Phase 2 replace? | Organizing Team |
+| 5 | Which surveys run today, and what do they ask? | Organizing Team |
+| 6 | How involved can AI be, and what is the final session form wording for privacy and AI consent? | AI co-creation sessions |
+| 7 | When do the AI sessions conclude, and who records the consensus? | Organizing Team |
+| 8 | Is the Liminal Calendar link kept in the Members area, and how? | Organizing Team |
+| 9 | Should the Happy Money and Stitchfest votes happen in the app or stay on the live call? | Organizing Team |
+| 10 | What fields does a Stitchfest submission need, and is the Stitchfest page public or members-only? | Organizing Team |
+| 11 | Which contribution activities count for Happy Money, and is time spent measured or self-reported? | Organizing Team |
+| 12 | What is the moderation model on the Festival for Re-imagining the Economy site? It should be written up here. | Naryan |
+| 13 | Should Airtable session records from past years move into the app for the History and Content pages? | Organizing Team |
+| 14 | Do recordings move into Limicon storage, and at what cost per month? | Lead builder, James |
+| 15 | Magic link or password for email sign-in? | Team, Phase 0 |
