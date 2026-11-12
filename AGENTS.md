@@ -24,6 +24,7 @@ Each entry names the work that calls for reading the doc.
 - [`devjournal.md`](docs/devjournal.md): catching up on significant code changes and architectural decisions, or adding an entry.
 - [`config-github.md`](docs/config-github.md): GitHub settings, branch protection, CI, Dependabot.
 - [`reference-festival.md`](docs/reference-festival.md): designing or implementing a feature adapted from the Festival for Re-imagining the Economy platform, such as the session editor; it covers that platform's schema, forms, roles and integrations.
+- [`reference-iswebapp.md`](docs/reference-iswebapp.md): borrowing stack choices, patterns or tooling from the IS Web App (`is-app`), such as Supabase auth and data access, profiles, deploys or CI.
 - [`strategy-database-selection.md`](docs/strategy-database-selection.md): choosing the Postgres service and sign-in, connecting the app to them, or setting up test databases.
 - [`strategy-hosting-options.md`](docs/strategy-hosting-options.md): choosing or setting up hosting, database, logging, alerting, email.
 
