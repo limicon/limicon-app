@@ -23,6 +23,7 @@ Each entry names the work that calls for reading the doc.
 
 - [`devjournal.md`](docs/devjournal.md): catching up on significant code changes and architectural decisions, or adding an entry.
 - [`config-github.md`](docs/config-github.md): GitHub settings, branch protection, CI, Dependabot.
+- [`process-commit.md`](docs/process-commit.md): making a commit.
 - [`reference-festival.md`](docs/reference-festival.md): designing or implementing a feature adapted from the Festival for Re-imagining the Economy platform, such as the session editor; it covers that platform's schema, forms, roles and integrations.
 - [`reference-iswebapp.md`](docs/reference-iswebapp.md): borrowing stack choices, patterns or tooling from the IS Web App (`is-app`), such as Supabase auth and data access, profiles, deploys or CI.
 - [`strategy-database-selection.md`](docs/strategy-database-selection.md): choosing the Postgres service and sign-in, connecting the app to them, or setting up test databases.
@@ -32,7 +33,7 @@ Each entry names the work that calls for reading the doc.
 
 - Docs and code comments describe things as they are now and why they are shaped that way. Leave out past states, removed code, rejected alternatives and the conversation that produced them; git history keeps them. Tighten rationale comments rather than delete them.
 - Commit and PR messages state the change and why it matters, without the path of discovery.
-- Add a `docs/devjournal.md` entry for decisions teammates should know about. Agents propose the entry in chat and add it to the file only after a human approves the wording.
+- Add a `docs/devjournal.md` entry for decisions teammates should know about.
 - **AI attribution:**
   - Commits: a `Co-Authored-By:` trailer with the bare model name and version, no patch level or variant suffix such as "(1M context)".
   - No session links or session trailers anywhere, even when the agent's tooling supplies them.

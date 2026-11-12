@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-11 | James (with Opus 5.5) | Agents follow a commit process
+
+Agents commit by `docs/process-commit.md`: they commit on their own, then show you the commit. Ask for changes, or type `y` to push. Agents also write devjournal entries themselves, only for changes that affect how teammates work.
+
+---
+
 ## 2026-11-07 | James (with Opus 5.5) | Devjournal created
 
 This file now records significant code changes and architectural decisions for the team.
