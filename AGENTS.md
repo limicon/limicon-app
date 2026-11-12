@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository. Claude Code reads it t
 
 ## Project
 
-limicon-app is limicon's application. The stack isn't chosen yet.
+limicon-app is limicon's application: React Router 8 in TypeScript, on Cloudflare Workers placed in `aws:us-east-1`, with Supabase for Postgres, sign-in and storage. Server code reaches Postgres through Hyperdrive and checks permissions itself; row-level security stays enabled with no policies. The Technology section of `Limicon Platform PRD.md` records the stack.
 
 ## Documentation
 

@@ -1,6 +1,6 @@
 # Limicon Platform PRD
 
-Nov 5, 2026 · @Naryan · Updated Nov 11, 2026
+Nov 5, 2026 · @Naryan · Updated Nov 12, 2026
 
 Limicon gets one integrated web app, installable on phones as a PWA, that replaces Wix, Airtable, Google Calendar, Google Forms, Google Drive and YouTube. Registration is expected to open in January 2027, so ticketing ships first and the sessions calendar follows before the event.
 
@@ -101,13 +101,15 @@ During the event, admins add relevant Liminal Calendar events to the Limicon cal
 
 | Area | Choice |
 | --- | --- |
-| Database, sign-in, file storage, realtime | Supabase (Postgres with row-level security) |
-| Hosting | Cloudflare |
+| Framework | React Router 8, in TypeScript |
+| Database, sign-in, file storage, realtime | Supabase, in the `us-east-1` (North Virginia) region |
+| Database access | Server code connects through Cloudflare Hyperdrive with an ordinary Postgres driver, and checks permissions itself on every read and write. The browser never queries the database. Row-level security is enabled on every table with no policies, so nothing else can read the tables. |
+| Hosting | Cloudflare Workers, with the placement hint `aws:us-east-1` so the app runs next to the database |
 | Payments | Limicon's existing Stripe account, Stripe Checkout in USD. The statement descriptor stays "Transdisciplinary Lead East York". |
 | Email | Sent from team@limicon.org on the limicon.org domain, which Limicon controls |
 | App install | PWA |
 
-[`docs/strategy-hosting-options.md`](docs/strategy-hosting-options.md) and [`docs/strategy-database-selection.md`](docs/strategy-database-selection.md) compare the options in detail.
+[`docs/strategy-frontend-selection.md`](docs/strategy-frontend-selection.md), [`docs/strategy-hosting-options.md`](docs/strategy-hosting-options.md) and [`docs/strategy-database-selection.md`](docs/strategy-database-selection.md) compare the options in detail.
 
 ## Phase 1A requirements: registration
 
@@ -371,7 +373,7 @@ The model separates an account (a person, permanent) from a ticket (a person's p
 
 **Rules**
 
-- Row-level security applies to every table. A member reads only what their role and editions allow.
+- Server code checks every read and write against the member's role and editions, so a member reads only what those allow. Row-level security is enabled on every table with no policies, which blocks every other route to the data.
 - The meeting link is hidden from Public visitors and from accounts without a ticket for the edition.
 - Session times are stored in UTC with the session's time zone.
 - Deleting an account anonymizes its messages and removes personal fields.
@@ -410,7 +412,7 @@ Phase 1 collects each host's AI consent choices and stores them with the session
 | Performance | Pages usable in under 3 seconds on a mid-range phone over 4G. Calendar changes visible to others within 10 seconds. |
 | Availability | No planned downtime during the event window. Daily database backups with a tested restore. |
 | Accessibility | The build targets WCAG 2.2 AA: keyboard navigation, screen reader labels, sufficient contrast, reduced-motion support. Limicon has made no public commitment to a standard. |
-| Security | Row-level security on all tables. Stripe handles card data, and the app stores no card numbers. Stripe webhooks are verified by signature. Secrets live in the host's environment settings, never in the repo. |
+| Security | Server code checks permissions on every read and write, and row-level security with no policies on every table blocks all other access. Stripe handles card data, and the app stores no card numbers. Stripe webhooks are verified by signature. Secrets live in the host's environment settings, never in the repo. |
 | Privacy | Least-privilege data access. Admins see only what their permissions cover. Meeting links and profiles are visible to ticketed members only. |
 | Email | Sent from team@limicon.org with SPF, DKIM and DMARC set up on limicon.org. One-click unsubscribe on marketing email. |
 | Global use | All times shown in the viewer's time zone. Interface in English for 2027, with text kept in a translation-ready structure. |
@@ -432,3 +434,5 @@ Phase 1 collects each host's AI consent choices and stores them with the session
 | 9 | Do recordings move into Limicon storage, and at what cost per month? | Lead builder, James |
 | 10 | Magic link or password for email sign-in? | Team, Phase 0 |
 | 11 | Which laws does the Privacy Policy name, and how long are recordings, transcripts, messages and the contribution log kept? | Organizing Team |
+| 12 | How do calendar changes reach open pages within 10 seconds (CAL-4)? With no row-level security policies, browsers can't subscribe to Supabase Realtime database changes, and Hyperdrive caches reads for 60 seconds by default. | Lead builder, James |
+| 13 | Does Hyperdrive reach Supabase's direct connection, which is IPv6-only without the IPv4 add-on, or does it need the session pooler? A test project settles it. | Lead builder, James |

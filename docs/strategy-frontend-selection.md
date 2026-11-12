@@ -1,6 +1,6 @@
 # Frontend selection
 
-Which React framework limicon-app is built on: React Router or Next.js. Both are React, so components and most UI libraries carry over either way. Nothing is chosen yet.
+Which React framework limicon-app is built on: React Router or Next.js. Both are React, so components and most UI libraries carry over either way. React Router 8 is chosen, on Cloudflare; the PRD's Technology section records it.
 
 Status: Checked against vendor docs on 2026-11-11, at React Router 8.5.1 and Next.js 16.4.6. The hosts are compared in [`strategy-hosting-options.md`](strategy-hosting-options.md).
 
