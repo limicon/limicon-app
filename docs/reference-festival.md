@@ -1058,7 +1058,7 @@ Then layer: participants network, harvest AI, email CRM, staff consoles.
 | Architecture standards | `architecture.md` |
 | Design tokens | `design_style.md` |
 | Agent brief | `CURSOR_CONTEXT.md` |
-| This document | `PROJECT_REFERENCE.md` |
+| This document | `docs/reference-festival.md` (limicon-app) |
 
 ---
 

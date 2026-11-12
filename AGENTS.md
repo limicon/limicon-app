@@ -10,8 +10,10 @@ limicon-app is limicon's application. The stack isn't chosen yet.
 
 - Project documentation lives in `docs/`.
 - Doc files are mostly named `<type>-<name>.md`. The types are:
-  - config: usage and configuration of tools or frameworks
+  - config: usage and configuration of external platforms, tools, or frameworks
   - feature: requirements, design and implementation of the app's features
+  - process: guides for how to do development tasks
+  - reference: descriptions of other external codebases or sources that limicon-app can take inspiration from
   - strategy: more abstract or cross-cutting specifications
 - When you add, rename or remove a doc, update the table of contents below. Keep the docs and this file in sync with changes.
 
@@ -21,6 +23,7 @@ Each entry names the work that calls for reading the doc.
 
 - [`devjournal.md`](docs/devjournal.md): catching up on significant code changes and architectural decisions, or adding an entry.
 - [`config-github.md`](docs/config-github.md): GitHub settings, branch protection, CI, Dependabot.
+- [`reference-festival.md`](docs/reference-festival.md): designing or implementing a feature adapted from the Festival for Re-imagining the Economy platform, such as the session editor; it covers that platform's schema, forms, roles and integrations.
 - [`strategy-database-selection.md`](docs/strategy-database-selection.md): choosing the Postgres service and sign-in, connecting the app to them, or setting up test databases.
 - [`strategy-hosting-options.md`](docs/strategy-hosting-options.md): choosing or setting up hosting, database, logging, alerting, email.
 
