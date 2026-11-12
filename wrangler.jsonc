@@ -5,6 +5,8 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "limicon-app",
+	// The Limicon Cloudflare account, so deploys can't land in anyone's personal account.
+	"account_id": "6db426201c07f3bf300a732d251ebbc8",
 	"compatibility_date": "2026-11-10",
 	// postgres.js needs Node's net, tls and crypto APIs.
 	"compatibility_flags": ["nodejs_compat"],
@@ -16,13 +18,20 @@
 	"hyperdrive": [
 		{
 			"binding": "HYPERDRIVE",
-			// Placeholder until the Hyperdrive configuration exists in the Limicon Cloudflare account
-			// (`wrangler hyperdrive create`); deploys fail until it's replaced.
-			"id": "00000000000000000000000000000000",
+			// `limicon-db`, which reaches Supabase through its session pooler: the direct
+			// connection is IPv6-only, and Hyperdrive can't reach it.
+			"id": "25f8578782384c258d7614e1a7d3ffdf",
 			// The local Supabase database from `npm run db:start`.
 			"localConnectionString": "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 		}
 	],
+	// The hosted Supabase project, for sign-in. Both values are public. `.dev.vars` overrides
+	// them locally to point at the local Supabase.
+	"vars": {
+		"SUPABASE_URL": "https://kgvkzvocadtlbntpmutq.supabase.co",
+		"SUPABASE_PUBLISHABLE_KEY": "sb_publishable_E7ge_wNZO9PsY12pjYEl9Q_YMUN4bdA",
+		"GOOGLE_SIGN_IN_ENABLED": "false"
+	},
 	"observability": {
 		"enabled": true
 	},

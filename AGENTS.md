@@ -26,6 +26,7 @@ Each entry names the work that calls for reading the doc.
 
 - [`devjournal.md`](docs/devjournal.md): catching up on significant code changes and architectural decisions, or adding an entry.
 - [`config-github.md`](docs/config-github.md): GitHub settings, branch protection, CI, Dependabot.
+- [`config-deployment.md`](docs/config-deployment.md): deploying, changing the hosted database, who can open the hosted app, or where the hosted pieces live.
 - [`config-local-development.md`](docs/config-local-development.md): running the app and the local Supabase, migrations, tests, or turning on Google sign-in locally.
 - [`process-commit.md`](docs/process-commit.md): making a commit.
 - [`reference-festival.md`](docs/reference-festival.md): designing or implementing a feature adapted from the Festival for Re-imagining the Economy platform, such as the session editor; it covers that platform's schema, forms, roles and integrations.

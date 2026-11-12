@@ -103,7 +103,7 @@ During the event, admins add relevant Liminal Calendar events to the Limicon cal
 | --- | --- |
 | Framework | React Router 8, in TypeScript |
 | Database, sign-in, file storage, realtime | Supabase, in the `us-east-1` (North Virginia) region |
-| Database access | Server code connects through Cloudflare Hyperdrive with an ordinary Postgres driver, and checks permissions itself on every read and write. The browser never queries the database. Row-level security is enabled on every table with no policies, so nothing else can read the tables. |
+| Database access | Server code connects through Cloudflare Hyperdrive, which reaches Supabase through its session pooler, with an ordinary Postgres driver, and checks permissions itself on every read and write. The browser never queries the database. Row-level security is enabled on every table with no policies, so nothing else can read the tables. |
 | Hosting | Cloudflare Workers, with the placement hint `aws:us-east-1` so the app runs next to the database |
 | Payments | Limicon's existing Stripe account, Stripe Checkout in USD. The statement descriptor stays "Transdisciplinary Lead East York". |
 | Email | Sent from team@limicon.org on the limicon.org domain, which Limicon controls |
@@ -435,4 +435,3 @@ Phase 1 collects each host's AI consent choices and stores them with the session
 | 10 | Magic link or password for email sign-in? | Team, Phase 0 |
 | 11 | Which laws does the Privacy Policy name, and how long are recordings, transcripts, messages and the contribution log kept? | Organizing Team |
 | 12 | How do calendar changes reach open pages within 10 seconds (CAL-4)? With no row-level security policies, browsers can't subscribe to Supabase Realtime database changes, and Hyperdrive caches reads for 60 seconds by default. | Lead builder, James |
-| 13 | Does Hyperdrive reach Supabase's direct connection, which is IPv6-only without the IPv4 add-on, or does it need the session pooler? A test project settles it. | Lead builder, James |

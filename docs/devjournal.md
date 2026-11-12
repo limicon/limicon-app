@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-12 | Lauren (with Opus 5.5) | The app is live behind Cloudflare Access
+
+limicon-app runs at limicon-app.limicon.workers.dev, open only to Limicon Cloudflare account members. Hyperdrive reaches the hosted Supabase through its session pooler; the direct connection failed. `docs/config-deployment.md` covers deploying and changing the hosted database.
+
+---
+
 ## 2026-11-12 | Lauren (with Opus 5.5) | The app runs locally, with email sign-in
 
 The React Router 8 app, local Supabase, first tables and email sign-in are in. `docs/config-local-development.md` covers running it. CI typechecks, tests (including that every table blocks Data API reads) and builds on each push. Google sign-in waits for an OAuth client.
