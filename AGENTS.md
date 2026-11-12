@@ -26,8 +26,9 @@ Each entry names the work that calls for reading the doc.
 - [`process-commit.md`](docs/process-commit.md): making a commit.
 - [`reference-festival.md`](docs/reference-festival.md): designing or implementing a feature adapted from the Festival for Re-imagining the Economy platform, such as the session editor; it covers that platform's schema, forms, roles and integrations.
 - [`reference-iswebapp.md`](docs/reference-iswebapp.md): borrowing stack choices, patterns or tooling from the IS Web App (`is-app`), such as Supabase auth and data access, profiles, deploys or CI.
-- [`strategy-database-selection.md`](docs/strategy-database-selection.md): choosing the Postgres service and sign-in, connecting the app to them, or setting up test databases.
-- [`strategy-hosting-options.md`](docs/strategy-hosting-options.md): choosing or setting up hosting, database, logging, alerting, email.
+- [`strategy-database-selection.md`](docs/strategy-database-selection.md): choosing the Postgres service and sign-in, deciding where permissions live, connecting the app to the database, or setting up test databases.
+- [`strategy-frontend-selection.md`](docs/strategy-frontend-selection.md): choosing between React Router and Next.js, or setting up rendering, data loading and sign-in in either.
+- [`strategy-hosting-options.md`](docs/strategy-hosting-options.md): choosing or setting up hosting, logging, alerting, email.
 
 ## Writing
 
