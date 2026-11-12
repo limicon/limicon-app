@@ -30,7 +30,7 @@
 	"vars": {
 		"SUPABASE_URL": "https://kgvkzvocadtlbntpmutq.supabase.co",
 		"SUPABASE_PUBLISHABLE_KEY": "sb_publishable_E7ge_wNZO9PsY12pjYEl9Q_YMUN4bdA",
-		"GOOGLE_SIGN_IN_ENABLED": "false"
+		"GOOGLE_SIGN_IN_ENABLED": "true"
 	},
 	"observability": {
 		"enabled": true
