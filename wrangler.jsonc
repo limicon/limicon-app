@@ -1,0 +1,30 @@
+/**
+ * Cloudflare Worker configuration.
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "limicon-app",
+	"compatibility_date": "2026-11-10",
+	// postgres.js needs Node's net, tls and crypto APIs.
+	"compatibility_flags": ["nodejs_compat"],
+	"main": "./workers/app.ts",
+	// Run next to the Supabase database in North Virginia, so each page pays one long round trip
+	// to the visitor instead of one per query. Static files are still served from the nearest
+	// data centre.
+	"placement": { "mode": "targeted", "region": "aws:us-east-1" },
+	"hyperdrive": [
+		{
+			"binding": "HYPERDRIVE",
+			// Placeholder until the Hyperdrive configuration exists in the Limicon Cloudflare account
+			// (`wrangler hyperdrive create`); deploys fail until it's replaced.
+			"id": "00000000000000000000000000000000",
+			// The local Supabase database from `npm run db:start`.
+			"localConnectionString": "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+		}
+	],
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true
+}

@@ -18,7 +18,7 @@ Write to the human in plain language; they may not know git. Include your recomm
    - very large files
    - files unrelated to the task
 4. **Decide whether the change needs a docs/devjournal.md entry.** Most commits don't. Write one only if the future work of human teammates will be impacted by reading it. Stage it with the rest.
-5. **Run the tests and checks.** Never ignore a failure, regardless of the cause. (This repo has no tests or linters yet.)
+5. **Run the tests and checks.** Never ignore a failure, regardless of the cause. Run `npm run typecheck` and `npm test`, with the local Supabase running for the database tests.
 6. **Draft the message.**
    - Subject: an imperative summary of the change, such as "Let hosts edit a session after submitting it". Keep it to 72 characters or fewer.
    - Body: what changed and why it matters. Leave out how the change was found.

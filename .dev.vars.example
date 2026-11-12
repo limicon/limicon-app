@@ -1,0 +1,10 @@
+# Copy to .dev.vars (which git ignores) for local development. `npm run dev` reads it.
+
+# The local Supabase API from `npm run db:start`.
+SUPABASE_URL=http://127.0.0.1:54321
+# The publishable key that `npx supabase status` prints. The local key is the same on every
+# machine and only works against the local Supabase.
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_from_supabase_status
+
+# Shows "Continue with Google" once Google sign-in is set up in supabase/config.toml.
+GOOGLE_SIGN_IN_ENABLED=false

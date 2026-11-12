@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-12 | Lauren (with Opus 5.5) | The app runs locally, with email sign-in
+
+The React Router 8 app, local Supabase, first tables and email sign-in are in. `docs/config-local-development.md` covers running it. CI typechecks, tests (including that every table blocks Data API reads) and builds on each push. Google sign-in waits for an OAuth client.
+
+---
+
 ## 2026-11-12 | Lauren (with Opus 5.5) | React Router 8, with Supabase through Hyperdrive
 
 The app is React Router 8 on Cloudflare Workers, placed in `aws:us-east-1` next to Supabase. Server code reaches Postgres through Hyperdrive and checks permissions itself; RLS stays on with no policies. PRD open questions 12 and 13 cover live calendar updates and the Hyperdrive connection.

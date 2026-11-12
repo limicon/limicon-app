@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Typecheck, test and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      # Local-development values only; they type the Worker's environment for the typecheck.
+      - run: cp .dev.vars.example .dev.vars
+      - run: npm run typecheck
+      # Postgres alone, with the migrations applied, for the database tests.
+      - run: npx supabase db start
+      - run: npm test
+      - run: npm run build

@@ -6,6 +6,9 @@ Guidance for AI coding agents working in this repository. Claude Code reads it t
 
 limicon-app is limicon's application: React Router 8 in TypeScript, on Cloudflare Workers placed in `aws:us-east-1`, with Supabase for Postgres, sign-in and storage. Server code reaches Postgres through Hyperdrive and checks permissions itself; row-level security stays enabled with no policies. The Technology section of `Limicon Platform PRD.md` records the stack.
 
+- React Router guidance matched to the installed version is in `.agents/skills/react-router/` and `node_modules/react-router/docs/`. Prefer them to remembered examples from older versions.
+- Data access runs only in server code (`*.server.ts`, loaders, actions), through the request's `db()` from `servicesContext`. Every query checks the signed-in member's permissions itself.
+
 ## Documentation
 
 - Project documentation lives in `docs/`.
@@ -23,6 +26,7 @@ Each entry names the work that calls for reading the doc.
 
 - [`devjournal.md`](docs/devjournal.md): catching up on significant code changes and architectural decisions, or adding an entry.
 - [`config-github.md`](docs/config-github.md): GitHub settings, branch protection, CI, Dependabot.
+- [`config-local-development.md`](docs/config-local-development.md): running the app and the local Supabase, migrations, tests, or turning on Google sign-in locally.
 - [`process-commit.md`](docs/process-commit.md): making a commit.
 - [`reference-festival.md`](docs/reference-festival.md): designing or implementing a feature adapted from the Festival for Re-imagining the Economy platform, such as the session editor; it covers that platform's schema, forms, roles and integrations.
 - [`reference-iswebapp.md`](docs/reference-iswebapp.md): borrowing stack choices, patterns or tooling from the IS Web App (`is-app`), such as Supabase auth and data access, profiles, deploys or CI.
