@@ -21,7 +21,7 @@ Write to the human in plain language; they may not know git. Include your recomm
 5. **Run the tests and checks.** Never ignore a failure, regardless of the cause. Run `npm run typecheck` and `npm test`, with the local Supabase running for the database tests.
 6. **Draft the message.**
    - Subject: an imperative summary of the change, such as "Let hosts edit a session after submitting it". Keep it to 72 characters or fewer.
-   - Body: what changed and why it matters. Leave out how the change was found.
+   - Body: what changed and why it matters. Leave out how the change was found. Don't hard-wrap lines.
    - Trailers: as in `AGENTS.md` → Writing → AI attribution.
 7. **Commit.**
 8. **Show the commit, in one message.** (If step 2 made several commits, show them all together.)
