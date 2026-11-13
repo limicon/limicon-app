@@ -5,7 +5,7 @@ import { giveTicket, newEmail, setName, signIn } from "./support";
 
 /** Gives the account for `email` the Admin role, which can post updates. */
 async function makeAdmin(email: string) {
-  const sql = postgres(process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres", { max: 1, onnotice: () => {} });
+  const sql = postgres(process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54372/postgres", { max: 1, onnotice: () => {} });
   try {
     await sql`
       insert into public.admin_permissions (profile_id, permission)

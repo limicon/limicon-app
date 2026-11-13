@@ -5,7 +5,7 @@ import { createAccount, newEmail, setName, signIn } from "./support";
 
 /** Gives the account for `email` the role `role` in the local database. */
 async function giveRole(email: string, role: string) {
-  const sql = postgres(process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres", { max: 1, onnotice: () => {} });
+  const sql = postgres(process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54372/postgres", { max: 1, onnotice: () => {} });
   try {
     await sql`
       insert into public.admin_permissions (profile_id, permission)

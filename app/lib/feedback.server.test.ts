@@ -8,7 +8,7 @@ import type { HostFeedback } from "./feedback";
 import { countFeedback, getHarvest, getHostFeedback, listFeedback, listOtherHarvestSessions, saveHarvest, saveHostFeedback } from "./feedback.server";
 
 const sql = postgres(
-  process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+  process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54372/postgres",
   { max: 1, fetch_types: false, onnotice: () => {} },
 );
 
