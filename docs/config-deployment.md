@@ -33,6 +33,23 @@ The hosted database holds real data, so follow `AGENTS.md` → Production safety
 
 Deploy app code that needs a new column only after the migration that adds it.
 
+## Data API
+
+The Data API is off, since the app reads data through Hyperdrive. PostgREST still runs, and logs `schema "pg_pgrst_no_exposed_schemas" does not exist` for its missing placeholder schema. The hosted database points it at an empty schema instead ([Supabase's guide](https://supabase.com/docs/guides/troubleshooting/schema-pg_pgrst_no_exposed_schemas-does-not-exist)):
+
+```sql
+create schema pgrst_no_exposed_schemas;
+alter role authenticator set pgrst.db_schemas = 'pgrst_no_exposed_schemas';
+notify pgrst;
+```
+
+This role setting overrides the dashboard and is invisible to migrations. Undo it before turning the Data API back on:
+
+```sql
+alter role authenticator reset pgrst.db_schemas;
+notify pgrst;
+```
+
 ## Sign-in email
 
 Hosted Supabase's built-in email sends only to members of the Limicon Supabase organization, about two emails an hour. Other people can't sign in until an email service is set up as Supabase's SMTP sender.
