@@ -25,10 +25,12 @@ limicon-app is limicon's application: React Router 8 in TypeScript, on Cloudflar
 Each entry names the work that calls for reading the doc.
 
 - [`devjournal.md`](docs/devjournal.md): catching up on significant code changes and architectural decisions, or adding an entry.
+- [`config-cloudflare.md`](docs/config-cloudflare.md): deploying, who can open the hosted app, or the Worker and Hyperdrive settings.
 - [`config-github.md`](docs/config-github.md): GitHub settings, branch protection, CI, Dependabot.
-- [`config-deployment.md`](docs/config-deployment.md): deploying, changing the hosted database, who can open the hosted app, or where the hosted pieces live.
-- [`config-local-development.md`](docs/config-local-development.md): running the app and the local Supabase, migrations, tests, or turning on Google sign-in locally.
+- [`config-googlecloud.md`](docs/config-googlecloud.md): the Google sign-in client, its secret, or Google's test users.
+- [`config-supabase.md`](docs/config-supabase.md): changing the hosted database, the Data API, sign-in email, or the database password.
 - [`process-commit.md`](docs/process-commit.md): making a commit.
+- [`process-local-development.md`](docs/process-local-development.md): running the app and the local Supabase, migrations, tests, or turning on Google sign-in locally.
 - [`reference-festival.md`](docs/reference-festival.md): designing or implementing a feature adapted from the Festival for Re-imagining the Economy platform, such as the session editor; it covers that platform's schema, forms, roles and integrations.
 - [`reference-iswebapp.md`](docs/reference-iswebapp.md): borrowing stack choices, patterns or tooling from the IS Web App (`is-app`), such as Supabase auth and data access, profiles, deploys or CI.
 - [`strategy-database-selection.md`](docs/strategy-database-selection.md): choosing the Postgres service and sign-in, deciding where permissions live, connecting the app to the database, or setting up test databases.
