@@ -34,6 +34,7 @@ Each entry names the work that calls for reading the doc.
 - [`strategy-database-selection.md`](docs/strategy-database-selection.md): choosing the Postgres service and sign-in, deciding where permissions live, connecting the app to the database, or setting up test databases.
 - [`strategy-frontend-selection.md`](docs/strategy-frontend-selection.md): choosing between React Router and Next.js, or setting up rendering, data loading and sign-in in either.
 - [`strategy-hosting-options.md`](docs/strategy-hosting-options.md): choosing or setting up hosting, logging, alerting, email.
+- [`strategy-testing.md`](docs/strategy-testing.md): deciding what kind of test to write, or how much of each.
 
 ## Writing
 
