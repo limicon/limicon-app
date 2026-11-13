@@ -22,7 +22,7 @@
 			// connection is IPv6-only, and Hyperdrive can't reach it.
 			"id": "25f8578782384c258d7614e1a7d3ffdf",
 			// The local Supabase database from `npm run db:start`.
-			"localConnectionString": "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+			"localConnectionString": "postgresql://postgres:postgres@127.0.0.1:54372/postgres"
 		}
 	],
 	// The hosted Supabase project, for sign-in. Both values are public. `.dev.vars` overrides

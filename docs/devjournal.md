@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-13 | James (with Opus 5.5) | Local Supabase ports moved up by 50
+
+The local Supabase now runs on 54370–54379 (API 54371, database 54372), so it can run alongside another project's stack on the defaults. After pulling, run `npm run db:stop` then `npm run db:start`, and set `SUPABASE_URL` in `.dev.vars` to `http://127.0.0.1:54371`.
+
+---
+
 ## 2026-11-12 | Lauren (with Opus 5.5) | The app is live behind Cloudflare Access
 
 limicon-app runs at limicon-app.limicon.workers.dev, open only to Limicon Cloudflare account members. Hyperdrive reaches the hosted Supabase through its session pooler; the direct connection failed. `docs/config-cloudflare.md` covers deploying, and `docs/config-supabase.md` changing the hosted database.

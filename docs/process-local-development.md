@@ -28,16 +28,16 @@ The Supabase CLI and Wrangler (Cloudflare's tool) come with the project's packag
 | `npm run typecheck` | Checks types, after regenerating the Worker's and the routes' types. |
 | `npm test` | Runs the tests. The database tests need the local Supabase running. |
 
-`npx supabase status` lists the local addresses, including Mailpit, which catches every email the local Supabase sends, at http://127.0.0.1:54324.
+`npx supabase status` lists the local addresses, including Mailpit, which catches every email the local Supabase sends, at http://127.0.0.1:54374. Every local port sits 50 above Supabase's default, so limicon's stack can run alongside another project's local Supabase.
 
-Studio, Supabase's database browser, is off in `supabase/config.toml`. It's the heaviest local service, and when it misses its health check `supabase start` stops everything. To use it, set `enabled = true` under `[studio]` and restart; it then runs at http://127.0.0.1:54323.
+Studio, Supabase's database browser, is off in `supabase/config.toml`. It's the heaviest local service, and when it misses its health check `supabase start` stops everything. To use it, set `enabled = true` under `[studio]` and restart; it then runs at http://127.0.0.1:54373.
 
 ## How the pieces connect locally
 
 - **Pages and server code** run in Cloudflare's Workers runtime through its Vite plugin, so local behaviour matches production.
-- **Data** goes through the `HYPERDRIVE` binding in `wrangler.jsonc`. Locally, its `localConnectionString` points straight at the Supabase database on port 54322, with no Hyperdrive in between, so there's no read cache.
-- **Sign-in** uses the local Supabase API on port 54321. Sign-in emails land in Mailpit, not a real inbox.
+- **Data** goes through the `HYPERDRIVE` binding in `wrangler.jsonc`. Locally, its `localConnectionString` points straight at the Supabase database on port 54372, with no Hyperdrive in between, so there's no read cache.
+- **Sign-in** uses the local Supabase API on port 54371. Sign-in emails land in Mailpit, not a real inbox.
 
 ## Google sign-in
 
-Off until Limicon has a Google Cloud OAuth client. To turn it on locally, put the client's ID and secret in `supabase/.env` as `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` and `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`, set `enabled = true` under `[auth.external.google]` in `supabase/config.toml`, restart Supabase, and set `GOOGLE_SIGN_IN_ENABLED=true` in `.dev.vars`. The client needs `http://127.0.0.1:54321/auth/v1/callback` as an authorised redirect URI.
+Off until Limicon has a Google Cloud OAuth client. To turn it on locally, put the client's ID and secret in `supabase/.env` as `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` and `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`, set `enabled = true` under `[auth.external.google]` in `supabase/config.toml`, restart Supabase, and set `GOOGLE_SIGN_IN_ENABLED=true` in `.dev.vars`. The client needs `http://127.0.0.1:54371/auth/v1/callback` as an authorised redirect URI.
