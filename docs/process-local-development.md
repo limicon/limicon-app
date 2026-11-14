@@ -27,7 +27,7 @@ The Supabase CLI and Wrangler (Cloudflare's tool) come with the project's packag
 | `npx supabase migration new <name>` | Creates an empty, timestamped migration file. |
 | `npm run typecheck` | Checks types, after regenerating the Worker's and the routes' types. |
 | `npm test` | Runs the tests. The database tests need the local Supabase running. |
-| `npm run test:e2e` | Builds the app and runs the Playwright tests in `e2e/` against it in Chromium, at http://localhost:4173. Run `npx playwright install chromium` once first. |
+| `npm run test:e2e` | Builds the app and runs the Playwright tests in `e2e/` against it in Chromium, at http://localhost:4173. Starts the local Supabase if it isn't running, and stops it afterwards. Run `npx playwright install chromium` once first. |
 
 `npx supabase status` lists the local addresses, including Mailpit, which catches every email the local Supabase sends, at http://127.0.0.1:54324.
 
