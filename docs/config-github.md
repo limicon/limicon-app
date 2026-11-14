@@ -25,12 +25,12 @@ Suggestions for Settings → General → Pull Requests (inspired by is-app).
 | Setting | Now | Candidate | Notes |
 |---|---|---|---|
 | Allow merge commits | on | on | Keeps each PR as one visible unit in `main`'s history. |
-| Allow squash merging | on | off | Collapses a PR's commits into one. If several methods are allowed, whoever merges picks one each time. |
-| Allow rebase merging | on | off | Replays the PR's commits onto `main` with no merge commit, so there's no record of where the PR started and ended. |
+| Allow squash merging | off | off | Collapses a PR's commits into one. If several methods are allowed, whoever merges picks one each time. |
+| Allow rebase merging | off | off | Replays the PR's commits onto `main` with no merge commit, so there's no record of where the PR started and ended. |
 | Default merge commit title | "Merge pull request #N from …" | PR title | |
 | Default merge commit message | PR title | PR description | Moves the PR body into `main`'s history. |
 | Always suggest updating PR branches | off | on | Prompts the author when `main` has moved. The **Update branch** button merges `main` into the branch; rebasing locally is the alternative. |
-| Automatically delete head branches | off | on | Deletes the remote branch after merge. |
+| Automatically delete head branches | on | on | Deletes the remote branch after merge. |
 | Allow auto-merge | off | off | Auto-merge waits only for *required* checks, so it's only safe once every check that matters is required. |
 
 The Candidate column configures "merge commits only" for detailed semi-linear history.
