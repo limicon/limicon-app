@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["vite.config.ts", "vitest.config.ts", "supabase/tests/**/*.ts"],
+  "include": ["vite.config.ts", "vitest.config.ts", "playwright.config.ts", "supabase/tests/**/*.ts", "e2e/**/*.ts"],
   "compilerOptions": {
     "composite": true,
     "strict": true,

@@ -10,6 +10,7 @@
     "build": "react-router build",
     "typecheck": "wrangler types && react-router typegen && tsc -b",
     "test": "vitest run",
+    "test:e2e": "npm run build && playwright test",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.69.1",
+    "@playwright/test": "^1.65.0",
     "@react-router/dev": "^8.5.1",
     "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^22.20.5",

@@ -47,7 +47,7 @@ The candidate below is a repository ruleset targeting the default branch (`~DEFA
 | Block force pushes | off | on | `main`'s history can't be rewritten. |
 | Require a pull request | off | on, 0 approvals | Every change goes through a PR, solo work included, so CI runs before merge. Zero approvals means one person isn't blocked waiting for review. |
 | Require code owner review | off | on | With zero approvals, this applies only to paths in `.github/CODEOWNERS`. Listing `.github/workflows/` and `CODEOWNERS` there means a workflow change, which can reach CI secrets, needs a second person. |
-| Require status checks | off | the main CI job | Needs CI. The check name is the job's `name:` in the workflow file. |
+| Require status checks | off | the CI jobs | Needs CI. The check name is the job's `name:` in the workflow file. |
 | Require branches to be up to date | off | on | Needs CI. CI must have passed on the exact commit that lands. |
 | Bypass list | — | Repository admin, "For pull requests only" | Admins can override a rule only by ticking a checkbox in the merge box. The other mode, "Always", silently skips every rule, code owner review included. |
 
