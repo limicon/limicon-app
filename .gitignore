@@ -1,8 +1,18 @@
-.DS_Store
 .env
 .env.*
 /node_modules/
 *.tsbuildinfo
+npm-debug.log*
+
+# OS and editors (.vscode/settings.json is shared and stays tracked)
+.DS_Store
+Thumbs.db
+.idea/
+*.code-workspace
+
+# Claude Code's per-machine settings, and agents' scratch notes
+.claude/settings.local.json
+.scratch/
 
 # React Router
 /.react-router/
@@ -13,6 +23,12 @@
 .wrangler
 .dev.vars*
 worker-configuration.d.ts
+
+# Playwright
+playwright-report/
+test-results/
+# Signed-in browser state: live session tokens
+playwright/.auth/
 
 !.dev.vars.example
 !.env.example
