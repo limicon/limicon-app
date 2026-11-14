@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-14 | James (with Opus 5.5) | Playwright runs the e2e tests
+
+`npm run test:e2e` builds the app and runs the Playwright specs in `e2e/` in Chromium against the built Worker under `vite preview`, with the local Supabase, which it starts and stops if it isn't already running. Sign-in tests read the email link from Mailpit. CI runs the suite in its own job. Run `npx playwright install chromium` once before the first local run.
+
+---
+
 ## 2026-11-13 | James (with Opus 5.5) | Node 26, and installs refuse unapproved install scripts
 
 `.nvmrc` pins Node 26, and CI follows it. `.npmrc` skips package versions under 3 days old, and fails an install when a dependency has install scripts that `package.json` `allowScripts` doesn't cover; record a decision with `npm install-scripts approve|deny <pkg>`.

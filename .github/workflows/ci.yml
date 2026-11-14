@@ -26,3 +26,30 @@ jobs:
       - run: npx supabase db start
       - run: npm test
       - run: npm run build
+
+  e2e:
+    name: End-to-end tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # The services sign-in needs: Postgres, auth, the API gateway and Mailpit. Skipping the rest
+      # saves pulling their images.
+      - run: npx supabase start -x realtime,storage-api,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      # The build copies .dev.vars into its output, so it needs the local Supabase's address and key first.
+      - run: |
+          grep -v '^SUPABASE_' .dev.vars.example > .dev.vars
+          npx supabase status -o env --override-name api.url=SUPABASE_URL --override-name auth.publishable_key=SUPABASE_PUBLISHABLE_KEY | grep '^SUPABASE_' >> .dev.vars
+      # Headless runs need only the headless shell, a smaller download than full Chromium.
+      - run: npx playwright install --with-deps --only-shell chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
