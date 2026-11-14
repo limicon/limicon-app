@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-13 | James (with Opus 5.5) | Node 26, and installs refuse unapproved install scripts
+
+`.nvmrc` pins Node 26, and CI follows it. `.npmrc` skips package versions under 3 days old, and fails an install when a dependency has install scripts that `package.json` `allowScripts` doesn't cover; record a decision with `npm install-scripts approve|deny <pkg>`.
+
+---
+
 ## 2026-11-12 | Lauren (with Opus 5.5) | The app is live behind Cloudflare Access
 
 limicon-app runs at limicon-app.limicon.workers.dev, open only to Limicon Cloudflare account members. Hyperdrive reaches the hosted Supabase through its session pooler; the direct connection failed. `docs/config-cloudflare.md` covers deploying, and `docs/config-supabase.md` changing the hosted database.
