@@ -279,13 +279,13 @@ The session editor is shared for host create, host edit and admin edit. It adapt
 | Pre-reading | Links and file uploads | No | PDF, DOC, DOCX, TXT; 10 MB maximum per file |
 | Cover image | Image upload | No | JPEG, PNG or WebP; compressed on upload |
 | Co-creation meeting (admin only) | Checkbox | n/a | Marks an Organizing Team meeting |
-| Status (admin only) | Select | n/a | Draft, published, cancelled, completed |
+| Status (admin only) | Select | n/a | Unpublished or published |
 
 **Actions on the form**
 
-- Save draft: stores the session with status draft and skips publish-only validation.
+- Save draft: stores the session unpublished and skips publish-only validation.
 - Publish to calendar: validates the publish-required fields, then sets the status to published.
-- Delete session: hosts can delete their own sessions after a confirmation. If members have RSVPed, the app notifies them and marks the session cancelled instead of removing it.
+- Delete session: hosts can delete their own sessions after a confirmation. If members have RSVPed, the app notifies them and unpublishes the session instead of removing it. Cancelling a session means unpublishing it.
 
 ## Phase 2 requirements
 
