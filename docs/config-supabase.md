@@ -23,6 +23,18 @@ The hosted database holds real data, so follow `AGENTS.md` → Production safety
 
 Deploy app code that needs a new column only after the migration that adds it.
 
+## Admins
+
+Admin access is a row in `admin_permissions` for a person's account; any row lets them into the Members area without a ticket. Permission names are open (PRD open question 2), so the Organizing Team holds `full` for now.
+
+To make someone an admin before they have an account, add an invitation with their address in lowercase. The first time they sign in, the new-account trigger turns it into a permission and removes it. This is a production write, so it needs a go-ahead like any other:
+
+```sql
+insert into public.admin_invitations (email, permission) values ('name@example.org', 'full');
+```
+
+For someone who already has an account, insert into `admin_permissions` directly, selecting their `id` from `auth.users` by email. Addresses go only into the database, never into the repository, which is public.
+
 ## Data API
 
 The Data API is off, since the app reads data through Hyperdrive. PostgREST still runs, and logs `schema "pg_pgrst_no_exposed_schemas" does not exist` for its missing placeholder schema. The hosted database points it at an empty schema instead ([Supabase's guide](https://supabase.com/docs/guides/troubleshooting/schema-pg_pgrst_no_exposed_schemas-does-not-exist)):

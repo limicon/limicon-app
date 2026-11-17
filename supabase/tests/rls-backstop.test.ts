@@ -58,6 +58,10 @@ describe("row-level security backstop", () => {
         insert into public.tickets (profile_id, edition_id, tier_id, status, amount_paid_cents)
         values (${user!.id}, ${edition!.id}, ${tier!.id}, 'paid', 5000)
       `;
+      await tx`
+        insert into public.admin_invitations (email, permission)
+        values ('invited-admin@example.org', 'full')
+      `;
 
       const tables = await tx<{ tablename: string }[]>`
         select tablename from pg_tables where schemaname = 'public'
@@ -99,6 +103,43 @@ describe("new accounts", () => {
         select first_name, last_name from public.profiles where id = ${user!.id}
       `;
       expect(profile).toEqual({ first_name: "Ada", last_name: "Lovelace" });
+    });
+  });
+
+  test("get the admin permissions they were invited to, whatever the email's case", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      await tx`
+        insert into public.admin_invitations (email, permission)
+        values ('invited-admin@example.org', 'full'), ('invited-admin@example.org', 'finance')
+      `;
+      const [user] = await tx<{ id: string }[]>`
+        insert into auth.users (id, email, aud, role)
+        values (gen_random_uuid(), 'Invited-Admin@Example.org', 'authenticated', 'authenticated')
+        returning id
+      `;
+
+      const granted = await tx`
+        select permission from public.admin_permissions where profile_id = ${user!.id} order by permission
+      `;
+      expect(granted.map((row) => row.permission)).toEqual(["finance", "full"]);
+      const left = await tx`select 1 from public.admin_invitations where email = 'invited-admin@example.org'`;
+      expect(left, "invitations are used up").toHaveLength(0);
+    });
+  });
+
+  test("get no admin permissions without an invitation", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      await tx`
+        insert into public.admin_invitations (email, permission) values ('someone-else@example.org', 'full')
+      `;
+      const [user] = await tx<{ id: string }[]>`
+        insert into auth.users (id, email, aud, role)
+        values (gen_random_uuid(), 'not-invited@example.org', 'authenticated', 'authenticated')
+        returning id
+      `;
+
+      const granted = await tx`select 1 from public.admin_permissions where profile_id = ${user!.id}`;
+      expect(granted).toHaveLength(0);
     });
   });
 });

@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-17 | Lauren (with Opus 5.5) | Admins can be invited by email
+
+An `admin_invitations` row grants admin permissions to an address before it has an account; the first sign-in turns it into `admin_permissions` rows. The Organizing Team holds `full` for now. `docs/config-supabase.md` covers inviting an admin. Addresses live only in the database, never in the repo.
+
+---
+
 ## 2026-11-17 | Lauren (with Opus 5.5) | The test site is shared by link
 
 Cloudflare Access is off, so anyone with limicon-app.limicon.workers.dev can open it, and Google sign-in is published for any Google account. Pages send `noindex` while `SEARCH_INDEXING` is `off`, keeping the site out of search results until limicon.org points here.
