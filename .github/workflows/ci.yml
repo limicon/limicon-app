@@ -9,8 +9,30 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect docs-only changes
+    runs-on: ubuntu-latest
+    outputs:
+      docs_only: ${{ steps.docs.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Full history, so the base commit is there to compare against.
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - id: docs
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: node scripts/is-docs-only.mjs "$BASE"
+
+  # The jobs below skip for docs-only changes. A job skipped by its `if:` reports Success, so it
+  # still satisfies a required check. If the changes job fails, its output is empty and they run.
   check:
     name: Typecheck, test and build
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -29,6 +51,8 @@ jobs:
 
   e2e:
     name: End-to-end tests
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

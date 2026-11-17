@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-16 | James (with Opus 5.5) | Docs-only changes skip the checks
+
+A change that touches only `docs/` and the root `AGENTS.md`, `CLAUDE.md` and `README.md` skips CI's typecheck, tests, build and e2e jobs, which still show green, and skips the checks before a commit. `scripts/is-docs-only.mjs` makes the call; anything it can't decide runs everything.
+
+---
+
 ## 2026-11-14 | James (with Opus 5.5) | Playwright runs the e2e tests
 
 `npm run test:e2e` builds the app and runs the Playwright specs in `e2e/` in Chromium against the built Worker under `vite preview`, with the local Supabase, which it starts and stops if it isn't already running. Sign-in tests read the email link from Mailpit. CI runs the suite in its own job. Run `npx playwright install chromium` once before the first local run.
