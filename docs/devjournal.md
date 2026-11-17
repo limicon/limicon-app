@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-17 | Lauren (with Opus 5.5) | The test site is shared by link
+
+Cloudflare Access is off, so anyone with limicon-app.limicon.workers.dev can open it, and Google sign-in is published for any Google account. Pages send `noindex` while `SEARCH_INDEXING` is `off`, keeping the site out of search results until limicon.org points here.
+
+---
+
 ## 2026-11-17 | Lauren (with Opus 5.5) | The Members area is its own site, open to ticket holders
 
 Routes split into `routes/public/` (a typical site whose menu has one Members link) and `routes/members/` (its own layout and menu). A ticket for the current edition, or any admin permission, opens it; everyone else gets a pop-up explaining a ticket is needed. Only the root middleware reads the Worker's environment.

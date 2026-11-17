@@ -8,3 +8,6 @@ SUPABASE_PUBLISHABLE_KEY=sb_publishable_from_supabase_status
 
 # Shows "Continue with Google" once Google sign-in is set up in supabase/config.toml.
 GOOGLE_SIGN_IN_ENABLED=false
+
+# "on" lets search engines list the site. Local and test sites keep it off.
+SEARCH_INDEXING=off

@@ -50,6 +50,8 @@ export const servicesMiddleware: MiddlewareFunction<Response> = async (
     cookieHeaders.forEach((value, key) => {
       if (key.toLowerCase() !== "set-cookie") response.headers.set(key, value);
     });
+    // Keeps a test site, shared only by link, out of search results.
+    if (env.SEARCH_INDEXING !== "on") response.headers.set("X-Robots-Tag", "noindex, nofollow");
     return response;
   } finally {
     if (sql) waitUntil(sql.end());

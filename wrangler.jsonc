@@ -30,7 +30,10 @@
 	"vars": {
 		"SUPABASE_URL": "https://kgvkzvocadtlbntpmutq.supabase.co",
 		"SUPABASE_PUBLISHABLE_KEY": "sb_publishable_E7ge_wNZO9PsY12pjYEl9Q_YMUN4bdA",
-		"GOOGLE_SIGN_IN_ENABLED": "true"
+		"GOOGLE_SIGN_IN_ENABLED": "true",
+		// "on" lets search engines list the site. Off while it's a test site shared by link;
+		// switch it on when limicon.org points here.
+		"SEARCH_INDEXING": "off"
 	},
 	"observability": {
 		"enabled": true
