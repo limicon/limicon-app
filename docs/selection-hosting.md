@@ -1,6 +1,6 @@
 # Hosting options
 
-Two candidate hosts for limicon-app: Cloudflare and Vercel. The app needs to be fast and cheap to run, with logging, alerting and email. Usage is seasonal: one or two busy months a year, and much less the rest of the year. The team provisionally chose Cloudflare on 2026-11-11.
+Two candidate hosts for limicon-app: Cloudflare and Vercel. The app needs to be fast and cheap to run, with logging, alerting and email. Usage is seasonal: one or two busy months a year, and much less the rest of the year. Cloudflare Workers is chosen; the PRD's Technology section records it.
 
 The database is a separate choice, compared in [`selection-database.md`](selection-database.md); all its candidates work with both hosts. The framework is compared in [`selection-frontend.md`](selection-frontend.md).
 
