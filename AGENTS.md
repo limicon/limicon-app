@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository. Claude Code reads it t
 
 ## Project
 
-limicon-app is limicon's application: React Router 8 in TypeScript, on Cloudflare Workers placed in `aws:us-east-1`, with Supabase for Postgres, sign-in and storage. Server code reaches Postgres through Hyperdrive and checks permissions itself; row-level security stays enabled with no policies. The Technology section of `Limicon Platform PRD.md` records the stack.
+limicon-app is limicon's application: React Router 8 in TypeScript, on Cloudflare Workers placed in `aws:us-east-1`, with Supabase for Postgres, sign-in and storage. Server code reaches Postgres through Hyperdrive and checks permissions itself; row-level security stays enabled with no policies. The Technology section of `docs/Limicon Platform PRD.md` records the stack.
 
 - React Router guidance matched to the installed version is in `.agents/skills/react-router/` and `node_modules/react-router/docs/`. Prefer them to remembered examples from older versions.
 - Data access runs only in server code (`*.server.ts`, loaders, actions), through the request's `db()` from `servicesContext`. Every query checks the signed-in member's permissions itself.
@@ -26,6 +26,7 @@ limicon-app is limicon's application: React Router 8 in TypeScript, on Cloudflar
 Each entry names the work that calls for reading the doc.
 
 - [`devjournal.md`](docs/devjournal.md): catching up on significant code changes and architectural decisions, or adding an entry.
+- [`Limicon Platform PRD.md`](docs/Limicon%20Platform%20PRD.md): what the app must do, for whom and when: requirements, roles, phases, data model and the chosen stack.
 - [`config-cloudflare.md`](docs/config-cloudflare.md): deploying, who can open the hosted app, or the Worker and Hyperdrive settings.
 - [`config-github.md`](docs/config-github.md): GitHub settings, branch protection, CI, Dependabot.
 - [`config-googlecloud.md`](docs/config-googlecloud.md): the Google sign-in client, its secret, or Google's test users.

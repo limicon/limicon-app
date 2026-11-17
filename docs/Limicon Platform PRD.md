@@ -109,7 +109,7 @@ During the event, admins add relevant Liminal Calendar events to the Limicon cal
 | Email | Sent from team@limicon.org on the limicon.org domain, which Limicon controls |
 | App install | PWA |
 
-[`docs/selection-frontend.md`](docs/selection-frontend.md), [`docs/selection-hosting.md`](docs/selection-hosting.md) and [`docs/selection-database.md`](docs/selection-database.md) compare the options in detail.
+[`selection-frontend.md`](selection-frontend.md), [`selection-hosting.md`](selection-hosting.md) and [`selection-database.md`](selection-database.md) compare the options in detail.
 
 ## Phase 1A requirements: registration
 

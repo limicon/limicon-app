@@ -1,6 +1,6 @@
 # Sessions
 
-How sessions sit in time: times and time zones, the session lifecycle, repeating sessions, and RSVPs. [`feature-calendaring.md`](feature-calendaring.md) covers getting sessions onto members' own calendars. The session form's fields and what hosts and admins may do are in the PRD: [Session form fields](../Limicon%20Platform%20PRD.md#session-form-fields) and requirements SES-1 to SES-10 and CAL-1 to CAL-10.
+How sessions sit in time: times and time zones, the session lifecycle, repeating sessions, and RSVPs. [`feature-calendaring.md`](feature-calendaring.md) covers getting sessions onto members' own calendars. The session form's fields and what hosts and admins may do are in the PRD: [Session form fields](Limicon%20Platform%20PRD.md#session-form-fields) and requirements SES-1 to SES-10 and CAL-1 to CAL-10.
 
 Status: draft, 2026-11-15. Nothing is built yet.
 
