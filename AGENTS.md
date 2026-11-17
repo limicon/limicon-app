@@ -17,6 +17,7 @@ limicon-app is limicon's application: React Router 8 in TypeScript, on Cloudflar
   - feature: requirements, design and implementation of the app's features
   - process: guides for how to do development tasks
   - reference: descriptions of other external codebases or sources that limicon-app can take inspiration from
+  - selection: comparisons of candidate platforms, services or frameworks for one part of the stack
   - strategy: more abstract or cross-cutting specifications
 - When you add, rename or remove a doc, update the table of contents below. Keep the docs and this file in sync with changes.
 
@@ -35,9 +36,10 @@ Each entry names the work that calls for reading the doc.
 - [`process-local-development.md`](docs/process-local-development.md): running the app and the local Supabase, migrations, tests, or turning on Google sign-in locally.
 - [`reference-festival.md`](docs/reference-festival.md): designing or implementing a feature adapted from the Festival for Re-imagining the Economy platform, such as the session editor; it covers that platform's schema, forms, roles and integrations.
 - [`reference-iswebapp.md`](docs/reference-iswebapp.md): borrowing stack choices, patterns or tooling from the IS Web App (`is-app`), such as Supabase auth and data access, profiles, deploys or CI.
-- [`strategy-database-selection.md`](docs/strategy-database-selection.md): choosing the Postgres service and sign-in, deciding where permissions live, connecting the app to the database, or setting up test databases.
-- [`strategy-frontend-selection.md`](docs/strategy-frontend-selection.md): choosing between React Router and Next.js, or setting up rendering, data loading and sign-in in either.
-- [`strategy-hosting-options.md`](docs/strategy-hosting-options.md): choosing or setting up hosting, logging, alerting, email.
+- [`selection-database.md`](docs/selection-database.md): choosing the Postgres service and sign-in, deciding where permissions live, connecting the app to the database, or setting up test databases.
+- [`selection-email.md`](docs/selection-email.md): choosing the email service for sign-in, notifications and newsletters, or whether one service sends both.
+- [`selection-frontend.md`](docs/selection-frontend.md): choosing between React Router and Next.js, or setting up rendering, data loading and sign-in in either.
+- [`selection-hosting.md`](docs/selection-hosting.md): choosing or setting up hosting, logging and alerting.
 - [`strategy-testing.md`](docs/strategy-testing.md): deciding what kind of test to write, or how much of each.
 
 ## Writing

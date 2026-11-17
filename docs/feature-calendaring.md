@@ -94,7 +94,7 @@ Sync from state. Don't send one message per change.
 
 **1. The app sends iCalendar invites by email.**
 
-- Sent through the app's transactional email service ([`strategy-hosting-options.md`](strategy-hosting-options.md)), from team@limicon.org or a dedicated address. Each message goes to one member, so members never see each other's addresses.
+- Sent through the app's transactional email service ([`selection-email.md`](selection-email.md)), from team@limicon.org or a dedicated address. Each message goes to one member, so members never see each other's addresses.
 - The update can travel in the NOT-1 change email itself: one email says what changed and updates the calendar.
 - The app runs the invitation protocol (iTIP, RFC 5546): a stable `UID`, a rising `SEQUENCE`, `METHOD:CANCEL` for removals. Feeds need the `UID` and `SEQUENCE` anyway.
 - No extra account, credential or vendor. Invites count as ordinary email volume.

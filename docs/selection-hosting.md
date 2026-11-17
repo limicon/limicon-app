@@ -2,7 +2,7 @@
 
 Two candidate hosts for limicon-app: Cloudflare and Vercel. The app needs to be fast and cheap to run, with logging, alerting and email. Usage is seasonal: one or two busy months a year, and much less the rest of the year. The team provisionally chose Cloudflare on 2026-11-11.
 
-The database is a separate choice, compared in [`strategy-database-selection.md`](strategy-database-selection.md); all its candidates work with both hosts. The framework is compared in [`strategy-frontend-selection.md`](strategy-frontend-selection.md).
+The database is a separate choice, compared in [`selection-database.md`](selection-database.md); all its candidates work with both hosts. The framework is compared in [`selection-frontend.md`](selection-frontend.md).
 
 Status: Prices checked against vendor docs on 2026-11-04 to 2026-11-06. Runtime, framework, placement and deploy details checked on 2026-11-11. Prices are USD per month, before tax. Figures marked *(estimate)* weren't on the vendor pages that were read; confirm them before relying on them.
 
@@ -24,13 +24,13 @@ Status: Prices checked against vendor docs on 2026-11-04 to 2026-11-06. Runtime,
 | **Old tabs during a deploy** | No built-in skew protection found in Cloudflare's docs. OpenNext has experimental support for Next.js. | Skew Protection, on Pro and on by default for new projects: an open page keeps talking to the deployment that served it, for 12 hours by default. Supported for Next.js and React Router. |
 | **Logging** | Workers Logs, kept 7 days on the Paid plan. | Axiom, kept 30 days on its free plan. Vercel itself keeps 1 day on Pro. Sending logs to Axiom needs a Vercel Pro drain at $0.50/GB. |
 | **Alerting** | Custom alerts on logs and traces, in beta since October 2026. | Sentry alerts on errors, by email on the free plan and also to Slack and similar tools on Team. Axiom can alert on logs. Vercel's own anomaly alerts need its Observability Plus add-on. |
-| **Email** | Email Sending, in beta, on the Workers Paid plan: 3,000 emails/month included, then $0.35 per 1,000. Sends through a Workers binding, a REST API or SMTP. | Resend: 3,000/month free, capped at 100 a day. Pro is $20 for 50,000. |
+| **Email** | Cloudflare Email Service, in beta and transactional only, with Workers Paid. [`selection-email.md`](selection-email.md) compares it with other services. | No built-in email: a separate service such as Resend. [`selection-email.md`](selection-email.md) compares the options. |
 | **Cheapest production setup** | $5: Workers Paid. | $20: Vercel Pro. Axiom, Sentry and Resend fit their free plans at low volume. |
 | **Expected cost, busy month** *(estimate)* | About $7.50: Workers Paid at $5, with requests and CPU well inside the allowance, plus about $2.50 of email for the 7,000 above the included 3,000. Logs fit the included volume, and Workers bandwidth is free. | About $40: Vercel Pro at $20, since compute, invocations and the log drain come to under $1 of its $20 credit. Resend Pro adds $20. |
 | **Expected cost, quiet month** *(estimate)* | About $5: Workers Paid. Email fits the included 3,000. | About $20: Vercel Pro stays on, because Hobby is non-commercial only. Resend's free plan covers the email. |
 | **Expected cost per year** *(estimate)* | About $65. | About $280. |
 
-Costs exclude the database; see [`strategy-database-selection.md`](strategy-database-selection.md).
+Costs exclude the database; see [`selection-database.md`](selection-database.md).
 
 **Cheapest production setup** is the lowest bill that's fit for production. The expected costs assume a year with one or two busy months and ten quiet ones. **A busy month** looks like this:
 
@@ -69,7 +69,7 @@ Resend and Sentry work with either host, so the email and alerting rows can be m
 
 ## Questions that decide it
 
-1. **Next.js or React Router?** Next.js favours Vercel. React Router runs well on both. See [`strategy-frontend-selection.md`](strategy-frontend-selection.md).
+1. **Next.js or React Router?** Next.js favours Vercel. React Router runs well on both. See [`selection-frontend.md`](selection-frontend.md).
 2. **Does anything need full Node?** Native modules or heavy server work favour Vercel.
 3. **One vendor, or one service for each job?** Cloudflare covers every function alone, with alerting and email in beta. Vercel means five accounts, each a leader in its field.
 4. **How much does the fixed floor matter?** With ten quiet months a year, Cloudflare's $5 against Vercel's $20 is most of the difference.

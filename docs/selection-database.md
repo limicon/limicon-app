@@ -1,6 +1,6 @@
 # Database selection
 
-Which Postgres service limicon-app uses: Supabase or PlanetScale. Both work with both candidate hosts in [`strategy-hosting-options.md`](strategy-hosting-options.md). The team provisionally chose Supabase on 2026-11-11.
+Which Postgres service limicon-app uses: Supabase or PlanetScale. Both work with both candidate hosts in [`selection-hosting.md`](selection-hosting.md). The team provisionally chose Supabase on 2026-11-11.
 
 Status: Checked against vendor docs on 2026-11-07. [Testing](#testing) was checked on 2026-11-10, and [connecting from each host](#connecting-from-each-host) and [where permissions live](#where-permissions-live) on 2026-11-11. Prices are USD per month, before tax. Figures marked *(estimate)* weren't on the vendor pages that were read; confirm them before relying on them.
 
