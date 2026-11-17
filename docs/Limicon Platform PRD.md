@@ -69,8 +69,8 @@ The team decides the foundation (database, hosting, data architecture) together.
 **Access rules**
 
 - Each person needs their own account and ticket. There is no guest checkout and no multi-seat purchase.
-- A ticket for an edition unlocks that edition's Members area. People can register at any time, including during the event.
-- Members-only pages are hidden from the menu for people who lack access, so locked sections do not appear as dead ends.
+- Anyone can create an account, but an account alone opens nothing in the Members area. A ticket for an edition unlocks that edition's Members area. People can register at any time, including during the event.
+- The Members link stays in the menu for everyone. Choosing it without a ticket for the current edition opens a message saying a Limicon ticket is needed, with a link to get one, and a sign-in link for visitors who aren't signed in. Opening a members-only address directly shows the same message.
 - Admin access is built as named permissions on top of a single Admin role. The team can then split permissions later without a schema change.
 
 ## Scope and phases
@@ -181,7 +181,7 @@ Happy Money pays admins and volunteers for the work of running Limicon, so the c
 
 ### Session submission (Host a Session)
 
-- **SES-1** Registered members open the Host a Session form from the Members area and from the main menu.
+- **SES-1** Registered members open the Host a Session form from the Members area.
 - **SES-2** Before the form unlocks, the host must open the host guidelines, scroll to the end and click to accept them. The acceptance is stored with a timestamp. Hosts accept once per edition.
 - **SES-3** Hosts can save a draft, publish, edit and delete their own sessions. There is no approval step and no limit on the number of sessions.
 - **SES-4** Published sessions appear on the calendar immediately. Admins can unpublish or edit any session.
@@ -249,6 +249,7 @@ These in-app forms replace the Google Forms. Admins can edit their questions.
 - **MEM-1** The Members home links to the calendar, My Schedule, Host a Session, the session forms, the Content tab (Phase 2), the directory and messages (Phase 2), and Accessibility.
 - **MEM-2** Miro and Castalia appear as external links. Admins set the URLs for each edition.
 - **MEM-3** Host guidance, tips, session attributes and the session boilerplate from today's Host a Session page live in the Members area.
+- **MEM-4** The Members area is a site within the site, with its own look and its own menu: Home, Updates, Schedule, Host a session and Community. None of its sections appear on the public website, whose menu has only a Members link.
 
 ### Admin console
 

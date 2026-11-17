@@ -42,15 +42,31 @@ describe("row-level security backstop", () => {
         values (gen_random_uuid(), 'rls-test@example.org', 'authenticated', 'authenticated')
         returning id
       `;
-      await tx`insert into public.editions (year) values (2099)`;
+      const [edition] = await tx<{ id: number }[]>`
+        insert into public.editions (year) values (2099) returning id
+      `;
       await tx`
         insert into public.admin_permissions (profile_id, permission)
         values (${user!.id}, 'test')
+      `;
+      const [tier] = await tx<{ id: number }[]>`
+        insert into public.ticket_tiers (edition_id, name, price_cents)
+        values (${edition!.id}, 'Test tier', 5000)
+        returning id
+      `;
+      await tx`
+        insert into public.tickets (profile_id, edition_id, tier_id, status, amount_paid_cents)
+        values (${user!.id}, ${edition!.id}, ${tier!.id}, 'paid', 5000)
       `;
 
       const tables = await tx<{ tablename: string }[]>`
         select tablename from pg_tables where schemaname = 'public'
       `;
+      // An empty table would pass the check below without proving anything.
+      for (const { tablename } of tables) {
+        const seeded = await tx.unsafe(`select 1 from public.${tablename} limit 1`);
+        expect(seeded, `seed a row in ${tablename} above`).toHaveLength(1);
+      }
       for (const role of ["anon", "authenticated"]) {
         for (const { tablename } of tables) {
           // A savepoint keeps a permission error from aborting the whole transaction; a

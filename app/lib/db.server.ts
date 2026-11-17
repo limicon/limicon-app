@@ -1,4 +1,3 @@
-import { env } from "cloudflare:workers";
 import postgres from "postgres";
 
 /**
@@ -6,8 +5,8 @@ import postgres from "postgres";
  * request opens its own client. It connects as a role that bypasses row-level security: every
  * query must check the signed-in member's permissions itself.
  */
-export function createDb() {
-  return postgres(env.HYPERDRIVE.connectionString, {
+export function createDb(connectionString: string) {
+  return postgres(connectionString, {
     // Hyperdrive limits how many connections one Worker invocation can open.
     max: 5,
     // Skips a lookup of custom Postgres types on every new connection.

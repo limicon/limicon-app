@@ -1,4 +1,3 @@
-import { env } from "cloudflare:workers";
 import { data, Form, redirect, useNavigation } from "react-router";
 
 import { servicesContext } from "~/context";
@@ -10,9 +9,10 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export function loader({ request, context }: Route.LoaderArgs) {
-  if (context.get(servicesContext).viewer) throw redirect("/account");
+  const { viewer, settings } = context.get(servicesContext);
+  if (viewer) throw redirect("/account");
   return {
-    googleEnabled: env.GOOGLE_SIGN_IN_ENABLED === "true",
+    googleEnabled: settings.googleSignInEnabled,
     linkFailed: new URL(request.url).searchParams.has("error"),
   };
 }

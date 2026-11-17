@@ -3,7 +3,8 @@ import {
   parseCookieHeader,
   serializeCookieHeader,
 } from "@supabase/ssr";
-import { env } from "cloudflare:workers";
+
+export type SupabaseSettings = { url: string; publishableKey: string };
 
 /**
  * A Supabase client for one request, used for sign-in only: data goes through Hyperdrive
@@ -11,8 +12,12 @@ import { env } from "cloudflare:workers";
  * such as a refreshed token, collect in `responseHeaders` for the root middleware to add to
  * the response.
  */
-export function createSupabaseClient(request: Request, responseHeaders: Headers) {
-  return createServerClient(env.SUPABASE_URL, env.SUPABASE_PUBLISHABLE_KEY, {
+export function createSupabaseClient(
+  request: Request,
+  responseHeaders: Headers,
+  settings: SupabaseSettings,
+) {
+  return createServerClient(settings.url, settings.publishableKey, {
     cookies: {
       getAll() {
         return parseCookieHeader(request.headers.get("Cookie") ?? "").map(

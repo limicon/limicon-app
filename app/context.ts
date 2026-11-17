@@ -1,6 +1,7 @@
 import { createContext } from "react-router";
 
 import type { Db } from "~/lib/db.server";
+import type { Membership } from "~/lib/membership";
 import type { SupabaseClient } from "~/lib/supabase.server";
 
 /** The signed-in member, or null for a visitor. Set by the root middleware. */
@@ -11,6 +12,9 @@ export type RequestServices = {
   viewer: Viewer;
   /** Opens the request's database connection on first use. */
   db: () => Db;
+  /** The viewer's access to the Members area, looked up once per request on first use. */
+  membership: () => Promise<Membership>;
+  settings: { googleSignInEnabled: boolean };
 };
 
 export const servicesContext = createContext<RequestServices>();

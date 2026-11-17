@@ -1,21 +1,28 @@
-import { waitUntil } from "cloudflare:workers";
+import { env, waitUntil } from "cloudflare:workers";
 import { redirect, type MiddlewareFunction } from "react-router";
 
 import { servicesContext, type Viewer } from "~/context";
 import { createDb, type Db } from "~/lib/db.server";
+import type { Membership } from "~/lib/membership";
+import { getMembership } from "~/lib/membership.server";
 import { createSupabaseClient } from "~/lib/supabase.server";
 
 /**
- * Root middleware: gives every loader and action the request's Supabase client, the signed-in
- * viewer and a lazily opened database connection. On the way out it adds any session cookies
- * Supabase wrote, and closes the database connection after the response is sent.
+ * Root middleware, and the only module that reads the Worker's environment: everything else
+ * gets what it needs from `servicesContext`. It gives every loader and action the request's
+ * Supabase client, the signed-in viewer, a lazily opened database connection and the viewer's
+ * membership. On the way out it adds any session cookies Supabase wrote, and closes the database
+ * connection after the response is sent.
  */
 export const servicesMiddleware: MiddlewareFunction<Response> = async (
   { request, context },
   next,
 ) => {
   const cookieHeaders = new Headers();
-  const supabase = createSupabaseClient(request, cookieHeaders);
+  const supabase = createSupabaseClient(request, cookieHeaders, {
+    url: env.SUPABASE_URL,
+    publishableKey: env.SUPABASE_PUBLISHABLE_KEY,
+  });
 
   // Verifies the session token, refreshing it when it has expired.
   const { data } = await supabase.auth.getClaims();
@@ -24,10 +31,15 @@ export const servicesMiddleware: MiddlewareFunction<Response> = async (
     : null;
 
   let sql: Db | undefined;
+  const db = () => (sql ??= createDb(env.HYPERDRIVE.connectionString));
+  let membership: Promise<Membership> | undefined;
+
   context.set(servicesContext, {
     supabase,
     viewer,
-    db: () => (sql ??= createDb()),
+    db,
+    membership: () => (membership ??= getMembership(db(), viewer?.userId ?? null)),
+    settings: { googleSignInEnabled: env.GOOGLE_SIGN_IN_ENABLED === "true" },
   });
 
   try {
@@ -44,7 +56,13 @@ export const servicesMiddleware: MiddlewareFunction<Response> = async (
   }
 };
 
-/** Route middleware for members-only pages: sends visitors to the sign-in page. */
+/** Route middleware for pages that need a signed-in account: sends visitors to sign in. */
 export const requireViewer: MiddlewareFunction<Response> = ({ context }) => {
   if (!context.get(servicesContext).viewer) throw redirect("/sign-in");
+};
+
+/** Route middleware for the Members area: anyone without access sees why instead. */
+export const requireMembership: MiddlewareFunction<Response> = async ({ context }) => {
+  const { status } = await context.get(servicesContext).membership();
+  if (status !== "member") throw redirect("/members-only");
 };

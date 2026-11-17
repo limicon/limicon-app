@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-17 | Lauren (with Opus 5.5) | The Members area is its own site, open to ticket holders
+
+Routes split into `routes/public/` (a typical site whose menu has one Members link) and `routes/members/` (its own layout and menu). A ticket for the current edition, or any admin permission, opens it; everyone else gets a pop-up explaining a ticket is needed. Only the root middleware reads the Worker's environment.
+
+---
+
 ## 2026-11-16 | James (with Opus 5.5) | Docs-only changes skip the checks
 
 A change that touches only `docs/` and the root `AGENTS.md`, `CLAUDE.md` and `README.md` skips CI's typecheck, tests, build and e2e jobs, which still show green, and skips the checks before a commit. `scripts/is-docs-only.mjs` makes the call; anything it can't decide runs everything.
