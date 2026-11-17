@@ -45,6 +45,7 @@
   },
   "allowScripts": {
     "esbuild": false,
-    "workerd": false
+    "workerd": false,
+    "fsevents": false
   }
 }
