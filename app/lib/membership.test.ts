@@ -18,4 +18,8 @@ describe("membershipStatus", () => {
   test("an admin is a member without a ticket", () => {
     expect(membershipStatus({ signedIn: true, hasTicket: false, isAdmin: true })).toBe("member");
   });
+
+  test("a deactivated account opens nothing, even with a ticket", () => {
+    expect(membershipStatus({ signedIn: true, hasTicket: true, isAdmin: false, deactivated: true })).toBe("deactivated");
+  });
 });

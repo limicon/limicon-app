@@ -4,6 +4,11 @@ import type { RequestServices } from "~/context";
 import { checkSessionForm, readSessionForm } from "~/lib/session-form";
 import { createSession, deleteSession, updateSession } from "~/lib/sessions.server";
 
+/** Where the editor's pages live: the Members area's for hosts, the admin console's for admins. */
+export type SessionPaths = { list: string; session: (id: string) => string };
+
+const HOST_PATHS: SessionPaths = { list: "/members/host", session: (id) => `/members/host/${id}` };
+
 /**
  * Handles a post from the Host a Session form, for a new session (`sessionId` null) or one the
  * caller has already checked the member may edit. Saves and goes to the session's page, or
@@ -13,6 +18,7 @@ export async function saveSessionForm(
   request: Request,
   services: RequestServices,
   sessionId: string | null,
+  paths: SessionPaths = HOST_PATHS,
 ) {
   const form = await request.formData();
   const intent = form.get("intent");
@@ -21,7 +27,7 @@ export async function saveSessionForm(
 
   if (intent === "delete" && sessionId) {
     const result = await deleteSession(services.db(), sessionId);
-    throw redirect(result === "deleted" ? "/members/host?deleted=1" : `/members/host/${sessionId}?saved=kept`);
+    throw redirect(result === "deleted" ? `${paths.list}?deleted=1` : `${paths.session(sessionId)}?saved=kept`);
   }
 
   const publish = intent === "publish";
@@ -40,5 +46,5 @@ export async function saveSessionForm(
 
   const params = new URLSearchParams({ saved: publish ? "published" : "draft" });
   if (result.warnings.length) params.set("warning", result.warnings[0]!);
-  throw redirect(`/members/host/${id}?${params}`);
+  throw redirect(`${paths.session(id)}?${params}`);
 }

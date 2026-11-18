@@ -1,31 +1,80 @@
 import { describe, expect, test } from "vitest";
 
-import { checkEditionForm, checkEmailField, checkTierForm, csvCell, dollarsToCents, formatDollars, toCsv } from "./admin-forms";
+import {
+  checkEditionForm,
+  checkEmailField,
+  checkFaqForm,
+  checkLinksForm,
+  checkTierForm,
+  csvCell,
+  dollarsToCents,
+  formatDollars,
+  toCsv,
+} from "./admin-forms";
 
 const form = (entries: Record<string, string>) => new Map(Object.entries(entries));
 
 describe("checkEditionForm", () => {
-  test("empty fields clear the settings, and unticked switches are off", () => {
+  test("empty dates clear them, and unticked switches are off", () => {
     expect(checkEditionForm(form({}))).toEqual({
       ok: true,
-      values: { startsOn: null, endsOn: null, registrationOpen: false, calendarOpen: false, miroUrl: null, castaliaUrl: null },
+      values: { startsOn: null, endsOn: null, registrationOpen: false, calendarOpen: false },
     });
   });
 
-  test("keeps dates, switches and https links", () => {
-    const result = checkEditionForm(
-      form({ startsOn: "2027-03-07", endsOn: "2027-04-03", registrationOpen: "on", miroUrl: " https://miro.com/app/board/x " }),
-    );
-    expect(result).toMatchObject({ ok: true, values: { startsOn: "2027-03-07", registrationOpen: true, miroUrl: "https://miro.com/app/board/x" } });
+  test("keeps dates and switches", () => {
+    const result = checkEditionForm(form({ startsOn: "2027-03-07", endsOn: "2027-04-03", registrationOpen: "on" }));
+    expect(result).toMatchObject({ ok: true, values: { startsOn: "2027-03-07", endsOn: "2027-04-03", registrationOpen: true } });
   });
 
-  test("refuses impossible dates, a last day before the first, and links that aren't https", () => {
-    const result = checkEditionForm(form({ startsOn: "2027-02-30", miroUrl: "miro.com", castaliaUrl: "http://x.org" }));
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(Object.keys(result.errors).sort()).toEqual(["castaliaUrl", "miroUrl", "startsOn"]);
-
+  test("refuses impossible dates, and a last day before the first", () => {
+    expect(checkEditionForm(form({ startsOn: "2027-02-30" }))).toMatchObject({ ok: false, errors: { startsOn: expect.any(String) } });
     const backwards = checkEditionForm(form({ startsOn: "2027-04-03", endsOn: "2027-03-07" }));
     expect(backwards).toMatchObject({ ok: false, errors: { endsOn: expect.any(String) } });
+  });
+});
+
+/** A form with repeated fields, as the member links form posts them. */
+function rows(pairs: [string, string][]) {
+  return {
+    getAll: (name: string) => pairs.map(([label, url]) => (name === "label" ? label : url)),
+  };
+}
+
+describe("checkLinksForm", () => {
+  test("keeps rows in order, trimmed, and drops wholly blank ones", () => {
+    expect(checkLinksForm(rows([[" Miro ", "https://miro.com/x"], ["", " "], ["Castalia", "https://castalia.app"]]))).toEqual({
+      ok: true,
+      links: [
+        { label: "Miro", url: "https://miro.com/x" },
+        { label: "Castalia", url: "https://castalia.app" },
+      ],
+    });
+  });
+
+  test("marks half-filled rows and links that aren't https", () => {
+    const result = checkLinksForm(rows([["Miro", "miro.com"], ["", "https://x.org"]]));
+    expect(result).toMatchObject({ ok: false, errors: { 0: { url: expect.any(String) }, 1: { label: expect.any(String) } } });
+  });
+
+  test("no rows clears the links", () => {
+    expect(checkLinksForm(rows([]))).toEqual({ ok: true, links: [] });
+  });
+});
+
+describe("checkFaqForm", () => {
+  test("needs a question and an answer", () => {
+    expect(checkFaqForm(form({ question: " ", answer: "" }))).toMatchObject({
+      ok: false,
+      errors: { question: expect.any(String), answer: expect.any(String) },
+    });
+  });
+
+  test("keeps them, and whether to publish", () => {
+    expect(checkFaqForm(form({ question: " When is it? ", answer: "March.", published: "on" }))).toEqual({
+      ok: true,
+      values: { question: "When is it?", answer: "March.", published: true },
+    });
   });
 });
 

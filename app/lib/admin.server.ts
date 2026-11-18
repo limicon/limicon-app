@@ -3,7 +3,7 @@
  * that need a particular permission say so, and their callers check it.
  */
 import type { Db } from "~/lib/db.server";
-import type { AdminPermission, EditionSettings, TierValues } from "~/lib/admin-forms";
+import type { AdminPermission, EditionSettings, MemberLink, TierValues } from "~/lib/admin-forms";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -111,8 +111,7 @@ export async function getOverview(sql: Db, editionId: number): Promise<Overview>
 export async function getEditionSettings(sql: Db, editionId: number): Promise<EditionSettings> {
   const [row] = await sql<EditionSettings[]>`
     select to_char(starts_on, 'YYYY-MM-DD') as "startsOn", to_char(ends_on, 'YYYY-MM-DD') as "endsOn",
-           registration_open as "registrationOpen", calendar_open as "calendarOpen",
-           miro_url as "miroUrl", castalia_url as "castaliaUrl"
+           registration_open as "registrationOpen", calendar_open as "calendarOpen"
     from public.editions where id = ${editionId}
   `;
   return row!;
@@ -122,10 +121,29 @@ export async function updateEditionSettings(sql: Db, editionId: number, v: Editi
   await sql`
     update public.editions set
       starts_on = ${v.startsOn}, ends_on = ${v.endsOn},
-      registration_open = ${v.registrationOpen}, calendar_open = ${v.calendarOpen},
-      miro_url = ${v.miroUrl}, castalia_url = ${v.castaliaUrl}
+      registration_open = ${v.registrationOpen}, calendar_open = ${v.calendarOpen}
     where id = ${editionId}
   `;
+}
+
+/** The links members see for an edition (MEM-2), in order. */
+export async function listMemberLinks(sql: Db, editionId: number): Promise<MemberLink[]> {
+  return sql<MemberLink[]>`
+    select label, url from public.edition_links where edition_id = ${editionId} order by sort_order, id
+  `;
+}
+
+/** Replaces an edition's member links with `links`, in the order given. */
+export async function saveMemberLinks(sql: Db, editionId: number, links: MemberLink[]) {
+  await sql.begin(async (tx) => {
+    await tx`delete from public.edition_links where edition_id = ${editionId}`;
+    for (const [i, link] of links.entries()) {
+      await tx`
+        insert into public.edition_links (edition_id, label, url, sort_order)
+        values (${editionId}, ${link.label}, ${link.url}, ${i})
+      `;
+    }
+  });
 }
 
 export type Tier = TierValues & { id: number; tickets: number };
@@ -210,6 +228,38 @@ export async function listAllSessions(sql: Db, editionId: number): Promise<Admin
     where s.edition_id = ${editionId}
     order by s.starts_at asc nulls last, s.created_at asc
   `;
+}
+
+export type AdminSessionMeta = {
+  isCocreationMeeting: boolean;
+  hosts: { id: string; name: string; role: "host" | "co-host" }[];
+  rsvps: { registered: number; waitlisted: number };
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+/** What the console shows beside a session's editor: hosts, RSVPs and the admin-only flag. */
+export async function getAdminSessionMeta(sql: Db, editionId: number, sessionId: string): Promise<AdminSessionMeta | null> {
+  const [row] = await sql<(Omit<AdminSessionMeta, "rsvps"> & { registered: number; waitlisted: number })[]>`
+    select s.is_cocreation_meeting as "isCocreationMeeting", s.created_at as "createdAt", s.updated_at as "updatedAt",
+           coalesce((
+             select json_agg(json_build_object(
+               'id', p.id,
+               'name', coalesce(nullif(trim(concat_ws(' ', p.first_name, p.last_name)), ''), u.email, 'Unknown'),
+               'role', h.role
+             ) order by h.role = 'host' desc, p.first_name)
+             from public.session_hosts h join public.profiles p on p.id = h.profile_id
+             left join auth.users u on u.id = p.id
+             where h.session_id = s.id
+           ), '[]') as hosts,
+           (select count(*) from public.session_rsvps r where r.session_id = s.id and r.status = 'registered')::int as registered,
+           (select count(*) from public.session_rsvps r where r.session_id = s.id and r.status = 'waitlisted')::int as waitlisted
+    from public.sessions s
+    where s.id = ${sessionId} and s.edition_id = ${editionId}
+  `;
+  if (!row) return null;
+  const { registered, waitlisted, ...meta } = row;
+  return { ...meta, rsvps: { registered, waitlisted } };
 }
 
 /** Takes a session off the calendar (SES-4). Its hosts keep it as a draft. */

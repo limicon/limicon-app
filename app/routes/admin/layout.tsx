@@ -14,9 +14,11 @@ export async function loader({ context }: Route.LoaderArgs) {
 
 const sections = [
   { to: "/admin", label: "Overview", end: true },
-  { to: "/admin/edition", label: "Edition" },
+  { to: "/admin/settings", label: "Settings" },
+  { to: "/admin/users", label: "Users" },
   { to: "/admin/sessions", label: "Sessions" },
   { to: "/admin/tickets", label: "Tickets" },
+  { to: "/admin/faq", label: "FAQ" },
   { to: "/admin/team", label: "Team" },
 ];
 

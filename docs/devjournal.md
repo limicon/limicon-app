@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-18 | Lauren (with Opus 5.5) | Admins manage users, sessions and the FAQ
+
+The console adds Users (search, filters, roles, deactivation, private notes, CSV), editing any session in place, an FAQ that admins write for the public `/faq` page, and Settings (renamed from Edition) with any number of member links. Deactivated accounts lose the Members area and console.
+
+---
+
 ## 2026-11-18 | Lauren (with Opus 5.5) | Members RSVP, with My Schedule
 
 One click RSVPs or cancels, with capacity and a waitlist that promotes the earliest in line. The schedule toggles between the Limicon Schedule and My Schedule. Reminders will come from members' own calendars, so Limicon sends none (CAL-6). Deleting a session with RSVPs unpublishes it instead.

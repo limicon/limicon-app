@@ -44,11 +44,9 @@ export type EditionSettings = {
   endsOn: string | null;
   registrationOpen: boolean;
   calendarOpen: boolean;
-  miroUrl: string | null;
-  castaliaUrl: string | null;
 };
 
-export type EditionInput = Record<"startsOn" | "endsOn" | "miroUrl" | "castaliaUrl", string> & {
+export type EditionInput = Record<"startsOn" | "endsOn", string> & {
   registrationOpen: boolean;
   calendarOpen: boolean;
 };
@@ -57,15 +55,13 @@ export type Checked<V, I> =
   | { ok: true; values: V }
   | { ok: false; input: I; errors: Partial<Record<keyof I, string>> };
 
-/** The edition settings form: event dates, the registration and calendar switches, member links. */
+/** The edition settings form: event dates, and the registration and calendar switches. */
 export function checkEditionForm(form: FormLike): Checked<EditionSettings, EditionInput> {
   const input: EditionInput = {
     startsOn: text(form, "startsOn"),
     endsOn: text(form, "endsOn"),
     registrationOpen: form.get("registrationOpen") === "on",
     calendarOpen: form.get("calendarOpen") === "on",
-    miroUrl: text(form, "miroUrl"),
-    castaliaUrl: text(form, "castaliaUrl"),
   };
   const errors: Partial<Record<keyof EditionInput, string>> = {};
   for (const name of ["startsOn", "endsOn"] as const) {
@@ -73,9 +69,6 @@ export function checkEditionForm(form: FormLike): Checked<EditionSettings, Editi
   }
   if (!errors.startsOn && !errors.endsOn && input.startsOn && input.endsOn && input.endsOn < input.startsOn) {
     errors.endsOn = "The last day can't be before the first day.";
-  }
-  for (const name of ["miroUrl", "castaliaUrl"] as const) {
-    if (input[name] && !isWebAddress(input[name])) errors[name] = "Enter a full web address starting with https://.";
   }
   if (Object.keys(errors).length) return { ok: false, input, errors };
   return {
@@ -85,10 +78,56 @@ export function checkEditionForm(form: FormLike): Checked<EditionSettings, Editi
       endsOn: input.endsOn || null,
       registrationOpen: input.registrationOpen,
       calendarOpen: input.calendarOpen,
-      miroUrl: input.miroUrl || null,
-      castaliaUrl: input.castaliaUrl || null,
     },
   };
+}
+
+export const LINK_LABEL_MAX = 60;
+export const LINKS_MAX = 20;
+
+export type MemberLink = { label: string; url: string };
+export type LinkErrors = Record<number, { label?: string; url?: string }>;
+
+/**
+ * The member links form (MEM-2): rows of `label` and `url` fields in order. A row left wholly
+ * blank is dropped; a half-filled row is an error.
+ */
+export function checkLinksForm(form: { getAll(name: string): unknown[] }):
+  | { ok: true; links: MemberLink[] }
+  | { ok: false; input: MemberLink[]; errors: LinkErrors; message?: string } {
+  const labels = form.getAll("label").map((v) => (typeof v === "string" ? v.trim() : ""));
+  const urls = form.getAll("url").map((v) => (typeof v === "string" ? v.trim() : ""));
+  const input = labels.map((label, i) => ({ label, url: urls[i] ?? "" })).filter((row) => row.label || row.url);
+  const errors: LinkErrors = {};
+  input.forEach((row, i) => {
+    const rowErrors: { label?: string; url?: string } = {};
+    if (!row.label) rowErrors.label = "Give the link a name.";
+    else if ([...row.label].length > LINK_LABEL_MAX) rowErrors.label = `Keep the name to ${LINK_LABEL_MAX} characters.`;
+    if (!isWebAddress(row.url)) rowErrors.url = "Enter a full web address starting with https://.";
+    if (rowErrors.label || rowErrors.url) errors[i] = rowErrors;
+  });
+  if (input.length > LINKS_MAX) return { ok: false, input, errors, message: `Keep it to ${LINKS_MAX} links.` };
+  if (Object.keys(errors).length) return { ok: false, input, errors };
+  return { ok: true, links: input };
+}
+
+export const NOTE_MAX = 5000;
+
+export const FAQ_QUESTION_MAX = 300;
+export const FAQ_ANSWER_MAX = 10000;
+
+export type FaqInput = { question: string; answer: string; published: boolean };
+
+/** An FAQ entry: a question and its answer, both required, and whether it's on the public page. */
+export function checkFaqForm(form: FormLike): Checked<FaqInput, FaqInput> {
+  const input: FaqInput = { question: text(form, "question"), answer: text(form, "answer"), published: form.get("published") === "on" };
+  const errors: Partial<Record<keyof FaqInput, string>> = {};
+  if (!input.question) errors.question = "Write the question.";
+  else if ([...input.question].length > FAQ_QUESTION_MAX) errors.question = `Keep the question to ${FAQ_QUESTION_MAX} characters.`;
+  if (!input.answer) errors.answer = "Write the answer.";
+  else if ([...input.answer].length > FAQ_ANSWER_MAX) errors.answer = `Keep the answer to ${FAQ_ANSWER_MAX} characters.`;
+  if (Object.keys(errors).length) return { ok: false, input, errors };
+  return { ok: true, values: input };
 }
 
 export const TIER_NAME_MAX = 40;

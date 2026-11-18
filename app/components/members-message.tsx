@@ -16,6 +16,19 @@ export function MembersMessage({
   headingId?: string;
 }) {
   const ticket = editionYear ? `a Limicon ${editionYear} ticket` : "a Limicon ticket";
+  if (status === "deactivated") {
+    return (
+      <div className="grid gap-4">
+        <h2 id={headingId} className="text-2xl font-semibold">
+          This account is deactivated
+        </h2>
+        <p>
+          The Organizing Team has deactivated this account, so it can't open the Members area. If you think this is
+          a mistake, email <a href="mailto:team@limicon.org" className="underline">team@limicon.org</a>.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="grid gap-4">
       <h2 id={headingId} className="text-2xl font-semibold">

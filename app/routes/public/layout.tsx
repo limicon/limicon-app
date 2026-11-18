@@ -23,6 +23,9 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
           <Link to="/" className="mr-auto text-xl font-semibold">
             Limicon
           </Link>
+          <NavLink to="/faq" className="font-medium">
+            FAQ
+          </NavLink>
           <MembersLink membership={membership} />
           <NavLink to={signedIn ? "/account" : "/sign-in"} className="font-medium">
             {signedIn ? "Your account" : "Sign in"}

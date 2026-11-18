@@ -41,7 +41,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     show,
     counts: Object.fromEntries(FILTERS.map((f) => [f.value, sessions.filter((s) => matches(s, f.value)).length])) as Record<Filter, number>,
     sessions: sessions.filter((s) => matches(s, show)),
-    done: query.get("done"),
+    done: query.get("done") ?? (query.get("deleted") ? "deleted" : null),
   };
 }
 
@@ -65,6 +65,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 const doneMessages: Record<string, string> = {
+  deleted: "Session deleted.",
   unpublished: "Taken off the calendar. Its hosts still have it as a draft.",
   "cocreation-on": "Marked as an Organizing Team co-creation meeting.",
   "cocreation-off": "No longer marked as a co-creation meeting.",
@@ -77,8 +78,8 @@ export default function AdminSessions({ loaderData }: Route.ComponentProps) {
     <>
       <PageHeading title="Sessions">
         <p>
-          Every Limicon {year} session, drafts included. Editing opens the same form hosts use, where you can also
-          publish a draft once it's complete.
+          Every Limicon {year} session, drafts included. Admins can edit, publish, take off the calendar or delete any
+          of them.
         </p>
       </PageHeading>
       {done && doneMessages[done] && <Notice>{doneMessages[done]}</Notice>}
@@ -109,7 +110,9 @@ export default function AdminSessions({ loaderData }: Route.ComponentProps) {
               <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-semibold">{session.title}</h2>
+                    <h2 className="font-semibold">
+                      <Link to={`/admin/sessions/${session.id}`} className="hover:underline">{session.title}</Link>
+                    </h2>
                     <Badge tone={session.published ? "green" : "amber"}>{session.published ? "On the calendar" : "Draft"}</Badge>
                     {session.isCocreationMeeting && <Badge tone="blue">Co-creation meeting</Badge>}
                   </div>
@@ -120,7 +123,7 @@ export default function AdminSessions({ loaderData }: Route.ComponentProps) {
                   <p className="mt-1 text-sm opacity-80">Hosted by {session.hosts.length ? session.hosts.join(", ") : "nobody"}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Link to={`/members/host/${session.id}`} className={secondaryButton}>Edit</Link>
+                  <Link to={`/admin/sessions/${session.id}`} className={secondaryButton}>Edit</Link>
                   <Form method="post" className="contents">
                     <input type="hidden" name="sessionId" value={session.id} />
                     <button

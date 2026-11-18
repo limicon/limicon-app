@@ -83,6 +83,18 @@ describe("row-level security backstop", () => {
         insert into public.registration_answers (profile_id, edition_id, question, answer)
         values (${user!.id}, ${edition!.id}, 'city', 'Toronto')
       `;
+      await tx`
+        insert into public.edition_links (edition_id, label, url)
+        values (${edition!.id}, 'Miro', 'https://miro.com/')
+      `;
+      await tx`
+        insert into public.admin_user_notes (profile_id, author_id, body)
+        values (${user!.id}, ${user!.id}, 'A note')
+      `;
+      await tx`
+        insert into public.faq_entries (question, answer, published)
+        values ('When is Limicon?', 'In March.', true)
+      `;
 
       const tables = await tx<{ tablename: string }[]>`
         select tablename from pg_tables where schemaname = 'public'

@@ -1,20 +1,35 @@
+import { useState } from "react";
 import { data, Form, redirect, useNavigation } from "react-router";
 
 import { card, dangerButton, FieldError, inputClass, Notice, PageHeading, primaryButton, secondaryButton } from "~/components/admin-ui";
 import { servicesContext } from "~/context";
 import {
   checkEditionForm,
+  checkLinksForm,
   checkTierForm,
   formatDollars,
+  LINK_LABEL_MAX,
+  LINKS_MAX,
   TIER_NAME_MAX,
   type EditionInput,
+  type LinkErrors,
+  type MemberLink,
   type TierInput,
 } from "~/lib/admin-forms";
-import { addTier, deleteTier, getEditionSettings, listTiers, updateEditionSettings, updateTier } from "~/lib/admin.server";
-import type { Route } from "./+types/edition";
+import {
+  addTier,
+  deleteTier,
+  getEditionSettings,
+  listMemberLinks,
+  listTiers,
+  saveMemberLinks,
+  updateEditionSettings,
+  updateTier,
+} from "~/lib/admin.server";
+import type { Route } from "./+types/settings";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Edition · Admin · Limicon" }];
+  return [{ title: "Settings · Admin · Limicon" }];
 }
 
 async function currentEdition(context: Route.LoaderArgs["context"]) {
@@ -27,12 +42,17 @@ async function currentEdition(context: Route.LoaderArgs["context"]) {
 export async function loader({ context, request }: Route.LoaderArgs) {
   const { services, edition } = await currentEdition(context);
   const db = services.db();
-  const [settings, tiers] = await Promise.all([getEditionSettings(db, edition.id), listTiers(db, edition.id)]);
-  return { year: edition.year, settings, tiers, saved: new URL(request.url).searchParams.get("saved") };
+  const [settings, links, tiers] = await Promise.all([
+    getEditionSettings(db, edition.id),
+    listMemberLinks(db, edition.id),
+    listTiers(db, edition.id),
+  ]);
+  return { year: edition.year, settings, links, tiers, saved: new URL(request.url).searchParams.get("saved") };
 }
 
 type ActionData =
   | { form: "settings"; input: EditionInput; errors: Partial<Record<keyof EditionInput, string>> }
+  | { form: "links"; input: MemberLink[]; errors: LinkErrors; message?: string }
   | { form: "tier"; tierId: number | null; input: TierInput; errors: Partial<Record<keyof TierInput, string>> }
   | { form: "problem"; message: string };
 
@@ -47,7 +67,16 @@ export async function action({ request, context }: Route.ActionArgs) {
     const result = checkEditionForm(form);
     if (!result.ok) return data<ActionData>({ form: "settings", input: result.input, errors: result.errors }, { status: 400 });
     await updateEditionSettings(db, edition.id, result.values);
-    throw redirect("/admin/edition?saved=settings");
+    throw redirect("/admin/settings?saved=settings");
+  }
+
+  if (intent === "links") {
+    const result = checkLinksForm(form);
+    if (!result.ok) {
+      return data<ActionData>({ form: "links", input: result.input, errors: result.errors, message: result.message }, { status: 400 });
+    }
+    await saveMemberLinks(db, edition.id, result.links);
+    throw redirect("/admin/settings?saved=links");
   }
 
   if (intent === "add-tier" || intent === "update-tier") {
@@ -61,28 +90,29 @@ export async function action({ request, context }: Route.ActionArgs) {
         { status: 400 },
       );
     }
-    throw redirect(`/admin/edition?saved=${id === null ? "tier-added" : "tier-saved"}`);
+    throw redirect(`/admin/settings?saved=${id === null ? "tier-added" : "tier-saved"}`);
   }
 
   if (intent === "delete-tier") {
     if (!(await deleteTier(db, edition.id, tierId))) {
       return data<ActionData>({ form: "problem", message: "That tier has tickets, so it stays. You can rename it or change its price instead." }, { status: 409 });
     }
-    throw redirect("/admin/edition?saved=tier-deleted");
+    throw redirect("/admin/settings?saved=tier-deleted");
   }
 
   throw data("Unknown action", { status: 400 });
 }
 
 const savedMessages: Record<string, string> = {
-  settings: "Edition settings saved.",
+  settings: "Settings saved.",
+  links: "Links saved.",
   "tier-added": "Tier added.",
   "tier-saved": "Tier saved.",
   "tier-deleted": "Tier removed.",
 };
 
-export default function AdminEdition({ loaderData, actionData }: Route.ComponentProps) {
-  const { settings, tiers, year, saved } = loaderData;
+export default function AdminSettings({ loaderData, actionData }: Route.ComponentProps) {
+  const { settings, links, tiers, year, saved } = loaderData;
   const busy = useNavigation().state !== "idle";
   const settingsErrors = actionData?.form === "settings" ? actionData.errors : {};
   const values: EditionInput =
@@ -93,16 +123,14 @@ export default function AdminEdition({ loaderData, actionData }: Route.Component
           endsOn: settings.endsOn ?? "",
           registrationOpen: settings.registrationOpen,
           calendarOpen: settings.calendarOpen,
-          miroUrl: settings.miroUrl ?? "",
-          castaliaUrl: settings.castaliaUrl ?? "",
         };
   const err = (name: keyof EditionInput) =>
     settingsErrors[name] ? { "aria-invalid": true, "aria-describedby": `${name}-error` } : {};
 
   return (
     <>
-      <PageHeading title={`Limicon ${year}`}>
-        <p>The current edition's dates, the switches for registration and the calendar, member links and ticket tiers.</p>
+      <PageHeading title="Settings">
+        <p>Limicon {year}'s dates, the switches for registration and the calendar, the links members see, and ticket tiers.</p>
       </PageHeading>
       {saved && savedMessages[saved] && !actionData && <Notice>{savedMessages[saved]}</Notice>}
       {actionData?.form === "problem" && <Notice tone="problem">{actionData.message}</Notice>}
@@ -129,7 +157,7 @@ export default function AdminEdition({ loaderData, actionData }: Route.Component
           <Switch
             name="registrationOpen"
             label="Registration is open"
-            help="When it's closed, the tickets page says so instead of selling tickets (REG-10)."
+            help="When it's closed, the tickets page says so instead of registering people (REG-10)."
             defaultChecked={values.registrationOpen}
           />
           <Switch
@@ -140,24 +168,18 @@ export default function AdminEdition({ loaderData, actionData }: Route.Component
           />
         </fieldset>
 
-        <fieldset className="grid gap-4">
-          <legend className="mb-2 text-lg font-semibold">Member links</legend>
-          <div>
-            <label htmlFor="miroUrl" className="block font-medium">Miro board</label>
-            <input id="miroUrl" name="miroUrl" type="url" placeholder="https://miro.com/…" defaultValue={values.miroUrl} className={`${inputClass} mt-1`} {...err("miroUrl")} />
-            <FieldError id="miroUrl-error" message={settingsErrors.miroUrl} />
-          </div>
-          <div>
-            <label htmlFor="castaliaUrl" className="block font-medium">Castalia</label>
-            <input id="castaliaUrl" name="castaliaUrl" type="url" placeholder="https://…" defaultValue={values.castaliaUrl} className={`${inputClass} mt-1`} {...err("castaliaUrl")} />
-            <FieldError id="castaliaUrl-error" message={settingsErrors.castaliaUrl} />
-          </div>
-        </fieldset>
-
         <div>
-          <button type="submit" disabled={busy} className={primaryButton}>Save edition settings</button>
+          <button type="submit" disabled={busy} className={primaryButton}>Save settings</button>
         </div>
       </Form>
+
+      <LinksForm
+        key={JSON.stringify(links)}
+        initial={actionData?.form === "links" ? actionData.input : links}
+        errors={actionData?.form === "links" ? actionData.errors : {}}
+        message={actionData?.form === "links" ? actionData.message : undefined}
+        busy={busy}
+      />
 
       <section aria-labelledby="tiers-heading" className="mt-10 max-w-3xl">
         <h2 id="tiers-heading" className="text-xl font-semibold">Ticket tiers</h2>
@@ -212,6 +234,95 @@ function Switch({ name, label, help, defaultChecked }: { name: string; label: st
         <span className="block text-sm opacity-80">{help}</span>
       </span>
     </label>
+  );
+}
+
+type LinkRow = MemberLink & { key: number };
+
+/**
+ * The links members see (MEM-2), such as the Miro board and Castalia. "Add new link" adds a blank
+ * row; saving replaces the edition's links with the rows in order, dropping wholly blank ones.
+ */
+function LinksForm({ initial, errors, message, busy }: { initial: MemberLink[]; errors: LinkErrors; message?: string; busy: boolean }) {
+  const [rows, setRows] = useState<LinkRow[]>(() => initial.map((link, key) => ({ ...link, key })));
+  const [nextKey, setNextKey] = useState(initial.length);
+  const update = (key: number, change: Partial<MemberLink>) =>
+    setRows((current) => current.map((row) => (row.key === key ? { ...row, ...change } : row)));
+  const move = (index: number, by: -1 | 1) =>
+    setRows((current) => {
+      const next = [...current];
+      const [row] = next.splice(index, 1);
+      next.splice(index + by, 0, row!);
+      return next;
+    });
+
+  return (
+    <Form method="post" className={`${card} mt-10 grid max-w-3xl gap-4`} aria-labelledby="links-heading">
+      <input type="hidden" name="intent" value="links" />
+      <div>
+        <h2 id="links-heading" className="text-lg font-semibold">Member links</h2>
+        <p className="mt-1 text-sm">External links for members, such as the Miro board and Castalia, in the order they'll appear.</p>
+      </div>
+      {message && <p role="alert" className="font-medium text-[#B3261E] dark:text-[#F2B8B5]">{message}</p>}
+      {rows.length === 0 && <p className="text-sm opacity-80">No links yet.</p>}
+      <ol className="grid gap-3">
+        {rows.map((row, index) => {
+          const rowErrors = errors[index] ?? {};
+          return (
+            <li key={row.key} className="grid items-start gap-2 rounded border border-[#E2E8E9] p-3 sm:grid-cols-[12rem_1fr_auto] dark:border-[#24363B]">
+              <div>
+                <label htmlFor={`label-${row.key}`} className="block text-sm font-medium">Name</label>
+                <input
+                  id={`label-${row.key}`}
+                  name="label"
+                  maxLength={LINK_LABEL_MAX}
+                  value={row.label}
+                  onChange={(event) => update(row.key, { label: event.target.value })}
+                  className={`${inputClass} mt-1`}
+                  {...(rowErrors.label ? { "aria-invalid": true, "aria-describedby": `label-${row.key}-error` } : {})}
+                />
+                <FieldError id={`label-${row.key}-error`} message={rowErrors.label} />
+              </div>
+              <div>
+                <label htmlFor={`url-${row.key}`} className="block text-sm font-medium">Web address</label>
+                <input
+                  id={`url-${row.key}`}
+                  name="url"
+                  type="url"
+                  placeholder="https://…"
+                  value={row.url}
+                  onChange={(event) => update(row.key, { url: event.target.value })}
+                  className={`${inputClass} mt-1`}
+                  {...(rowErrors.url ? { "aria-invalid": true, "aria-describedby": `url-${row.key}-error` } : {})}
+                />
+                <FieldError id={`url-${row.key}-error`} message={rowErrors.url} />
+              </div>
+              <div className="flex gap-1 sm:mt-6">
+                <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Move ${row.label || "link"} up`} className={`${secondaryButton} disabled:opacity-40`}>↑</button>
+                <button type="button" onClick={() => move(index, 1)} disabled={index === rows.length - 1} aria-label={`Move ${row.label || "link"} down`} className={`${secondaryButton} disabled:opacity-40`}>↓</button>
+                <button type="button" onClick={() => setRows((current) => current.filter((r) => r.key !== row.key))} className={dangerButton}>Remove</button>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+      <div>
+        <button
+          type="button"
+          disabled={rows.length >= LINKS_MAX}
+          onClick={() => {
+            setRows((current) => [...current, { label: "", url: "", key: nextKey }]);
+            setNextKey((key) => key + 1);
+          }}
+          className={`${secondaryButton} disabled:opacity-40`}
+        >
+          Add new link
+        </button>
+      </div>
+      <div>
+        <button type="submit" disabled={busy} className={primaryButton}>Save links</button>
+      </div>
+    </Form>
   );
 }
 

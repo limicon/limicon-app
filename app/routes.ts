@@ -8,6 +8,7 @@ export default [
     route("account", "routes/public/account.tsx"),
     route("tickets", "routes/public/tickets.tsx"),
     route("members-only", "routes/public/members-only.tsx"),
+    route("faq", "routes/public/faq.tsx"),
   ]),
 
   // The Members area: a site of its own, open only to ticket holders and admins.
@@ -30,12 +31,17 @@ export default [
   ...prefix("admin", [
     layout("routes/admin/layout.tsx", [
       index("routes/admin/overview.tsx"),
-      route("edition", "routes/admin/edition.tsx"),
+      route("settings", "routes/admin/settings.tsx"),
+      route("users", "routes/admin/users.tsx"),
+      route("users/:userId", "routes/admin/user.tsx"),
+      route("sessions/:sessionId", "routes/admin/session-edit.tsx"),
       route("sessions", "routes/admin/sessions.tsx"),
       route("tickets", "routes/admin/tickets.tsx"),
+      route("faq", "routes/admin/faq.tsx"),
       route("team", "routes/admin/team.tsx"),
     ]),
     route("tickets.csv", "routes/admin/tickets-csv.ts"),
+    route("users.csv", "routes/admin/users-csv.ts"),
   ]),
 
   route("auth/callback", "routes/auth-callback.tsx"),

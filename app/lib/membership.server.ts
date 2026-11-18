@@ -7,7 +7,7 @@ import { membershipStatus, type Membership } from "~/lib/membership";
  */
 export async function getMembership(sql: Db, userId: string | null): Promise<Membership> {
   const [row] = await sql<
-    { id: number; year: number; firstDay: string | null; lastDay: string | null; hasTicket: boolean; isAdmin: boolean }[]
+    { id: number; year: number; firstDay: string | null; lastDay: string | null; hasTicket: boolean; isAdmin: boolean; deactivated: boolean }[]
   >`
     select
       e.id,
@@ -20,15 +20,19 @@ export async function getMembership(sql: Db, userId: string | null): Promise<Mem
       ) as "hasTicket",
       exists (
         select 1 from public.admin_permissions a where a.profile_id = ${userId}
-      ) as "isAdmin"
+      ) as "isAdmin",
+      exists (
+        select 1 from public.profiles p where p.id = ${userId} and p.deactivated_at is not null
+      ) as "deactivated"
     from public.editions e
     order by e.year desc
     limit 1
   `;
-  const isAdmin = row?.isAdmin ?? false;
+  const deactivated = row?.deactivated ?? false;
+  const isAdmin = (row?.isAdmin ?? false) && !deactivated;
   return {
     edition: row ? { id: Number(row.id), year: row.year, firstDay: row.firstDay, lastDay: row.lastDay } : null,
     isAdmin,
-    status: membershipStatus({ signedIn: userId !== null, hasTicket: row?.hasTicket ?? false, isAdmin }),
+    status: membershipStatus({ signedIn: userId !== null, hasTicket: row?.hasTicket ?? false, isAdmin, deactivated }),
   };
 }

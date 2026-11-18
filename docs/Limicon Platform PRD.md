@@ -250,7 +250,7 @@ These in-app forms replace the Google Forms. Admins can edit their questions.
 ### Members area
 
 - **MEM-1** The Members home links to the calendar, My Schedule, Host a Session, the session forms, the Content tab (Phase 2), the directory and messages (Phase 2), and Accessibility.
-- **MEM-2** Miro and Castalia appear as external links. Admins set the URLs for each edition.
+- **MEM-2** Miro, Castalia and any other external links appear for members. Admins add, name, order and remove the links for each edition.
 - **MEM-3** Host guidance, tips, session attributes and the session boilerplate from today's Host a Session page live in the Members area.
 - **MEM-4** The Members area is a site within the site, with its own look and its own menu: Home, Updates, Schedule, Host a session and Community. None of its sections appear on the public website, whose menu has only a Members link.
 
@@ -353,9 +353,11 @@ The model separates an account (a person, permanent) from a ticket (a person's p
 
 | Table | Purpose | Key fields |
 | --- | --- | --- |
-| profiles | One row per person, linked to the auth account | name, photo, location, bio, extended bio, links, keywords, time zone, allow\_messages, show\_in\_directory |
+| profiles | One row per person, linked to the auth account | name, photo, location, bio, extended bio, links, keywords, time zone, allow\_messages, show\_in\_directory, deactivated\_at |
 | admin\_permissions | Who holds which admin permission | profile, permission, granted\_by, granted\_at |
-| editions | One row per Limicon year | year, start and end dates, registration\_open, calendar\_open, Miro and Castalia URLs |
+| admin\_user\_notes | Private notes admins keep about a person | profile, author, body, created\_at |
+| editions | One row per Limicon year | year, start and end dates, registration\_open, calendar\_open |
+| edition\_links | External links for members per edition (MEM-2) | edition, label, url, sort order |
 | ticket\_tiers | Tiers per edition | edition, name, price, sort order |
 | discount\_codes | Admin-created codes | code, type (percent or amount), value, expires\_at, max\_uses, tier restriction |
 | tickets | A person's registration for an edition | profile, edition, tier, amount\_paid, discount\_code, stripe\_session\_id, status, imported |
@@ -373,6 +375,7 @@ The model separates an account (a person, permanent) from a ticket (a person's p
 | reports | Moderation | reporter, target message or profile, reason, status |
 | stitchfest\_submissions | Stitchfest portal | profile, edition, project fields, status, presentation slot |
 | site\_pages | Editable site content | slug, title, body, menu position, published |
+| faq\_entries | The public FAQ, edited in the console | question, answer, published, sort order, updated\_by |
 | mailing\_list | Public sign-ups | email, source, subscribed\_at |
 
 **Rules**
