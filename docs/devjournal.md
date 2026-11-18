@@ -24,6 +24,12 @@ Members > Schedule lists published sessions by day, color-coded by theme, search
 
 ---
 
+## 2026-11-18 | Lauren (with Opus 5.5) | Registration questions come before the ticket
+
+`/tickets` asks the REG-2 questions, including eight optional reflection questions, and saves them before payment. Answers belong to the profile and edition, one row per question key from `app/lib/registration-form.ts`; agreements keep the time first agreed. Tier choice and Stripe come next.
+
+---
+
 ## 2026-11-17 | Lauren (with Opus 5.5) | Members can host sessions
 
 Members accept the host guidelines once per edition, then draft, publish, edit and delete sessions. The form follows limicon.org's: start time plus length, several session types, participant experience flags, and a recording question. The PRD's session form table records the changes; `app/lib/zoned-time.ts` converts times.

@@ -126,7 +126,9 @@ During the event, admins add relevant Liminal Calendar events to the Limicon cal
 - **REG-1** A visitor creates an account first, then buys a ticket. No guest checkout.
 - **REG-2** The registration form collects:
   - first and last name, and email
+  - address
   - location (city, state or province, country)
+  - optional reflection questions: What session would you like to participate in? What topic would you like to learn more about? What practice would you like to get better at? What conversation would you like to be a part of? Who would you like to meet? How would you like to feel? What do you wish will happen? What can you contribute?
   - how they heard about Limicon
   - agreement to the Code of Conduct and the Privacy Policy
   - a confirmation that they will add team@limicon.org to their contacts
@@ -357,7 +359,7 @@ The model separates an account (a person, permanent) from a ticket (a person's p
 | ticket\_tiers | Tiers per edition | edition, name, price, sort order |
 | discount\_codes | Admin-created codes | code, type (percent or amount), value, expires\_at, max\_uses, tier restriction |
 | tickets | A person's registration for an edition | profile, edition, tier, amount\_paid, discount\_code, stripe\_session\_id, status, imported |
-| registration\_answers | Answers to registration questions | ticket, question, answer, agreed\_at |
+| registration\_answers | Answers to registration questions, given before paying | profile, edition, question, answer, answered\_at (when agreed, for agreements) |
 | contacts, contact\_tags | Migrated and mailing list contacts | email, name, source, tags |
 | sessions | A session or co-creation meeting | edition, title, description, intention, theme, format, online or in person, start, end, time zone, meeting\_link, max\_participants, waitlist\_enabled, privacy\_option, ai\_consent fields, is\_cocreation\_meeting, status |
 | session\_hosts | Host and co-host link | session, profile, role |
