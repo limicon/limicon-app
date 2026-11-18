@@ -31,6 +31,7 @@ Each entry names the work that calls for reading the doc.
 - [`config-github.md`](docs/config-github.md): GitHub settings, branch protection, CI, Dependabot.
 - [`config-googlecloud.md`](docs/config-googlecloud.md): the Google sign-in client, its secret, or Google's test users.
 - [`config-supabase.md`](docs/config-supabase.md): changing the hosted database, the Data API, sign-in email, or the database password.
+- [`feature-admin-console.md`](docs/feature-admin-console.md): the admin console at `/admin`: who can open it, its pages, and adding admins.
 - [`feature-calendaring.md`](docs/feature-calendaring.md): getting sessions onto members' own calendars, through ICS feeds, invites on RSVP or add-to-calendar links.
 - [`feature-sessions.md`](docs/feature-sessions.md): session times and time zones, the session lifecycle, repeating sessions, or RSVPs.
 - [`process-commit.md`](docs/process-commit.md): making a commit.

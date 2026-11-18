@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-18 | Lauren (with Opus 5.5) | The admin console opens at /admin
+
+Admins get Overview (analytics), Edition (dates, switches, links, ticket tiers), Sessions, Tickets (comp tickets, CSV) and Team (add or remove admins by email). Any admin permission opens it; changing the team needs `full`. `docs/feature-admin-console.md` covers it.
+
+---
+
 ## 2026-11-18 | Lauren (with Opus 5.5) | Members see the schedule in their own time zone
 
 Members > Schedule lists published sessions by day, color-coded by theme, searchable by title, host and description, with session pages. Times show in the zone a member picks (saved on their profile) or their browser's. Open pages check every 10 seconds and refresh when the calendar changes (CAL-4).

@@ -8,8 +8,8 @@ export const middleware: Route.MiddlewareFunction[] = [requireMembership];
 
 export async function loader({ context }: Route.LoaderArgs) {
   const services = context.get(servicesContext);
-  const { edition } = await services.membership();
-  return { editionYear: edition?.year ?? null, email: services.viewer?.email ?? null };
+  const { edition, isAdmin } = await services.membership();
+  return { editionYear: edition?.year ?? null, email: services.viewer?.email ?? null, isAdmin };
 }
 
 const sections = [
@@ -57,6 +57,11 @@ export default function MembersLayout({ loaderData }: Route.ComponentProps) {
           </nav>
           <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/15 pt-4 text-sm md:mt-8 md:flex-col md:items-start">
             {loaderData.email && <span className="opacity-80">{loaderData.email}</span>}
+            {loaderData.isAdmin && (
+              <Link to="/admin" className="underline">
+                Admin console
+              </Link>
+            )}
             <Link to="/" className="underline">
               Public website
             </Link>

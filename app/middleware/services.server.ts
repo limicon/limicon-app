@@ -63,6 +63,17 @@ export const requireViewer: MiddlewareFunction<Response> = ({ context }) => {
   if (!context.get(servicesContext).viewer) throw redirect("/sign-in");
 };
 
+/**
+ * Route middleware for the admin console: visitors go to sign in, and signed-in people without
+ * an admin permission get a plain not-found, so the console's pages aren't advertised.
+ */
+export const requireAdmin: MiddlewareFunction<Response> = async ({ context }) => {
+  const services = context.get(servicesContext);
+  if (!services.viewer) throw redirect("/sign-in");
+  const { isAdmin } = await services.membership();
+  if (!isAdmin) throw new Response("Not found", { status: 404 });
+};
+
 /** Route middleware for the Members area: anyone without access sees why instead. */
 export const requireMembership: MiddlewareFunction<Response> = async ({ context }) => {
   const { status } = await context.get(servicesContext).membership();

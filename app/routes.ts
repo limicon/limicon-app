@@ -26,6 +26,18 @@ export default [
     ]),
   ]),
 
+  // The admin console: open only to people with an admin permission.
+  ...prefix("admin", [
+    layout("routes/admin/layout.tsx", [
+      index("routes/admin/overview.tsx"),
+      route("edition", "routes/admin/edition.tsx"),
+      route("sessions", "routes/admin/sessions.tsx"),
+      route("tickets", "routes/admin/tickets.tsx"),
+      route("team", "routes/admin/team.tsx"),
+    ]),
+    route("tickets.csv", "routes/admin/tickets-csv.ts"),
+  ]),
+
   route("auth/callback", "routes/auth-callback.tsx"),
   route("sign-out", "routes/sign-out.tsx"),
 ] satisfies RouteConfig;
