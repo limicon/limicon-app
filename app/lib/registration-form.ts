@@ -10,7 +10,7 @@ export const LONG_MAX = 2000;
 
 /** Questions answered in a line or a paragraph, in the order the form asks them. */
 export const TEXT_QUESTIONS = [
-  { key: "address", label: "Address", help: "Your mailing address.", kind: "long", required: true },
+  { key: "address", label: "Address", help: "Your mailing address.", kind: "long", required: false },
   { key: "city", label: "City", kind: "short", required: true },
   { key: "region", label: "State or province", kind: "short", required: false },
   { key: "country", label: "Country", kind: "short", required: true },

@@ -32,11 +32,11 @@ describe("checkRegistrationForm", () => {
     });
   });
 
-  test("asks for name, address and location", () => {
+  test("asks for name and location, but not address", () => {
     const result = checkRegistrationForm(complete({ firstName: "", lastName: " ", address: "", city: "", country: "" }));
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(Object.keys(result.errors).sort()).toEqual(["address", "city", "country", "firstName", "lastName"]);
+    expect(Object.keys(result.errors).sort()).toEqual(["city", "country", "firstName", "lastName"]);
   });
 
   test("lets every reflection question go unanswered", () => {
