@@ -11,7 +11,9 @@ export async function signIn(page: Page, request: APIRequestContext, email: stri
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Email me a sign-in link" }).click();
-  await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
+  // Sending the email is the slow step: about 0.2s alone, but over 2.5s while several test
+  // browsers start at once on a small machine, which crowds the default 5s.
+  await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible({ timeout: 15_000 });
   await page.goto(await signInLink(request, email));
   await expect(page).toHaveURL("/account");
 }
