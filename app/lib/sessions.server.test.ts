@@ -109,8 +109,20 @@ describe("sessions", () => {
         published: true,
       });
 
-      await deleteSession(tx, id);
+      expect(await deleteSession(tx, id)).toBe("deleted");
       expect(await listHostedSessions(tx, host, editionId)).toEqual([]);
+    });
+  });
+
+  test("deleting a session members RSVPed to unpublishes it and keeps the RSVPs", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const { host, other, editionId } = await setUp(tx);
+      const id = await createSession(tx, { userId: host, editionId, values: values(), publish: true });
+      await tx`insert into public.session_rsvps (session_id, profile_id, status) values (${id}, ${other}, 'registered')`;
+
+      expect(await deleteSession(tx, id)).toBe("unpublished");
+      expect(await getEditableSession(tx, id, { userId: host, isAdmin: false })).toMatchObject({ published: false });
+      expect(await tx`select 1 from public.session_rsvps where session_id = ${id}`).toHaveLength(1);
     });
   });
 

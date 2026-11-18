@@ -75,6 +75,10 @@ describe("row-level security backstop", () => {
         insert into public.host_guideline_acceptances (profile_id, edition_id)
         values (${user!.id}, ${edition!.id})
       `;
+      await tx`
+        insert into public.session_rsvps (session_id, profile_id, status)
+        values (${session!.id}, ${user!.id}, 'registered')
+      `;
 
       const tables = await tx<{ tablename: string }[]>`
         select tablename from pg_tables where schemaname = 'public'

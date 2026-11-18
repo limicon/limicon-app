@@ -39,7 +39,7 @@ test("members browse, search and open sessions in their own time zone, and see n
   // Search by host name.
   await page.getByLabel("Search").fill(`lovelace-${run}`);
   await page.getByRole("button", { name: "Search" }).click();
-  const thresholds = page.getByRole("link", { name: new RegExp(`Thresholds ${run}`) });
+  const thresholds = page.getByRole("article", { name: `Thresholds ${run}` });
   await expect(thresholds).toContainText("4:00");
   await expect(thresholds).toContainText("5:30 PM");
   await expect(thresholds).toContainText("Personal Growth and Inner Work");
@@ -48,7 +48,7 @@ test("members browse, search and open sessions in their own time zone, and see n
 
   // Filter by theme.
   await page.getByLabel("Theme", { exact: true }).selectOption("Play, Games and Experimentation");
-  await expect(page.getByRole("link", { name: new RegExp(`Games ${run}`) })).toBeVisible();
+  await expect(page.getByRole("article", { name: `Games ${run}` })).toBeVisible();
   await expect(thresholds).toHaveCount(0);
 
   // A session's page shows the link, and the host's own time beside the viewer's.
@@ -63,7 +63,7 @@ test("members browse, search and open sessions in their own time zone, and see n
 
   // A session published while the schedule is open appears without a reload (CAL-4).
   await page.goto(`/members/schedule?q=${run}`);
-  await expect(page.getByRole("link", { name: new RegExp(`Thresholds ${run}`) })).toBeVisible();
+  await expect(page.getByRole("article", { name: `Thresholds ${run}` })).toBeVisible();
   await publishSession({
     hostEmail: email,
     title: `Arrived later ${run}`,
@@ -72,7 +72,7 @@ test("members browse, search and open sessions in their own time zone, and see n
     minutes: 60,
     timeZone: "America/Toronto",
   });
-  await expect(page.getByRole("link", { name: new RegExp(`Arrived later ${run}`) })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("article", { name: `Arrived later ${run}` })).toBeVisible({ timeout: 20_000 });
 
   // Picking another zone saves it and re-renders the times.
   await page.getByText("Times are shown in").click();
@@ -80,4 +80,35 @@ test("members browse, search and open sessions in their own time zone, and see n
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Times are shown in Asia/Tokyo")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Thursday, March 18" }).first()).toBeVisible();
+});
+
+test("members RSVP in one click and find those sessions on My Schedule", async ({ page, request }) => {
+  const run = crypto.randomUUID().slice(0, 8);
+  const email = newEmail();
+  await signIn(page, request, email);
+  await giveTicket(email);
+  const session = (title: string, startsAt: string) =>
+    publishSession({ hostEmail: email, title, theme: "Consciousness Exploration", startsAt, minutes: 60, timeZone: "UTC" });
+  const id = await session(`Going ${run}`, "2027-03-17T16:00:00Z");
+  await session(`Not going ${run}`, "2027-03-18T16:00:00Z");
+
+  await page.goto(`/members/schedule?q=${run}`);
+  const going = page.getByRole("article", { name: `Going ${run}` });
+  await going.getByRole("button", { name: `RSVP for Going ${run}` }).click();
+  await expect(going.getByText("Going", { exact: true })).toBeVisible();
+
+  // My Schedule keeps the search, and shows only the session RSVPed to.
+  await page.getByRole("link", { name: "My Schedule" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "My Schedule" })).toBeVisible();
+  await expect(page.getByRole("article", { name: `Going ${run}` })).toBeVisible();
+  await expect(page.getByRole("article", { name: `Not going ${run}` })).toHaveCount(0);
+
+  // The session's page counts the RSVP, and cancelling takes it off My Schedule.
+  await page.goto(`/members/schedule/${id}`);
+  await expect(page.getByText("1 going")).toBeVisible();
+  await page.getByRole("button", { name: `Cancel your RSVP to Going ${run}` }).click();
+  await expect(page.getByText("0 going")).toBeVisible();
+  await page.goto(`/members/schedule?view=mine&q=${run}`);
+  await expect(page.getByRole("heading", { level: 1, name: "My Schedule" })).toBeVisible();
+  await expect(page.getByRole("article", { name: `Going ${run}` })).toHaveCount(0);
 });

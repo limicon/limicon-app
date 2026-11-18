@@ -4,6 +4,8 @@ import { useBrowserZone, useScheduleRefresh } from "~/components/schedule-refres
 import { ThemeLabel } from "~/components/theme-label";
 import { servicesContext } from "~/context";
 import { fullTimeRange, zoneName } from "~/lib/format-time";
+import { RsvpButton } from "~/components/rsvp-button";
+import { cancelRsvp, getRsvpSummary, rsvp } from "~/lib/rsvps.server";
 import { getSessionDetails, scheduleVersion } from "~/lib/schedule.server";
 import { EXPERIENCE, RECORDING_AUDIENCES, SESSION_TYPES } from "~/lib/session-form";
 import { themeColor } from "~/lib/themes";
@@ -20,20 +22,38 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
   if (!edition) throw data("Session not found", { status: 404 });
   const db = services.db();
   const userId = services.viewer!.userId;
-  const [session, version, viewerZone] = await Promise.all([
+  const [session, version, viewerZone, rsvps] = await Promise.all([
     getSessionDetails(db, params.sessionId, edition.id, userId),
     scheduleVersion(db, edition.id),
     getViewerZone(db, userId, request.headers.get("Cookie")),
+    getRsvpSummary(db, params.sessionId, userId),
   ]);
   if (!session) throw data("Session not found", { status: 404 });
-  return { session, version, viewerZone, canEdit: session.viewerHosts || isAdmin, year: edition.year };
+  return { session, version, viewerZone, rsvps, canEdit: session.viewerHosts || isAdmin, year: edition.year };
+}
+
+/** RSVPs or cancels, for the signed-in member (CAL-5). */
+export async function action({ request, context, params }: Route.ActionArgs) {
+  const services = context.get(servicesContext);
+  const form = await request.formData();
+  const userId = services.viewer!.userId;
+  const sessionId = params.sessionId;
+  if (form.get("intent") === "cancel") {
+    await cancelRsvp(services.db(), { sessionId, userId });
+    return { outcome: "cancelled" };
+  }
+  const outcome = await rsvp(services.db(), { sessionId, userId });
+  if (outcome === "not-found") throw data("Session not found", { status: 404 });
+  return { outcome };
 }
 
 const label = <T extends { value: string; label: string }>(options: readonly T[], value: string) =>
   options.find((option) => option.value === value)?.label ?? value;
 
 export default function ScheduleSession({ loaderData }: Route.ComponentProps) {
-  const { session, version, viewerZone, canEdit, year } = loaderData;
+  const { session, version, viewerZone, rsvps, canEdit, year } = loaderData;
+  const full = rsvps.capacity !== null && rsvps.registered >= rsvps.capacity;
+  const finished = new Date(session.endsAt).getTime() <= Date.now();
   useScheduleRefresh(version);
   useBrowserZone(viewerZone.source, viewerZone.zone);
 
@@ -69,6 +89,30 @@ export default function ScheduleSession({ loaderData }: Route.ComponentProps) {
         </div>
       </div>
 
+      <section className="mt-6 grid gap-3 rounded-lg border border-[#C9DADC] bg-white p-5 dark:border-[#24363B] dark:bg-[#12201F]" aria-labelledby="rsvp">
+        <h2 id="rsvp" className="font-semibold">Going</h2>
+        <p>
+          {rsvps.capacity === null
+            ? `${rsvps.registered} going`
+            : `${rsvps.registered} of ${rsvps.capacity} places taken`}
+          {rsvps.waitlisted > 0 && ` · ${rsvps.waitlisted} on the waitlist`}
+        </p>
+        {finished ? (
+          <p className="text-sm">This session has finished.</p>
+        ) : (
+          <RsvpButton
+            sessionId={session.id}
+            status={rsvps.mine}
+            title={session.title}
+            full={full}
+            waitlistEnabled={rsvps.waitlistEnabled}
+          />
+        )}
+        {rsvps.mine === "waitlisted" && !finished && (
+          <p className="text-sm">If a place opens, you'll move up automatically.</p>
+        )}
+      </section>
+
       <section className="mt-6 rounded-lg border border-[#C9DADC] bg-white p-5 dark:border-[#24363B] dark:bg-[#12201F]" aria-labelledby="where">
         <h2 id="where" className="font-semibold">{inPerson ? "Where" : "How to join"}</h2>
         {inPerson ? (
@@ -82,7 +126,6 @@ export default function ScheduleSession({ loaderData }: Route.ComponentProps) {
         ) : (
           <p className="mt-1">Link coming soon.</p>
         )}
-        {session.maxParticipants !== null && <p className="mt-2 text-sm">Up to {session.maxParticipants} participants.</p>}
       </section>
 
       {session.description && (

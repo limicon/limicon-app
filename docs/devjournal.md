@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-18 | Lauren (with Opus 5.5) | Members RSVP, with My Schedule
+
+One click RSVPs or cancels, with capacity and a waitlist that promotes the earliest in line. The schedule toggles between the Limicon Schedule and My Schedule. Reminders will come from members' own calendars, so Limicon sends none (CAL-6). Deleting a session with RSVPs unpublishes it instead.
+
+---
+
 ## 2026-11-18 | Lauren (with Opus 5.5) | The admin console opens at /admin
 
 Admins get Overview (analytics), Edition (dates, switches, links, ticket tiers), Sessions, Tickets (comp tickets, CSV) and Team (add or remove admins by email). Any admin permission opens it; changing the team needs `full`. `docs/feature-admin-console.md` covers it.

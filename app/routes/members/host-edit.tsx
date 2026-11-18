@@ -55,7 +55,13 @@ export default function HostEdit({ loaderData, actionData }: Route.ComponentProp
       </div>
       {saved && !actionData && (
         <div role="status" className="mb-6 max-w-3xl rounded-lg border border-[#8CC7D3] bg-[#E6F5F6] p-4 text-[#15383F]">
-          <p className="font-semibold">{saved === "published" ? "Saved, and on the calendar." : "Saved as a draft. Only you can see it."}</p>
+          <p className="font-semibold">
+            {saved === "published"
+              ? "Saved, and on the calendar."
+              : saved === "kept"
+                ? "Members had RSVPed, so the session is off the calendar but kept as a draft, with its RSVPs. Only you can see it."
+                : "Saved as a draft. Only you can see it."}
+          </p>
           {warning && <p className="mt-1">{warning}</p>}
         </div>
       )}
@@ -69,7 +75,10 @@ export default function HostEdit({ loaderData, actionData }: Route.ComponentProp
       />
       <details className="mt-10 max-w-3xl rounded-lg border border-[#E8B4B0] p-4">
         <summary className="cursor-pointer font-semibold">Delete this session</summary>
-        <p className="mt-3">This removes the session for good. It can't be undone.</p>
+        <p className="mt-3">
+          This removes the session for good, and it can't be undone. If members have RSVPed, it's
+          taken off the calendar and kept as a draft instead, so there's a record of who was going.
+        </p>
         <Form method="post" className="mt-3">
           <button type="submit" name="intent" value="delete" className="rounded bg-[#B3261E] px-4 py-2 font-semibold text-white">
             Delete for good

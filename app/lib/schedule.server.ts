@@ -12,6 +12,8 @@ export type ScheduledSession = {
   city: string | null;
   /** Host and co-host names, host first. */
   hosts: string[];
+  /** The viewer's RSVP, if they have one. */
+  myRsvp: "registered" | "waitlisted" | null;
 };
 
 /** Everything a session's page shows to members (CAL-10). */
@@ -28,6 +30,10 @@ export type SessionDetails = ScheduledSession & {
 };
 
 export type ScheduleFilters = {
+  /** The member looking, whose RSVPs show on each session. */
+  viewerId: string;
+  /** My Schedule: only sessions the viewer has RSVPed to (CAL-7). */
+  mineOnly: boolean;
   /** Only sessions ending after this instant, or starting before it when `past` is set. */
   now: Date;
   past: boolean;
@@ -57,10 +63,13 @@ export async function listScheduledSessions(
              )
              from public.session_hosts h join public.profiles p on p.id = h.profile_id
              where h.session_id = s.id
-           ), '{}') as hosts
+           ), '{}') as hosts,
+           mine.status as "myRsvp"
     from public.sessions s
+    left join public.session_rsvps mine on mine.session_id = s.id and mine.profile_id = ${filters.viewerId}
     where s.edition_id = ${editionId}
       and s.published
+      and (not ${filters.mineOnly} or mine.status is not null)
       and ${filters.past ? sql`s.ends_at <= ${filters.now}` : sql`s.ends_at > ${filters.now}`}
       and (${filters.theme}::text is null or s.theme = ${filters.theme})
       and (${filters.sessionType}::text is null or ${filters.sessionType} = any (s.session_types))
@@ -100,8 +109,10 @@ export async function getSessionDetails(
            s.venue_note as "venueNote", s.max_participants as "maxParticipants", s.privacy,
            exists (
              select 1 from public.session_hosts h where h.session_id = s.id and h.profile_id = ${viewerId}
-           ) as "viewerHosts"
+           ) as "viewerHosts",
+           mine.status as "myRsvp"
     from public.sessions s
+    left join public.session_rsvps mine on mine.session_id = s.id and mine.profile_id = ${viewerId}
     where s.id = ${sessionId} and s.edition_id = ${editionId} and s.published
   `;
   return row ?? null;

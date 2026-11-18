@@ -116,9 +116,18 @@ export async function updateSession(sql: Db, sessionId: string, values: SessionV
 }
 
 /**
- * Deletes a session. Nothing records RSVPs or calendar invites yet; once something does, a session
- * with them is unpublished instead (docs/feature-sessions.md → Lifecycle). Callers check permission first.
+ * Deletes a session, or, when members have RSVPed, unpublishes it instead, so the RSVPs stay as a
+ * record of who was told (docs/feature-sessions.md → Lifecycle). Returns which happened. Callers
+ * check permission first.
  */
-export async function deleteSession(sql: Db, sessionId: string) {
+export async function deleteSession(sql: Db, sessionId: string): Promise<"deleted" | "unpublished"> {
+  const [unpublished] = await sql`
+    update public.sessions set published = false, updated_at = now()
+    where id = ${sessionId}
+      and exists (select 1 from public.session_rsvps r where r.session_id = ${sessionId})
+    returning id
+  `;
+  if (unpublished) return "unpublished";
   await sql`delete from public.sessions where id = ${sessionId}`;
+  return "deleted";
 }

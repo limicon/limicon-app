@@ -24,7 +24,16 @@ async function inRolledBackTransaction(work: (tx: Db) => Promise<void>) {
 }
 
 const now = new Date("2027-03-17T12:00:00Z");
-const upcoming: ScheduleFilters = { now, past: false, theme: null, sessionType: null, keyword: null };
+// A viewer with no RSVPs, unless a test sets one.
+const upcoming: ScheduleFilters = {
+  viewerId: "00000000-0000-0000-0000-000000000000",
+  mineOnly: false,
+  now,
+  past: false,
+  theme: null,
+  sessionType: null,
+  keyword: null,
+};
 
 /** An edition with a host, a co-host and a handful of sessions around `now`. */
 async function setUp(tx: Db) {
@@ -93,6 +102,25 @@ describe("listScheduledSessions", () => {
       expect(await titles({ keyword: "hopper" })).toEqual(["Sooner"]);
       expect(await titles({ keyword: "ada love" })).toEqual(["Happening now", "Sooner", "Later"]);
       expect(await titles({ keyword: "100%" })).toEqual([]);
+    });
+  });
+});
+
+describe("My Schedule", () => {
+  test("shows only the sessions the viewer RSVPed to, with their status", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const { editionId, coHost, ids } = await setUp(tx);
+      await tx`insert into public.session_rsvps (session_id, profile_id, status) values (${ids.later}, ${coHost}, 'waitlisted')`;
+      await tx`insert into public.session_rsvps (session_id, profile_id, status) values (${ids.happening}, ${coHost}, 'registered')`;
+
+      const mine = await listScheduledSessions(tx, editionId, { ...upcoming, viewerId: coHost, mineOnly: true });
+      expect(mine.map((s) => [s.title, s.myRsvp])).toEqual([
+        ["Happening now", "registered"],
+        ["Later", "waitlisted"],
+      ]);
+
+      const everything = await listScheduledSessions(tx, editionId, { ...upcoming, viewerId: coHost });
+      expect(everything.find((s) => s.title === "Sooner")?.myRsvp).toBeNull();
     });
   });
 });

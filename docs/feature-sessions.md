@@ -2,7 +2,7 @@
 
 How sessions sit in time: times and time zones, the session lifecycle, repeating sessions, and RSVPs. [`feature-calendaring.md`](feature-calendaring.md) covers getting sessions onto members' own calendars. The session form's fields and what hosts and admins may do are in the PRD: [Session form fields](Limicon%20Platform%20PRD.md#session-form-fields) and requirements SES-1 to SES-10 and CAL-1 to CAL-10.
 
-Status: draft, 2026-11-17. Hosting is built: host guidelines, the session editor with drafts and publishing, and each host's list of sessions (`app/routes/members/host*.tsx`). Co-hosts, Duplicate, the calendar and RSVPs aren't.
+Status: draft, 2026-11-18. Built: hosting (host guidelines, the session editor with drafts and publishing, each host's list of sessions, in `app/routes/members/host*.tsx`), and the schedule's list view with session pages, RSVPs, the waitlist and My Schedule (`app/routes/members/schedule*.tsx`). Not yet: co-hosts, Duplicate, and the three-day and month views.
 
 ## Times and time zones
 
@@ -50,7 +50,8 @@ Each copy is an ordinary session to everything else, including RSVPs, reminders,
 ## RSVPs
 
 - RSVPs live only in the app: one click to RSVP and one to cancel (CAL-5). Replies to calendar invites aren't read back ([`feature-calendaring.md`](feature-calendaring.md#replies-to-invites)).
-- `session_rsvps` holds the session, the member, the status (registered or waitlisted), `wants_reminder` (CAL-6) and `created_at`.
+- `session_rsvps` holds the session, the member, the status (registered or waitlisted) and `created_at`. Reminders come from members' own calendars (CAL-6), so RSVPs store no reminder choice.
+- **My Schedule** is the schedule page filtered to the member's RSVPs (`?view=mine`), with the same search and filters.
 - **Capacity.** The capacity check and the insert happen in one transaction that locks the session row (`select … for update`), so two members can't take the last place at once.
 - **Waitlist.** When a registered member cancels, the earliest waitlisted RSVP becomes registered. Calendaring treats a promotion like a new RSVP.
 - **Unpublished sessions** keep their RSVPs, as history and as the list of members who were told.

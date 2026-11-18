@@ -1,5 +1,6 @@
 import { Form, Link, useSearchParams, useSubmit } from "react-router";
 
+import { RsvpButton } from "~/components/rsvp-button";
 import { useBrowserZone, useScheduleRefresh } from "~/components/schedule-refresh";
 import { ThemeLabel } from "~/components/theme-label";
 import { servicesContext } from "~/context";
@@ -27,6 +28,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const theme = params.get("theme");
   const sessionType = params.get("type");
   const filters = {
+    viewerId: services.viewer!.userId,
+    mineOnly: params.get("view") === "mine",
     now: new Date(),
     past: params.get("when") === "past",
     theme: theme && (THEMES as readonly string[]).includes(theme) ? theme : null,
@@ -59,7 +62,8 @@ export default function Schedule({ loaderData }: Route.ComponentProps) {
 
   return (
     <>
-      <h1 className="text-3xl font-semibold">Schedule</h1>
+      <h1 className="text-3xl font-semibold">{filters.mineOnly ? "My Schedule" : "Limicon Schedule"}</h1>
+      <ScheduleToggle mineOnly={filters.mineOnly} />
       <TimeZoneLine zone={zone} now={now} timeZones={timeZones} />
       <Filters filters={filters} />
       <Legend />
@@ -68,9 +72,13 @@ export default function Schedule({ loaderData }: Route.ComponentProps) {
         <p className="mt-8">
           {filtered
             ? "No sessions match. Try another search, or clear the filters."
-            : filters.past
-              ? "No sessions have finished yet."
-              : "No sessions are on the calendar yet. Hosts can add theirs under Host a session."}
+            : filters.mineOnly
+              ? filters.past
+                ? "You didn't RSVP to any sessions that have finished."
+                : "You haven't RSVPed to any upcoming sessions yet. RSVP on the Limicon Schedule, and they'll appear here."
+              : filters.past
+                ? "No sessions have finished yet."
+                : "No sessions are on the calendar yet. Hosts can add theirs under Host a session."}
         </p>
       ) : (
         <div className="mt-8 grid max-w-4xl gap-8">
@@ -82,7 +90,7 @@ export default function Schedule({ loaderData }: Route.ComponentProps) {
               <ul className="mt-2 grid gap-3">
                 {daySessions.map((session) => (
                   <li key={session.id}>
-                    <SessionCard session={session} zone={zone} />
+                    <SessionCard session={session} zone={zone} canRsvp={!filters.past} />
                   </li>
                 ))}
               </ul>
@@ -103,26 +111,59 @@ function groupByDay(sessions: ScheduledSession[], zone: string): [string, Schedu
   return [...days];
 }
 
-function SessionCard({ session, zone }: { session: ScheduledSession; zone: string }) {
+function SessionCard({ session, zone, canRsvp }: { session: ScheduledSession; zone: string; canRsvp: boolean }) {
   return (
-    <Link
-      to={`/members/schedule/${session.id}`}
-      className="flex overflow-hidden rounded-lg border border-[#C9DADC] bg-white hover:border-[#15383F] dark:border-[#24363B] dark:bg-[#12201F] dark:hover:border-[#8CC7D3]"
+    <article
+      aria-labelledby={`session-${session.id}`}
+      className="flex overflow-hidden rounded-lg border border-[#C9DADC] bg-white dark:border-[#24363B] dark:bg-[#12201F]"
     >
       <span aria-hidden="true" className="w-1.5 shrink-0" style={{ background: themeColor(session.theme) }} />
-      <span className="grid min-w-0 flex-1 gap-1 p-4 sm:grid-cols-[9rem_1fr] sm:gap-4">
+      <div className="grid min-w-0 flex-1 gap-1 p-4 sm:grid-cols-[9rem_1fr_auto] sm:items-start sm:gap-4">
         <span className="font-semibold tabular-nums">{timeRange(session.startsAt, session.endsAt, zone)}</span>
-        <span className="grid min-w-0 gap-1">
-          <span className="text-lg font-semibold">{session.title}</span>
-          <span className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        <div className="grid min-w-0 gap-1">
+          <h3 id={`session-${session.id}`} className="text-lg font-semibold">
+            <Link to={`/members/schedule/${session.id}`} className="hover:underline">
+              {session.title}
+            </Link>
+          </h3>
+          <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
             <ThemeLabel theme={session.theme} />
             <span>{session.sessionTypes.map(typeLabel).join(", ")}</span>
             {session.city && <span>In person, {session.city}</span>}
-          </span>
-          {session.hosts.length > 0 && <span className="text-sm">With {session.hosts.join(", ")}</span>}
-        </span>
-      </span>
-    </Link>
+          </p>
+          {session.hosts.length > 0 && <p className="text-sm">With {session.hosts.join(", ")}</p>}
+        </div>
+        {canRsvp && (
+          <div className="mt-2 sm:mt-0">
+            <RsvpButton sessionId={session.id} status={session.myRsvp} title={session.title} />
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+/** Switches between every session and the viewer's own (CAL-7), keeping search and filters. */
+function ScheduleToggle({ mineOnly }: { mineOnly: boolean }) {
+  const [params] = useSearchParams();
+  const href = (mine: boolean) => {
+    const next = new URLSearchParams(params);
+    if (mine) next.set("view", "mine");
+    else next.delete("view");
+    const query = next.toString();
+    return `/members/schedule${query ? `?${query}` : ""}`;
+  };
+  const tab = (active: boolean) =>
+    `rounded-md px-4 py-2 font-semibold ${active ? "bg-[#15383F] text-[#F3E6D7] dark:bg-[#F3E6D7] dark:text-[#15383F]" : "hover:bg-black/5 dark:hover:bg-white/10"}`;
+  return (
+    <nav aria-label="Which schedule" className="mt-4 inline-flex gap-1 rounded-lg border border-[#C9DADC] bg-white p-1 dark:border-[#24363B] dark:bg-[#12201F]">
+      <Link to={href(false)} className={tab(!mineOnly)} aria-current={!mineOnly ? "page" : undefined}>
+        Limicon Schedule
+      </Link>
+      <Link to={href(true)} className={tab(mineOnly)} aria-current={mineOnly ? "page" : undefined}>
+        My Schedule
+      </Link>
+    </nav>
   );
 }
 
@@ -181,6 +222,7 @@ function Filters({ filters }: { filters: Route.ComponentProps["loaderData"]["fil
         </select>
       </div>
       <div className="flex flex-wrap items-end gap-3">
+        {filters.mineOnly && <input type="hidden" name="view" value="mine" />}
         <select name="when" aria-label="Upcoming or past sessions" defaultValue={filters.past ? "past" : ""} className={field}>
           <option value="">Upcoming</option>
           <option value="past">Past</option>
@@ -189,8 +231,8 @@ function Filters({ filters }: { filters: Route.ComponentProps["loaderData"]["fil
           Search
         </button>
       </div>
-      {params.size > 0 && (
-        <Link to="/members/schedule" className="text-sm underline sm:col-span-2 lg:col-span-4">
+      {[...params.keys()].some((key) => key !== "view") && (
+        <Link to={filters.mineOnly ? "/members/schedule?view=mine" : "/members/schedule"} className="text-sm underline sm:col-span-2 lg:col-span-4">
           Clear search and filters
         </Link>
       )}

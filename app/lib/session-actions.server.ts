@@ -20,8 +20,8 @@ export async function saveSessionForm(
   if (!edition) throw data("No Limicon edition is set up yet.", { status: 409 });
 
   if (intent === "delete" && sessionId) {
-    await deleteSession(services.db(), sessionId);
-    throw redirect("/members/host?deleted=1");
+    const result = await deleteSession(services.db(), sessionId);
+    throw redirect(result === "deleted" ? "/members/host?deleted=1" : `/members/host/${sessionId}?saved=kept`);
   }
 
   const publish = intent === "publish";

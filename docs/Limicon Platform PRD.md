@@ -200,7 +200,7 @@ Happy Money pays admins and volunteers for the work of running Limicon, so the c
 - **CAL-3** Times display in the viewer's time zone, with a selector to change it. The server stores UTC and each session's time zone. Daylight-saving changes during the event window display correctly for every viewer.
 - **CAL-4** Any create, edit or cancel shows on every open calendar within 10 seconds, without a page reload.
 - **CAL-5** Members RSVP and cancel an RSVP in one click. An optional capacity and waitlist apply when a host sets them.
-- **CAL-6** When a member RSVPs, they choose whether to get a reminder before that session.
+- **CAL-6** Reminders before a session come from the member's own calendar, once the session is on it (CAL-8), with the notification settings they already use there. Limicon doesn't send its own reminder emails.
 - **CAL-7** My Schedule lists the sessions a member joined and updates the moment they RSVP.
 - **CAL-8** Members subscribe to My Schedule through an ICS feed and add single sessions to Google, Apple or Outlook calendars.
 - **CAL-9** Admins can turn the calendar on and off. When it is off, the calendar shows an explanatory message and hosts cannot submit sessions.
@@ -213,7 +213,7 @@ Happy Money pays admins and volunteers for the work of running Limicon, so the c
 ### Notifications
 
 - **NOT-1** Everyone who RSVPed gets an email when a session changes date or time, or is cancelled.
-- **NOT-2** Members who opted in at RSVP get a reminder before that session.
+- **NOT-2** Members get reminders before sessions they RSVPed to through their own calendars (CAL-6), not by email from Limicon.
 - **NOT-3** Hosts get a reminder before each session they host, including a prompt to add the meeting link if it is missing.
 - **NOT-4** Hosts get a confirmation when a session is published. After the session, they get a follow-up with links to the content submission and host feedback forms.
 - **NOT-5** Ticket holders get event-level emails that admins schedule, such as the opening reminder. They do not get a reminder for every session.
