@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-18 | Lauren (with Opus 5.5) | Members see the schedule in their own time zone
+
+Members > Schedule lists published sessions by day, color-coded by theme, searchable by title, host and description, with session pages. Times show in the zone a member picks (saved on their profile) or their browser's. Open pages check every 10 seconds and refresh when the calendar changes (CAL-4).
+
+---
+
 ## 2026-11-17 | Lauren (with Opus 5.5) | Members can host sessions
 
 Members accept the host guidelines once per edition, then draft, publish, edit and delete sessions. The form follows limicon.org's: start time plus length, several session types, participant experience flags, and a recording question. The PRD's session form table records the changes; `app/lib/zoned-time.ts` converts times.

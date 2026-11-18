@@ -16,6 +16,8 @@ export default [
       index("routes/members/home.tsx"),
       route("updates", "routes/members/updates.tsx"),
       route("schedule", "routes/members/schedule.tsx"),
+      route("schedule/version", "routes/members/schedule-version.ts"),
+      route("schedule/:sessionId", "routes/members/schedule-session.tsx"),
       route("community", "routes/members/community.tsx"),
       route("host", "routes/members/host.tsx"),
       route("host/guidelines", "routes/members/host-guidelines.tsx"),
