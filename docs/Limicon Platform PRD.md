@@ -195,7 +195,8 @@ Happy Money pays admins and volunteers for the work of running Limicon, so the c
 ### Sessions calendar and RSVP
 
 - **CAL-1** Three views: three-day, month and chronological list. The three-day view is the default on desktop and the list view is the default on phones.
-- **CAL-2** Filter and search by day, week, theme, format, session or co-creation meeting, and keyword.
+- **CAL-2** Filter and search by day, week, theme, session type, session or co-creation meeting, and keyword.
+- **CAL-11** Sessions are color-coded by theme, with a legend. Each session also shows its theme's name, so the coding doesn't rely on color alone.
 - **CAL-3** Times display in the viewer's time zone, with a selector to change it. The server stores UTC and each session's time zone. Daylight-saving changes during the event window display correctly for every viewer.
 - **CAL-4** Any create, edit or cancel shows on every open calendar within 10 seconds, without a page reload.
 - **CAL-5** Members RSVP and cancel an RSVP in one click. An optional capacity and waitlist apply when a host sets them.
