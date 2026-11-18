@@ -436,4 +436,4 @@ Phase 1 collects each host's AI consent choices and stores them with the session
 | 9 | Do recordings move into Limicon storage, and at what cost per month? | Lead builder, James |
 | 10 | Magic link or password for email sign-in? | Team, Phase 0 |
 | 11 | Which laws does the Privacy Policy name, and how long are recordings, transcripts, messages and the contribution log kept? | Organizing Team |
-| 12 | How do calendar changes reach open pages within 10 seconds (CAL-4)? With no row-level security policies, browsers can't subscribe to Supabase Realtime database changes, and Hyperdrive caches reads for 60 seconds by default. | Lead builder, James |
+| 12 | How do calendar changes reach open pages within 10 seconds (CAL-4)? With no row-level security policies, browsers can't subscribe to Supabase Realtime database changes. Hyperdrive's read caching is off, so a page that asks again sees the change. | Lead builder, James |
