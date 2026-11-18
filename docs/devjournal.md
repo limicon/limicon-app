@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-17 | Lauren (with Opus 5.5) | Members can host sessions
+
+Members accept the host guidelines once per edition, then draft, publish, edit and delete sessions. The form follows limicon.org's: start time plus length, several session types, participant experience flags, and a recording question. The PRD's session form table records the changes; `app/lib/zoned-time.ts` converts times.
+
+---
+
 ## 2026-11-17 | Lauren (with Opus 5.5) | Admins can be invited by email
 
 An `admin_invitations` row grants admin permissions to an address before it has an account; the first sign-in turns it into `admin_permissions` rows. The Organizing Team holds `full` for now. `docs/config-supabase.md` covers inviting an admin. Addresses live only in the database, never in the repo.

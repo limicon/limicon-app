@@ -6,8 +6,8 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ context }: Route.LoaderArgs) {
-  const { editionYear } = await context.get(servicesContext).membership();
-  return { editionYear };
+  const { edition } = await context.get(servicesContext).membership();
+  return { editionYear: edition?.year ?? null };
 }
 
 /** Stands in for registration (Phase 1A) until ticket sales open. */

@@ -12,7 +12,7 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ context }: Route.LoaderArgs) {
   const membership = await context.get(servicesContext).membership();
   if (membership.status === "member") throw redirect("/members");
-  return { status: membership.status, editionYear: membership.editionYear };
+  return { status: membership.status, editionYear: membership.edition?.year ?? null };
 }
 
 export default function MembersOnly({ loaderData }: Route.ComponentProps) {

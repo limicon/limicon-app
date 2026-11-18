@@ -18,6 +18,9 @@ export default [
       route("schedule", "routes/members/schedule.tsx"),
       route("community", "routes/members/community.tsx"),
       route("host", "routes/members/host.tsx"),
+      route("host/guidelines", "routes/members/host-guidelines.tsx"),
+      route("host/new", "routes/members/host-new.tsx"),
+      route("host/:sessionId", "routes/members/host-edit.tsx"),
     ]),
   ]),
 

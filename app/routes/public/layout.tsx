@@ -74,7 +74,7 @@ function MembersLink({ membership }: { membership: Route.ComponentProps["loaderD
       >
         <MembersMessage
           status={membership.status}
-          editionYear={membership.editionYear}
+          editionYear={membership.edition?.year ?? null}
           headingId="members-dialog-title"
         />
         <form method="dialog" className="mt-6 text-right">

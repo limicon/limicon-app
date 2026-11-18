@@ -2,12 +2,12 @@
 
 How sessions sit in time: times and time zones, the session lifecycle, repeating sessions, and RSVPs. [`feature-calendaring.md`](feature-calendaring.md) covers getting sessions onto members' own calendars. The session form's fields and what hosts and admins may do are in the PRD: [Session form fields](Limicon%20Platform%20PRD.md#session-form-fields) and requirements SES-1 to SES-10 and CAL-1 to CAL-10.
 
-Status: draft, 2026-11-15. Nothing is built yet.
+Status: draft, 2026-11-17. Hosting is built: host guidelines, the session editor with drafts and publishing, and each host's list of sessions (`app/routes/members/host*.tsx`). Co-hosts, Duplicate, the calendar and RSVPs aren't.
 
 ## Times and time zones
 
 - A session stores `starts_at` and `ends_at` as `timestamptz`, and `time_zone` as an IANA zone name such as `America/Toronto`.
-- The host enters a date and clock times in the session's zone, which defaults to the host's profile time zone. The server converts them to instants.
+- The host enters a date, a start time and a length in minutes, in the session's zone, which defaults to the host's browser time zone. The server converts the start to an instant and adds the length for the end, so a session can run past midnight. `app/lib/zoned-time.ts` does the conversion with `Intl`.
 - Viewers see times in their own zone, or the one they pick (CAL-3). Display uses only the instants.
 - The stored zone records what the host meant. The editor uses it to show hosts their own clock times, and Duplicate uses it to keep the same clock time across a daylight-saving change.
 - Convert with a time-zone-aware library, or `Temporal` where the runtime has it. Adding hours to a `Date` gets daylight saving wrong.

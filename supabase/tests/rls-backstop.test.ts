@@ -62,6 +62,19 @@ describe("row-level security backstop", () => {
         insert into public.admin_invitations (email, permission)
         values ('invited-admin@example.org', 'full')
       `;
+      const [session] = await tx<{ id: string }[]>`
+        insert into public.sessions (edition_id, title, time_zone)
+        values (${edition!.id}, 'Test session', 'America/Toronto')
+        returning id
+      `;
+      await tx`
+        insert into public.session_hosts (session_id, profile_id, role)
+        values (${session!.id}, ${user!.id}, 'host')
+      `;
+      await tx`
+        insert into public.host_guideline_acceptances (profile_id, edition_id)
+        values (${user!.id}, ${edition!.id})
+      `;
 
       const tables = await tx<{ tablename: string }[]>`
         select tablename from pg_tables where schemaname = 'public'

@@ -8,8 +8,8 @@ export const middleware: Route.MiddlewareFunction[] = [requireMembership];
 
 export async function loader({ context }: Route.LoaderArgs) {
   const services = context.get(servicesContext);
-  const { editionYear } = await services.membership();
-  return { editionYear, email: services.viewer?.email ?? null };
+  const { edition } = await services.membership();
+  return { editionYear: edition?.year ?? null, email: services.viewer?.email ?? null };
 }
 
 const sections = [

@@ -43,8 +43,12 @@ async function currentEditionId(tx: Db) {
 describe("getMembership", () => {
   test("a visitor is signed out, and learns the current edition's year", async () => {
     await inRolledBackTransaction(async (tx) => {
-      await tx`insert into public.editions (year) values (2098)`;
-      expect(await getMembership(tx, null)).toEqual({ status: "signed-out", editionYear: 2098 });
+      await tx`insert into public.editions (year, starts_on, ends_on) values (2098, '2098-03-08', '2098-04-04')`;
+      expect(await getMembership(tx, null)).toEqual({
+        status: "signed-out",
+        isAdmin: false,
+        edition: { id: expect.any(Number), year: 2098, firstDay: "2098-03-08", lastDay: "2098-04-04" },
+      });
     });
   });
 
@@ -84,7 +88,7 @@ describe("getMembership", () => {
     await inRolledBackTransaction(async (tx) => {
       const userId = await newAccount(tx);
       await tx`insert into public.admin_permissions (profile_id, permission) values (${userId}, 'test')`;
-      expect((await getMembership(tx, userId)).status).toBe("member");
+      expect(await getMembership(tx, userId)).toMatchObject({ status: "member", isAdmin: true });
     });
   });
 });

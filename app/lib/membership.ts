@@ -6,8 +6,9 @@ export type MembershipStatus = "member" | "needs-ticket" | "signed-out";
 
 export type Membership = {
   status: MembershipStatus;
-  /** The current edition's year, for messages such as "a Limicon 2027 ticket". */
-  editionYear: number | null;
+  /** The current edition (the one with the latest year), or null before any exists. */
+  edition: { id: number; year: number; firstDay: string | null; lastDay: string | null } | null;
+  isAdmin: boolean;
 };
 
 export function membershipStatus(facts: {

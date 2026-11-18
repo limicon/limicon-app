@@ -186,7 +186,7 @@ Happy Money pays admins and volunteers for the work of running Limicon, so the c
 - **SES-3** Hosts can save a draft, publish, edit and delete their own sessions. There is no approval step and no limit on the number of sessions.
 - **SES-4** Published sessions appear on the calendar immediately. Admins can unpublish or edit any session.
 - **SES-5** Hosts can add co-hosts who are registered members.
-- **SES-6** Publishing requires a title, theme, format, date, start and end time. A session can be published without a meeting link. The session page then shows "Link coming soon", and the host gets a reminder to add the link.
+- **SES-6** Publishing requires a title, theme, at least one session type, a date, start time and length, and whether the host will record. A session can be published without a meeting link. The session page then shows "Link coming soon", and the host gets a reminder to add the link.
 - **SES-7** The form offers help to hosts without a video room, pointing them to team@limicon.org for a shared room.
 - **SES-8** Hosts choose a privacy option and an AI consent option. The final wording of both waits for the AI consensus (see AI and privacy).
 - **SES-9** Admins can mark an entry as an Organizing Team co-creation meeting. These meetings appear on the same calendar and can be filtered.
@@ -263,18 +263,18 @@ The session editor is shared for host create, host edit and admin edit. It adapt
 | Field | Control | Required | Rules and notes |
 | --- | --- | --- | --- |
 | Session title | Text | Yes | Maximum 60 characters, with a live counter |
-| Description | Textarea | No | What will happen and who it suits |
+| About this session | Textarea | No | What participants should expect, with any links to materials and references |
 | Intention | Textarea | No | Purpose or hoped-for takeaways |
 | Theme | Single select | Yes | Collective Sensemaking and Systems Thinking; Spirituality, Ritual and Contemplative Practice; Practical Tools, Skills and Resources; Personal Growth and Inner Work; Consciousness Exploration; Play, Games and Experimentation; Community, Belonging and Relational Culture; Creative Expression and Storytelling; Conference Meta and Co-Creation Spaces |
-| Format | Single select | Yes | Lecture, Collaborative, Experiential or Embodied, Narrative or Storytelling, Interactive Workshop, Discussion, Playful, Social |
-| Online or in person | Select | Yes | Defaults to online. In-person sessions show a city and a venue note instead of a meeting link |
+| Session type | Checkboxes, one or more | Yes to publish | Speaker/Presentation, Dialog/Inquiry, Collaborating/Building, Limicon Meta, Practice/Ritual, Connecting/Relating, Fun!, In-Person, each with its description from limicon.org. In-Person sessions show a city and a venue note instead of a meeting link |
+| Participant experience | Checkboxes | No | Breakouts used, No late arrivals, Bots allowed (participants' own AI note-takers), OK to listen, Kid friendly |
 | Date | Date picker | Yes to publish | Within the event window set by admins |
-| Start and end time | Time pickers | Yes to publish | End after start. Minimum 15 minutes. Entered in the host's time zone, stored in UTC |
-| Time zone | Select | Yes | Defaults to the host's profile time zone |
+| Start time and length | Time picker and minutes | Yes to publish | 15 minutes to 12 hours, so a session can run past midnight. Entered in the host's time zone, stored in UTC; the end is the start plus the length |
+| Time zone | Select | Yes | Defaults to the host's browser time zone |
 | Meeting link | URL | No | Shown to signed-in members only. Warn on invalid or non-https links |
 | Maximum participants | Number | No | Blank means unlimited |
-| Waitlist when full | Checkbox | No | Default off |
-| Privacy and recording | Single select | Yes | Private (not recorded); recording available to session participants; recording available to all Limicon members; recording publicly available |
+| Waitlist when full | Checkbox | No | Default off; offered only with a maximum |
+| Meeting recorded | Yes or No | Yes to publish | Yes asks who the recording is shared with: session participants only, this edition's Limicon members, or public. No stores the session as private |
 | AI Assistant consent | Select and checkboxes | Yes | See AI and privacy |
 | Co-hosts | Member search | No | Registered members only |
 | Pre-reading | Links and file uploads | No | PDF, DOC, DOCX, TXT; 10 MB maximum per file |
