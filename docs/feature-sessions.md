@@ -47,18 +47,27 @@ Limicon doesn't make recurrence easy. The editor has no Repeat control, and no r
 
 Each copy is an ordinary session to everything else, including RSVPs, reminders, feeds, invites, harvest forms and content. Nothing has to expand rules or track exceptions to them, and calendar events need no `RRULE` or time-zone blocks.
 
+## Schedule
+
+Members > Schedule (`app/routes/members/schedule*.tsx`) shows the edition's published sessions. The queries are in `app/lib/schedule.server.ts`.
+
+- **List view.** Sessions grouped by the viewer's calendar day, upcoming soonest first, with past sessions behind a filter. The three-day and month views (CAL-1) come next.
+- **Theme colors (CAL-11).** `app/lib/themes.ts` gives each theme a color, used only as a stripe and a dot beside the theme's name, never as text color. A legend lists all nine.
+- **Search and filters (CAL-2).** The search matches titles, descriptions and host names, ignoring case. Theme and session type filter too. All of them live in the URL, so a filtered view can be shared.
+- **The viewer's time zone (CAL-3).** The zone a member picks, saved as `profiles.time_zone`; otherwise their browser's, which the page reads on the first visit and keeps in a `tz` cookie; otherwise Toronto's. `app/lib/format-time.ts` names the zone and locale in every format, so the server and the browser render the same text and hydration matches. A session's page also shows the host's own time when the zones differ.
+- **Live updates (CAL-4).** While the tab is visible, an open schedule or session page fetches `/members/schedule/version` every 10 seconds: a marker built from the count of published sessions, the latest `updated_at` and the total count. When it changes, the page reloads its data. Browsers can't subscribe to Supabase Realtime because the tables have no RLS policies, and Hyperdrive's read caching is off, so each check sees the current database.
+- **Session pages (CAL-10)** show the meeting link only inside the Members area, which only ticket holders and admins can open.
+
 ## RSVPs
 
-- RSVPs live only in the app: one click to RSVP and one to cancel (CAL-5). Replies to calendar invites aren't read back ([`feature-calendaring.md`](feature-calendaring.md#replies-to-invites)).
+- RSVPs live only in the app: one click to RSVP and one to cancel (CAL-5). RSVPs open while a session is published and close when it ends. Replies to calendar invites aren't read back ([`feature-calendaring.md`](feature-calendaring.md#replies-to-invites)).
 - `session_rsvps` holds the session, the member, the status (registered or waitlisted) and `created_at`. Reminders come from members' own calendars (CAL-6), so RSVPs store no reminder choice.
 - **My Schedule** is the schedule page filtered to the member's RSVPs (`?view=mine`), with the same search and filters.
 - **Capacity.** The capacity check and the insert happen in one transaction that locks the session row (`select … for update`), so two members can't take the last place at once.
 - **Waitlist.** When a registered member cancels, the earliest waitlisted RSVP becomes registered. Calendaring treats a promotion like a new RSVP.
-- **Unpublished sessions** keep their RSVPs, as history and as the list of members who were told.
+- **Unpublished sessions** keep their RSVPs, as history and as the list of members who were told, and a re-published session has them back. Deleting a session that has RSVPs unpublishes it instead.
 
 ## Open questions
 
 - Are copies linked by `series_id`, and if so, does anything beyond "Also on" links use the link?
 - Do copies share pre-reading files, or does each copy get its own?
-- Does unpublishing keep RSVPs for a later re-publish, or clear them?
-- When does RSVP close: at the start, at the end, or never?

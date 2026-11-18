@@ -200,7 +200,7 @@ Happy Money pays admins and volunteers for the work of running Limicon, so the c
 - **CAL-2** Filter and search by day, week, theme, session type, session or co-creation meeting, and keyword.
 - **CAL-11** Sessions are color-coded by theme, with a legend. Each session also shows its theme's name, so the coding doesn't rely on color alone.
 - **CAL-3** Times display in the viewer's time zone, with a selector to change it. The server stores UTC and each session's time zone. Daylight-saving changes during the event window display correctly for every viewer.
-- **CAL-4** Any create, edit or cancel shows on every open calendar within 10 seconds, without a page reload.
+- **CAL-4** Any create, edit or cancel shows on every open calendar within 10 seconds, without a page reload. Open calendar pages check for changes every 10 seconds while they're visible, and reload their data when something changed.
 - **CAL-5** Members RSVP and cancel an RSVP in one click. An optional capacity and waitlist apply when a host sets them.
 - **CAL-6** Reminders before a session come from the member's own calendar, once the session is on it (CAL-8), with the notification settings they already use there. Limicon doesn't send its own reminder emails.
 - **CAL-7** My Schedule lists the sessions a member joined and updates the moment they RSVP.
@@ -438,4 +438,3 @@ Phase 1 collects each host's AI consent choices and stores them with the session
 | 9 | Do recordings move into Limicon storage, and at what cost per month? | Lead builder, James |
 | 10 | Magic link or password for email sign-in? | Team, Phase 0 |
 | 11 | Which laws does the Privacy Policy name, and how long are recordings, transcripts, messages and the contribution log kept? | Organizing Team |
-| 12 | How do calendar changes reach open pages within 10 seconds (CAL-4)? With no row-level security policies, browsers can't subscribe to Supabase Realtime database changes. Hyperdrive's read caching is off, so a page that asks again sees the change. | Lead builder, James |
