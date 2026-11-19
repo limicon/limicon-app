@@ -16,6 +16,8 @@ The Supabase address and publishable key are `vars` in `wrangler.jsonc`, with `G
 ## Deploying
 
 1. `npx wrangler login` once per computer, choosing the Limicon account.
-2. `npm run deploy` builds the app and uploads it. The new version serves immediately.
+2. Check `git status`: the deploy builds the working tree, so uncommitted app changes, including another agent's in the same folder, would go live. Deploy from a tree that matches `origin/main`, apart from files outside `app/` such as tests and docs.
+3. Apply any new migrations first ([`config-supabase.md`](config-supabase.md)).
+4. `npm run deploy` builds the app and uploads it. The new version serves immediately.
 
 Deploys run from a developer's computer; CI doesn't deploy. Deploy app code that needs a new column only after the migration that adds it ([`config-supabase.md`](config-supabase.md)).

@@ -23,17 +23,19 @@ The hosted database holds real data, so follow `AGENTS.md` → Production safety
 
 Deploy app code that needs a new column only after the migration that adds it.
 
+`db push` applies every migration file in `supabase/migrations/`, committed or not, so read the dry run's list: another agent working in the same folder may have left an unfinished migration there. To apply one migration alone, after a go-ahead for it, run its file inside `begin;` and `commit;` with `npx supabase db query --remote -f <file>`, then record it with `npx supabase migration repair --status applied <version> --remote`, so the next push skips it.
+
 ## Admins
 
-Admin access is a row in `admin_permissions` for a person's account; any row lets them into the Members area without a ticket. Permission names are open (PRD open question 2), so the Organizing Team holds `full` for now.
+Admins manage roles in the console: the Users, Roles and Team pages ([`feature-admin-console.md`](feature-admin-console.md)). A role is a row in `admin_roles`; a person holds a role through a row in `admin_permissions`, whose `permission` names the role's key. The built-in Admin role's key is `full`. Holding any role lets a person into the Members area without a ticket.
 
-To make someone an admin before they have an account, add an invitation with their address in lowercase. The first time they sign in, the new-account trigger turns it into a permission and removes it. This is a production write, so it needs a go-ahead like any other:
+The Team page invites by email, and the first time that address signs in, the new-account trigger turns the invitation into the role and removes it. The same invitation in SQL, a production write that needs a go-ahead like any other, with the address in lowercase:
 
 ```sql
 insert into public.admin_invitations (email, permission) values ('name@example.org', 'full');
 ```
 
-For someone who already has an account, insert into `admin_permissions` directly, selecting their `id` from `auth.users` by email. Addresses go only into the database, never into the repository, which is public.
+Addresses go only into the database, never into the repository, which is public. Admins can't remove the Admin role from anyone but themselves in the console; taking it from someone else is a production write in `admin_permissions`.
 
 ## Data API
 

@@ -38,6 +38,8 @@ Studio, Supabase's database browser, is off in `supabase/config.toml`. It's the 
 - **Pages and server code** run in Cloudflare's Workers runtime through its Vite plugin, so local behaviour matches production.
 - **Data** goes through the `HYPERDRIVE` binding in `wrangler.jsonc`. Locally, its `localConnectionString` points straight at the Supabase database on port 54322, with no Hyperdrive in between, so there's no read cache.
 - **Sign-in** uses the local Supabase API on port 54321. Sign-in emails land in Mailpit, not a real inbox.
+- **Uploads** go to the `MEDIA` R2 binding, which Wrangler keeps on disk under `.wrangler` locally, so local images never reach the hosted bucket.
+- **Admin access** locally: sign in, then give your account the Admin role in the local database: `insert into public.admin_permissions (profile_id, permission) select id, 'full' from auth.users where email = '<your address>';`, run with `docker exec supabase_db_limicon-app psql -U postgres -c "<sql>"`.
 
 ## Google sign-in
 

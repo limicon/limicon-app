@@ -9,7 +9,7 @@ Write to the human in plain language; they may not know git. Include your recomm
 ## Steps
 
 1. **Catch up.** `git fetch`, then `git status -sb`. If `main` is behind `origin/main`, run `git pull --rebase --autostash`, which sets uncommitted changes aside, updates, and puts them back. See [Conflicts](#conflicts).
-2. **Choose the payload** from the files `git status` lists. One commit per logical change; split unrelated changes into separate commits. Stage named paths with `git add -- <paths>`. Don't use `git add .` or `git add -A`, which sweep in everything.
+2. **Choose the payload** from the files `git status` lists. One commit per logical change; split unrelated changes into separate commits. Stage named paths with `git add -- <paths>`. Don't use `git add .` or `git add -A`, which sweep in everything. Other agents may be editing the same folder: leave their files out, and when a shared file such as `app/routes.ts` holds their changes too, stage only your own lines.
 3. **Check for anything that doesn't belong.** Read the staged changes; stop and ask the human about any of these:
    - keys, tokens, passwords or other credentials, in any file; the repo is public
    - environment files (`.env*`)
@@ -30,7 +30,7 @@ Write to the human in plain language; they may not know git. Include your recomm
    - the devjournal entry, if there is one
 9. **Ask the human to request changes, or type `y` to push.**
    - For changes, amend the commit and go back to step 8.
-   - On `y`, push.
+   - On `y`, push your own commits only. Other agents may share this folder and commit to the same branch, so check `git log origin/main..HEAD` and, if it lists commits that aren't yours, push yours alone with `git push origin <your last commit>:main`.
    - If the push is rejected because `main` has moved, run `git pull --rebase --autostash` (see [Conflicts](#conflicts)), then go back to step 8 and say which conflicts you resolved.
 
 ## Conflicts
