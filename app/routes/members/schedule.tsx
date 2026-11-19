@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Form, Link, useSearchParams, useSubmit } from "react-router";
 
 import { RichText } from "~/components/rich-text";
@@ -196,16 +196,31 @@ function SessionCard({ session, zone, canRsvp, hosting }: { session: ScheduledSe
 function About({ session }: { session: ScheduledSession }) {
   const [open, setOpen] = useState(false);
   const id = `about-${session.id}`;
-  // Short, single-paragraph text shows whole, with nothing to expand.
-  const long = session.description!.length > 140 || session.description!.includes("\n");
+  const preview = useRef<HTMLParagraphElement>(null);
+  // A guess for the server's render; the browser then checks whether the two lines cut anything off.
+  const [long, setLong] = useState(session.description!.length > 140);
+  useEffect(() => {
+    const measure = () => {
+      const p = preview.current;
+      if (p) setLong(p.scrollHeight > p.clientHeight + 1);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [session.description]);
   return (
     <div className="mt-1 text-sm">
-      {open && session.descriptionDoc ? (
+      {open ? (
+        // Sessions written before formatting was added have only plain text.
         <div id={id} className="relative z-10 cursor-auto rounded-md bg-[#F4F7F7] p-3 dark:bg-[#0F1C1E]">
-          <RichText doc={session.descriptionDoc} />
+          {session.descriptionDoc ? (
+            <RichText doc={session.descriptionDoc} />
+          ) : (
+            <p className="whitespace-pre-line leading-relaxed">{session.description}</p>
+          )}
         </div>
       ) : (
-        <p id={id} className={long ? "line-clamp-2" : ""}>{session.description}</p>
+        <p id={id} ref={preview} className="line-clamp-2">{session.description}</p>
       )}
       {long && (
         <button
