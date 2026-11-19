@@ -1,4 +1,5 @@
-import { Form, useNavigation } from "react-router";
+import { useEffect, useState } from "react";
+import { Form, useLocation, useNavigation } from "react-router";
 
 import { Badge, primaryButton } from "~/components/admin-ui";
 import { ADMIN_ROLE } from "~/lib/admin-roles";
@@ -37,9 +38,14 @@ export function RolePicker({
   compact?: boolean;
 }) {
   const busy = useNavigation().state !== "idle";
+  // A saved change comes back as a new page, which starts the boxes and their Save button afresh
+  // and closes the row's box. A refused save returns no new page, so the box stays open beside the problem.
+  const pageKey = useLocation().key;
+  const [changed, setChanged] = useState(false);
+  useEffect(() => setChanged(false), [pageKey]);
   const lockedAdmin = current.includes(ADMIN_ROLE) && !isSelf;
   const form = (
-    <Form method="post" className="grid gap-2" key={current.join(",")}>
+    <Form method="post" className="grid gap-2" key={`${current.join(",")} ${pageKey}`} onChange={() => setChanged(true)}>
       <input type="hidden" name="intent" value="set-roles" />
       <input type="hidden" name="profileId" value={profileId} />
       {/* A disabled box doesn't post, so a locked Admin role posts here instead. */}
@@ -58,13 +64,13 @@ export function RolePicker({
         })}
       </fieldset>
       <div>
-        <button type="submit" disabled={busy} className={`${primaryButton} px-3 py-1 text-sm`}>Save roles</button>
+        <button type="submit" disabled={busy || !changed} className={`${primaryButton} px-3 py-1 text-sm`}>Save roles</button>
       </div>
     </Form>
   );
   if (!compact) return form;
   return (
-    <details className="group">
+    <details className="group" key={pageKey}>
       <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 [&::-webkit-details-marker]:hidden">
         <RoleBadges current={current} roles={roles} />
         <span className="text-xs underline">Change</span>

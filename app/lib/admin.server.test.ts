@@ -7,7 +7,6 @@ import {
   addTier,
   deleteTier,
   getOverview,
-  getTierBreakdown,
   inviteAdmin,
   issueCompTicket,
   listAllSessions,
@@ -69,7 +68,6 @@ describe("comp tickets", () => {
       expect(overview.totals).toMatchObject({ ticketHolders: 1, paid: 0, comp: 1, revenueCents: 0 });
       expect(overview.thisWeek).toMatchObject({ ticketHolders: 1, comp: 1 });
       expect(overview.recentBuyers).toEqual([expect.objectContaining({ name: "Pat", tier: "Community", status: "comp", quantity: 1 })]);
-      expect(await getTierBreakdown(tx, editionId)).toEqual([{ name: "Community", tickets: 1, revenueCents: 0 }]);
       expect(overview.weekly).toHaveLength(12);
       expect(overview.weekly.at(-1)!.tickets).toBe(1);
 

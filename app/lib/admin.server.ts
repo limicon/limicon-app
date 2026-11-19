@@ -134,19 +134,6 @@ export async function getOverview(sql: Db, editionId: number): Promise<Overview>
   };
 }
 
-/** Ticket holders and revenue by tier, for the Orders page's details. */
-export async function getTierBreakdown(sql: Db, editionId: number) {
-  return sql<{ name: string; tickets: number; revenueCents: number }[]>`
-    select coalesce(tt.name, 'No tier') as name, count(*)::int as tickets,
-           coalesce(sum(t.amount_paid_cents) filter (where t.status = 'paid'), 0)::int as "revenueCents"
-    from public.tickets t
-    left join public.ticket_tiers tt on tt.id = t.tier_id
-    where t.edition_id = ${editionId} and t.status in ('paid', 'comp')
-    group by tt.name, tt.sort_order
-    order by tt.sort_order nulls last, tt.name
-  `;
-}
-
 // --- Edition settings -----------------------------------------------------------------------
 
 export async function getEditionSettings(sql: Db, editionId: number): Promise<EditionSettings> {

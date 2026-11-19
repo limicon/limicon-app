@@ -4,7 +4,7 @@ import { card, formatWhen, inputClass, PageHeading, secondaryButton } from "~/co
 import { DownloadPanel, SortHeading } from "~/components/download-panel";
 import { servicesContext } from "~/context";
 import { formatDollars } from "~/lib/admin-forms";
-import { getTierBreakdown, listTiers } from "~/lib/admin.server";
+import { listTiers } from "~/lib/admin.server";
 import { ORDER_COLUMNS, ORDER_STATUSES, readOrderFilters, sortLink } from "~/lib/admin-tables";
 import { getOrderSummary, listOrders } from "~/lib/orders.server";
 import { requirePrivilege } from "~/middleware/services.server";
@@ -21,20 +21,19 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   const services = context.get(servicesContext);
   const { edition } = await services.membership();
   const filters = readOrderFilters(new URL(request.url).searchParams);
-  if (!edition) return { year: null, filters, orders: [], summary: null, tiers: [], byTier: [] };
+  if (!edition) return { year: null, filters, orders: [], summary: null, tiers: [] };
   const db = services.db();
-  const [orders, summary, tiers, byTier] = await Promise.all([
+  const [orders, summary, tiers] = await Promise.all([
     listOrders(db, edition.id, filters),
     getOrderSummary(db, edition.id),
     listTiers(db, edition.id),
-    getTierBreakdown(db, edition.id),
   ]);
-  return { year: edition.year, filters, orders, summary, tiers: tiers.map(({ id, name }) => ({ id, name })), byTier };
+  return { year: edition.year, filters, orders, summary, tiers: tiers.map(({ id, name }) => ({ id, name })) };
 }
 
 /** Every order for the edition: who, when, which ticket, how many, whether it went through. */
 export default function AdminOrders({ loaderData }: Route.ComponentProps) {
-  const { orders, summary, filters, tiers, byTier, year } = loaderData;
+  const { orders, summary, filters, tiers, year } = loaderData;
   const [params] = useSearchParams();
   const heading = (key: (typeof ORDER_COLUMNS)[number]["key"], label: string) => (
     <SortHeading label={label} href={sortLink(params, key, filters, key === "date" ? "desc" : "asc")} active={filters.sort === key} dir={filters.dir} />
@@ -123,32 +122,6 @@ export default function AdminOrders({ loaderData }: Route.ComponentProps) {
           </table>
         </div>
       )}
-
-      <details className={`${card} mt-10 max-w-5xl`}>
-        <summary className="cursor-pointer font-semibold">Details: ticket holders by tier</summary>
-        {byTier.length === 0 ? (
-          <p className="mt-3 text-sm">No tickets yet.</p>
-        ) : (
-          <table className="mt-3 w-full max-w-lg text-left text-sm">
-            <thead>
-              <tr>
-                <th scope="col" className="py-1 font-semibold">Tier</th>
-                <th scope="col" className="py-1 text-right font-semibold">Ticket holders</th>
-                <th scope="col" className="py-1 text-right font-semibold">Revenue</th>
-              </tr>
-            </thead>
-            <tbody>
-              {byTier.map((t) => (
-                <tr key={t.name} className="border-t border-[#E2E8E9] dark:border-[#24363B]">
-                  <td className="py-1">{t.name}</td>
-                  <td className="py-1 text-right tabular-nums">{t.tickets}</td>
-                  <td className="py-1 text-right tabular-nums">{formatDollars(t.revenueCents)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </details>
     </>
   );
 }
