@@ -231,7 +231,7 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
                 </li>
               ))}
             </ul>
-            {canManageRoles && <Link to="/admin/roles" className="mt-2 inline-block underline">What each role can do</Link>}
+            {canManageRoles && <Link to="/admin/team" className="mt-2 inline-block underline">What each role can do</Link>}
           </div>
         </section>
 

@@ -87,7 +87,7 @@ export default function AdminUsers({ loaderData, actionData }: Route.ComponentPr
       {canManageRoles && (
         <div className="mb-5 flex flex-wrap gap-3">
           <Link to="/admin/roles/new" className={primaryButton}>+ Add role</Link>
-          <Link to="/admin/roles" className={secondaryButton}>See and edit roles</Link>
+          <Link to="/admin/team" className={secondaryButton}>See roles and who holds them</Link>
         </div>
       )}
       {done === "role" && !actionData && <Notice>Roles saved. They apply the next time the person opens a page.</Notice>}

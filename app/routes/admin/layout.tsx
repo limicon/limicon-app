@@ -24,7 +24,6 @@ const sections: { to: string; label: string; end?: boolean; needs?: Privilege }[
   { to: "/admin/website", label: "Website", needs: "website" },
   { to: "/admin/faq", label: "FAQ", needs: "website" },
   { to: "/admin/policies", label: "Policies", needs: "website" },
-  { to: "/admin/roles", label: "Roles", needs: "admin" },
   { to: "/admin/team", label: "Team", needs: "admin" },
 ];
 

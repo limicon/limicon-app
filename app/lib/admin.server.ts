@@ -404,7 +404,7 @@ export async function listTeam(sql: Db): Promise<{ members: TeamMember[]; invita
 }
 
 /**
- * Gives a role by email (AUTH-5): straight away when the address has an account and no role yet,
+ * Gives a role by email (AUTH-5): straight away when the address has an account,
  * otherwise as an invitation that the first sign-in with that address turns into the role.
  * `permission` names the role. Callers check the inviter has the `roles` privilege.
  */

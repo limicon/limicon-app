@@ -11,13 +11,13 @@ import type { Route } from "./+types/role";
 export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("admin")];
 
 export function meta({ loaderData }: Route.MetaArgs) {
-  return [{ title: `${loaderData?.name || "New role"} · Roles · Admin · Limicon` }];
+  return [{ title: `${loaderData?.name || "New role"} · Team · Admin · Limicon` }];
 }
 
 /** A role to edit, or `new` for a blank one. Admin is built in and can't be edited. */
 export async function loader({ context, params }: Route.LoaderArgs) {
   if (params.key === "new") return { isNew: true, name: "", privileges: [] as string[], holders: 0 };
-  if (params.key === ADMIN_ROLE) throw redirect("/admin/roles");
+  if (params.key === ADMIN_ROLE) throw redirect("/admin/team");
   const role = await getRole(context.get(servicesContext).db(), params.key);
   if (!role) throw data("Role not found", { status: 404 });
   return { isNew: false, name: role.name, privileges: role.privileges as string[], holders: role.holders };
@@ -32,7 +32,7 @@ export async function action({ context, params, request }: Route.ActionArgs) {
     if (!(await deleteRole(db, params.key))) {
       return data<ActionData>({ input: { name: "", privileges: [] }, errors: { form: "People hold or are invited to this role. Give them another role first." } }, { status: 409 });
     }
-    throw redirect("/admin/roles?done=deleted");
+    throw redirect("/admin/team?done=deleted");
   }
   const result = checkRoleForm(form);
   if (!result.ok) return data<ActionData>({ input: result.input, errors: result.errors }, { status: 400 });
@@ -40,8 +40,8 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   if (outcome === "duplicate") {
     return data<ActionData>({ input: { name: result.name, privileges: result.privileges }, errors: { name: "Another role already has this name." } }, { status: 400 });
   }
-  if (outcome === "built-in") throw redirect("/admin/roles");
-  throw redirect(`/admin/roles?done=${params.key === "new" ? "created" : "saved"}`);
+  if (outcome === "built-in") throw redirect("/admin/team");
+  throw redirect(`/admin/team?done=${params.key === "new" ? "created" : "saved"}`);
 }
 
 /** A role's name and a checkbox for each thing it may do. */
@@ -53,7 +53,7 @@ export default function AdminRole({ loaderData, actionData }: Route.ComponentPro
   return (
     <>
       <p>
-        <Link to="/admin/roles" className="underline">Back to Roles</Link>
+        <Link to="/admin/team" className="underline">Back to Team</Link>
       </p>
       <div className="mt-4">
         <PageHeading title={isNew ? "Add a role" : `Edit “${loaderData.name}”`}>
@@ -97,7 +97,7 @@ export default function AdminRole({ loaderData, actionData }: Route.ComponentPro
         </fieldset>
         <div className="flex flex-wrap gap-3">
           <button type="submit" disabled={busy} className={primaryButton}>{isNew ? "Add role" : "Save role"}</button>
-          <Link to="/admin/roles" className={secondaryButton}>Cancel</Link>
+          <Link to="/admin/team" className={secondaryButton}>Cancel</Link>
           {!isNew && (
             <button
               type="submit"
