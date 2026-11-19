@@ -104,6 +104,21 @@ describe("row-level security backstop", () => {
         values ('When is Limicon?', 'In March.', true)
       `;
 
+      const [post] = await tx<{ id: string }[]>`
+        insert into public.update_posts (author_id, title, body)
+        values (${user!.id}, 'News', '{"type":"doc","content":[]}')
+        returning id
+      `;
+      await tx`insert into public.update_post_likes (post_id, profile_id) values (${post!.id}, ${user!.id})`;
+      const [comment] = await tx<{ id: string }[]>`
+        insert into public.update_comments (post_id, author_id, body) values (${post!.id}, ${user!.id}, 'Hi')
+        returning id
+      `;
+      await tx`
+        insert into public.update_comment_edits (comment_id, previous_body, new_body)
+        values (${comment!.id}, 'Hello', 'Hi')
+      `;
+
       const tables = await tx<{ tablename: string }[]>`
         select tablename from pg_tables where schemaname = 'public'
       `;

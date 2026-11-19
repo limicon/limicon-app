@@ -11,7 +11,7 @@ export const PRIVILEGES = [
   { key: "inbox", label: "View and reply to team@limicon.org emails", help: "The team inbox, once it's built in the app." },
   { key: "email", label: "Send emails from team@limicon.org", help: "Emails to members and lists, once sending is built in the app." },
   { key: "website", label: "Edit website", help: "Website pages on the site and in the console, the FAQ and the policies, and uploading images and files." },
-  { key: "updates", label: "Post updates to the website", help: "Updates such as the newsletter: adding content but not removing it, once Updates is built." },
+  { key: "updates", label: "Post updates to the website", help: "Posts on the Members area's Updates page, such as the newsletter: adding and editing their own posts but not deleting any, and seeing when members edit comments." },
 ] as const;
 
 /** `admin` belongs only to the Admin role: the people, sessions, roles and team pages. */

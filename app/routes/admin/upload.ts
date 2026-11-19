@@ -7,10 +7,13 @@ import type { Route } from "./+types/upload";
 
 export const middleware: Route.MiddlewareFunction[] = [requireAdmin];
 
-/** Uploads serve the event image (settings) and the website's pages and policies (website). */
+/**
+ * Uploads serve the event image (settings), the website's pages and policies (website) and posts
+ * on Updates (updates).
+ */
 async function mayUpload(context: Route.ActionArgs["context"]) {
   const privileges = await context.get(servicesContext).privileges();
-  return privileges.has("settings") || privileges.has("website");
+  return privileges.has("settings") || privileges.has("website") || privileges.has("updates");
 }
 
 /**

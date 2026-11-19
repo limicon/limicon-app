@@ -21,6 +21,8 @@ export default [
     layout("routes/members/layout.tsx", [
       index("routes/members/home.tsx"),
       route("updates", "routes/members/updates.tsx"),
+      route("updates/new", "routes/members/updates-new.tsx"),
+      route("updates/:postId/edit", "routes/members/updates-edit.tsx"),
       route("schedule", "routes/members/schedule.tsx"),
       route("schedule/version", "routes/members/schedule-version.ts"),
       route("schedule/:sessionId", "routes/members/schedule-session.tsx"),

@@ -382,6 +382,7 @@ The model separates an account (a person, permanent) from a ticket (a person's p
 | site\_pages | The public website's pages, built from sections | slug, title, menu label, in menu, menu position, published, sections (text, image, image and text, columns, buttons, event) |
 | site\_documents | The policies, edited in the console | slug, title, body (rich text), updated\_by |
 | faq\_entries | The public FAQ, edited in the console | question, answer, published, sort order, updated\_by |
+| update\_posts, update\_post\_likes, update\_comments, update\_comment\_edits | The Members area's Updates page | post title, body (rich text), template, author; likes; comments; each comment edit's text before and after, reviewed\_at |
 | mailing\_list | Public sign-ups | email, source, subscribed\_at |
 
 **Rules**

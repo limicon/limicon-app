@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-19 | Lauren (with Opus 5.5) | Members read, like and comment on Updates
+
+The Updates page is a blog: roles with `updates` add posts (from scratch or a template), every member likes and comments, and comment edits are kept with before and after text, shown to posters until marked seen. Only admins delete posts. `docs/feature-updates.md` covers it.
+
+---
+
 ## 2026-11-19 | Lauren (with Opus 5.5) | Access comes from roles, which add up
 
 People hold roles from `admin_roles`, several at once; their privileges (`app/lib/admin-roles.ts`) add up and decide which console pages they open, checked by `requirePrivilege`. All admins hold the built-in Admin role, and can't remove it from anyone else. Bookkeeper sees orders and money.

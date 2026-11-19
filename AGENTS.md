@@ -34,6 +34,7 @@ Each entry names the work that calls for reading the doc.
 - [`feature-admin-console.md`](docs/feature-admin-console.md): the admin console at `/admin`: who can open it, its pages, managing users and admins, deactivation, and the FAQ.
 - [`feature-calendaring.md`](docs/feature-calendaring.md): getting sessions onto members' own calendars, through ICS feeds, invites on RSVP or add-to-calendar links.
 - [`feature-sessions.md`](docs/feature-sessions.md): hosting sessions, session times and time zones, the session lifecycle, repeating sessions, the schedule and its live updates, theme colors, RSVPs, the waitlist, or My Schedule.
+- [`feature-updates.md`](docs/feature-updates.md): the Members area's Updates page: posts, templates, likes, comments and edited-comment notices.
 - [`process-commit.md`](docs/process-commit.md): making a commit.
 - [`process-local-development.md`](docs/process-local-development.md): running the app and the local Supabase, migrations, tests, or turning on Google sign-in locally.
 - [`reference-festival.md`](docs/reference-festival.md): designing or implementing a feature adapted from the Festival for Re-imagining the Economy platform, such as the session editor; it covers that platform's schema, forms, roles and integrations.
