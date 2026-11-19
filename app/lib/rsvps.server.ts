@@ -2,8 +2,11 @@ import type { Db } from "~/lib/db.server";
 
 export type RsvpStatus = "registered" | "waitlisted";
 
+/** A member's place at a session: an RSVP, or hosting it, which counts as going without one. */
+export type Attendance = RsvpStatus | "hosting";
+
 /** What happened when a member asked to RSVP. */
-export type RsvpOutcome = RsvpStatus | "full" | "not-found";
+export type RsvpOutcome = Attendance | "full" | "not-found";
 
 /** A session's RSVPs as one member sees them. */
 export type RsvpSummary = {
@@ -11,7 +14,7 @@ export type RsvpSummary = {
   waitlisted: number;
   capacity: number | null;
   waitlistEnabled: boolean;
-  mine: RsvpStatus | null;
+  mine: Attendance | null;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -20,7 +23,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * RSVPs a member to a published session that hasn't finished (CAL-5). The capacity check and the
  * insert happen in one transaction that locks the session's row, so two members can't take the
  * last place at once. A full session puts the member on its waitlist when the host keeps one, and
- * refuses otherwise. RSVPing again changes nothing.
+ * refuses otherwise. RSVPing again changes nothing. Hosts and co-hosts are already going, so they
+ * get "hosting" and no RSVP, which keeps their places free for others.
  */
 export async function rsvp(sql: Db, args: { sessionId: string; userId: string }): Promise<RsvpOutcome> {
   const { sessionId, userId } = args;
@@ -33,6 +37,11 @@ export async function rsvp(sql: Db, args: { sessionId: string; userId: string })
       for update
     `;
     if (!session) return "not-found";
+
+    const [host] = await tx`
+      select 1 from public.session_hosts where session_id = ${sessionId} and profile_id = ${userId}
+    `;
+    if (host) return "hosting";
 
     const [existing] = await tx<{ status: RsvpStatus }[]>`
       select status from public.session_rsvps where session_id = ${sessionId} and profile_id = ${userId}
@@ -91,14 +100,17 @@ export async function cancelRsvp(sql: Db, args: { sessionId: string; userId: str
 export async function getRsvpSummary(sql: Db, sessionId: string, userId: string): Promise<RsvpSummary> {
   if (!UUID.test(sessionId)) return { registered: 0, waitlisted: 0, capacity: null, waitlistEnabled: false, mine: null };
   const [row] = await sql<
-    { registered: number; waitlisted: number; capacity: number | null; waitlistEnabled: boolean; mine: RsvpStatus | null }[]
+    { registered: number; waitlisted: number; capacity: number | null; waitlistEnabled: boolean; mine: Attendance | null }[]
   >`
     select
       (select count(*)::int from public.session_rsvps r where r.session_id = s.id and r.status = 'registered') as registered,
       (select count(*)::int from public.session_rsvps r where r.session_id = s.id and r.status = 'waitlisted') as waitlisted,
       s.max_participants as capacity,
       s.waitlist_enabled as "waitlistEnabled",
-      (select r.status from public.session_rsvps r where r.session_id = s.id and r.profile_id = ${userId}) as mine
+      case
+        when exists (select 1 from public.session_hosts h where h.session_id = s.id and h.profile_id = ${userId}) then 'hosting'
+        else (select r.status from public.session_rsvps r where r.session_id = s.id and r.profile_id = ${userId})
+      end as mine
     from public.sessions s
     where s.id = ${sessionId}
   `;

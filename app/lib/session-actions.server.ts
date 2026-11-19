@@ -2,7 +2,7 @@ import { data, redirect } from "react-router";
 
 import type { RequestServices } from "~/context";
 import { checkSessionForm, readSessionForm } from "~/lib/session-form";
-import { createSession, deleteSession, updateSession } from "~/lib/sessions.server";
+import { createSession, deleteSession, ineligibleCoHosts, updateSession } from "~/lib/sessions.server";
 
 /** Where the editor's pages live: the Members area's for hosts, the admin console's for admins. */
 export type SessionPaths = { list: string; session: (id: string) => string };
@@ -39,6 +39,15 @@ export async function saveSessionForm(
   if (!result.ok) return data({ input, errors: result.errors }, { status: 400 });
 
   const db = services.db();
+  // Co-hosts must be registered for this edition (SES-5).
+  const ineligible = await ineligibleCoHosts(db, edition.id, result.values.coHostIds);
+  if (ineligible.length) {
+    const names = input.coHosts.filter((person) => ineligible.includes(person.id)).map((person) => person.name || "Someone");
+    const coHosts = input.coHosts.filter((person) => !ineligible.includes(person.id));
+    const errors = { coHosts: `${names.join(", ")} ${names.length === 1 ? "isn't" : "aren't"} registered for Limicon ${edition.year}, so we took them out. Co-hosts need a ticket.` };
+    return data({ input: { ...input, coHosts }, errors }, { status: 400 });
+  }
+
   const id =
     sessionId ??
     (await createSession(db, { userId: services.viewer!.userId, editionId: edition.id, values: result.values, publish }));

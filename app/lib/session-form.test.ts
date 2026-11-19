@@ -22,6 +22,7 @@ const complete: SessionFormInput = {
   recordingAudience: "members",
   aiAllowed: "no",
   aiPermissions: [],
+  coHosts: [],
 };
 
 const draft = (input: Partial<SessionFormInput>) =>
@@ -32,7 +33,7 @@ function emptyForm(): SessionFormInput {
     title: "", description: "", intention: "", theme: "", sessionTypes: [], experience: [],
     date: "", start: "", lengthMinutes: "", timeZone: "America/Toronto", meetingLink: "",
     city: "", venueNote: "", maxParticipants: "", waitlist: false, recorded: "",
-    recordingAudience: "", aiAllowed: "", aiPermissions: [],
+    recordingAudience: "", aiAllowed: "", aiPermissions: [], coHosts: [],
   };
 }
 
@@ -141,7 +142,7 @@ describe("readSessionForm and sessionToFormInput", () => {
   test("a saved session fills the form back in, in the host's time zone", () => {
     const form = new FormData();
     for (const [key, value] of Object.entries(complete)) {
-      if (Array.isArray(value)) value.forEach((v) => form.append(key, v));
+      if (Array.isArray(value)) value.forEach((v) => form.append(key, typeof v === "string" ? v : JSON.stringify(v)));
       else if (typeof value === "boolean") { if (value) form.append(key, "on"); }
       else form.append(key, value);
     }
@@ -152,6 +153,24 @@ describe("readSessionForm and sessionToFormInput", () => {
     if (!result.ok) throw new Error("expected a valid form");
     const description = JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "We talk about the in-between." }] }] });
     expect(sessionToFormInput(result.values)).toEqual({ ...complete, description, meetingLink: "https://zoom.us/j/123" });
+  });
+});
+
+describe("co-hosts", () => {
+  const ada = { id: "6f1c1e3a-1b2c-4d5e-8f90-123456789abc", name: "Ada Lovelace" };
+
+  test("are read from the tags' hidden fields, ignoring anything else", () => {
+    const form = new FormData();
+    form.append("coHosts", JSON.stringify(ada));
+    form.append("coHosts", "Grace Hopper");
+    expect(readSessionForm(form).coHosts).toEqual([ada]);
+  });
+
+  test("are saved as ids, once each, and must be real ids", () => {
+    const result = draft({ title: "An idea", coHosts: [ada, ada] });
+    if (!result.ok) throw new Error("expected a valid form");
+    expect(result.values.coHostIds).toEqual([ada.id]);
+    expect(draft({ title: "An idea", coHosts: [{ id: "grace", name: "Grace" }] })).toMatchObject({ ok: false, errors: { coHosts: expect.any(String) } });
   });
 });
 

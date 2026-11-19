@@ -1,8 +1,17 @@
 import type { Db } from "~/lib/db.server";
-import type { SessionValues } from "~/lib/session-form";
+import type { Person, SessionValues } from "~/lib/session-form";
 
 /** A session as its hosts see it in the editor. */
-export type EditableSession = SessionValues & { id: string; published: boolean };
+export type EditableSession = SessionValues & {
+  id: string;
+  published: boolean;
+  /** The member who created it, who can't be added again as a co-host. */
+  hostId: string | null;
+  coHosts: Person[];
+};
+
+/** A member found by the co-host search, with a masked email to tell apart people of the same name. */
+export type MemberMatch = Person & { hint: string };
 
 /** A session in the host's own list. */
 export type HostedSession = {
@@ -17,6 +26,9 @@ export type HostedSession = {
 
 /** The description document as a jsonb parameter, or null. */
 const descriptionJson = (sql: Db, v: SessionValues) => (v.descriptionDoc ? sql.json(v.descriptionDoc as never) : null);
+
+/** A profile's name as members see it. */
+const DISPLAY_NAME = "coalesce(nullif(trim(concat_ws(' ', p.first_name, p.last_name)), ''), 'A Limicon member')";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -65,7 +77,17 @@ export async function getEditableSession(
            s.starts_at as "startsAt", s.ends_at as "endsAt", s.time_zone as "timeZone",
            s.meeting_link as "meetingLink", s.city, s.venue_note as "venueNote",
            s.max_participants as "maxParticipants", s.waitlist_enabled as "waitlistEnabled",
-           s.privacy, s.ai_assistant_allowed as "aiAssistantAllowed", s.ai_permissions as "aiPermissions"
+           s.privacy, s.ai_assistant_allowed as "aiAssistantAllowed", s.ai_permissions as "aiPermissions",
+           (select h.profile_id from public.session_hosts h where h.session_id = s.id and h.role = 'host' limit 1) as "hostId",
+           array(
+             select h.profile_id::text from public.session_hosts h join public.profiles p on p.id = h.profile_id
+             where h.session_id = s.id and h.role = 'co-host' order by p.first_name, p.last_name
+           ) as "coHostIds",
+           coalesce((
+             select json_agg(json_build_object('id', p.id, 'name', ${sql.unsafe(DISPLAY_NAME)}) order by p.first_name, p.last_name)
+             from public.session_hosts h join public.profiles p on p.id = h.profile_id
+             where h.session_id = s.id and h.role = 'co-host'
+           ), '[]') as "coHosts"
     from public.sessions s
     where s.id = ${sessionId}
       and (
@@ -97,6 +119,7 @@ export async function createSession(
       returning id
     `;
     await tx`insert into public.session_hosts (session_id, profile_id, role) values (${row!.id}, ${userId}, 'host')`;
+    await saveCoHosts(tx as unknown as Db, row!.id, v.coHostIds);
     return row!.id;
   }) as Promise<string>;
 }
@@ -104,6 +127,13 @@ export async function createSession(
 /** Saves a session's fields and whether it's published. Callers check permission first. */
 export async function updateSession(sql: Db, sessionId: string, values: SessionValues, publish: boolean) {
   const v = values;
+  await sql.begin(async (tx) => {
+    await updateColumns(tx as unknown as Db, sessionId, v, publish);
+    await saveCoHosts(tx as unknown as Db, sessionId, v.coHostIds);
+  });
+}
+
+async function updateColumns(sql: Db, sessionId: string, v: SessionValues, publish: boolean) {
   await sql`
     update public.sessions set
       published = ${publish}, title = ${v.title}, description = ${v.description},
@@ -134,4 +164,90 @@ export async function deleteSession(sql: Db, sessionId: string): Promise<"delete
   if (unpublished) return "unpublished";
   await sql`delete from public.sessions where id = ${sessionId}`;
   return "deleted";
+}
+
+/**
+ * Sets a session's co-hosts to `ids`, leaving its host alone. Hosting counts as going, so a new
+ * co-host's RSVP is removed, and anyone waitlisted moves up into the freed places.
+ */
+async function saveCoHosts(sql: Db, sessionId: string, ids: string[]) {
+  await sql`
+    delete from public.session_hosts
+    where session_id = ${sessionId} and role = 'co-host' and not (profile_id = any (${ids}::uuid[]))
+  `;
+  await sql`
+    insert into public.session_hosts (session_id, profile_id, role)
+    select ${sessionId}, id, 'co-host' from unnest(${ids}::uuid[]) as id
+    on conflict do nothing
+  `;
+  const removed = await sql`
+    delete from public.session_rsvps r
+    using public.session_hosts h
+    where r.session_id = ${sessionId} and h.session_id = r.session_id and h.profile_id = r.profile_id
+    returning r.status
+  `;
+  if (removed.length === 0) return;
+  await sql`
+    update public.session_rsvps set status = 'registered'
+    where (session_id, profile_id) in (
+      select w.session_id, w.profile_id from public.session_rsvps w
+      where w.session_id = ${sessionId} and w.status = 'waitlisted'
+      order by w.created_at
+      limit (
+        select case when s.max_participants is null then null
+               else greatest(0, s.max_participants - (
+                 select count(*) from public.session_rsvps r where r.session_id = s.id and r.status = 'registered'
+               )) end
+        from public.sessions s where s.id = ${sessionId}
+      )
+    )
+  `;
+}
+
+/**
+ * Members who can co-host in the edition: ticket holders and admins, not deactivated. Matches
+ * names, ignoring case, or a whole email address. At most `limit` results.
+ */
+export async function findMembers(sql: Db, editionId: number, query: string, limit = 8): Promise<MemberMatch[]> {
+  const q = query.replace(/^@/, "").trim().slice(0, 100);
+  if (!q) return [];
+  const pattern = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  const rows = await sql<(Person & { email: string | null })[]>`
+    select p.id, ${sql.unsafe(DISPLAY_NAME)} as name, u.email
+    from public.profiles p
+    join auth.users u on u.id = p.id
+    where p.deactivated_at is null
+      and (
+        exists (select 1 from public.tickets t where t.profile_id = p.id and t.edition_id = ${editionId} and t.status in ('paid', 'comp'))
+        or exists (select 1 from public.admin_permissions a where a.profile_id = p.id)
+      )
+      and (concat_ws(' ', p.first_name, p.last_name) ilike ${pattern} or lower(u.email) = lower(${q}))
+    order by p.first_name, p.last_name
+    limit ${limit}
+  `;
+  return rows.map(({ email, ...person }) => ({ ...person, hint: maskEmail(email) }));
+}
+
+/** The ids in `ids` that aren't members who can co-host in the edition. */
+export async function ineligibleCoHosts(sql: Db, editionId: number, ids: string[]): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const rows = await sql<{ id: string }[]>`
+    select c.id::text as id from unnest(${ids}::uuid[]) as c(id)
+    where not exists (
+      select 1 from public.profiles p
+      where p.id = c.id and p.deactivated_at is null
+        and (
+          exists (select 1 from public.tickets t where t.profile_id = p.id and t.edition_id = ${editionId} and t.status in ('paid', 'comp'))
+          or exists (select 1 from public.admin_permissions a where a.profile_id = p.id)
+        )
+    )
+  `;
+  return rows.map((row) => row.id);
+}
+
+/** "a•••@example.org": enough to tell two people of the same name apart. */
+function maskEmail(email: string | null): string {
+  if (!email) return "";
+  const [local = "", domain = ""] = email.split("@");
+  return `${local.slice(0, 1)}•••@${domain}`;
 }

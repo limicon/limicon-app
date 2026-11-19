@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Form, useNavigation } from "react-router";
 
+import { CoHostField } from "~/components/co-host-field";
 import { RichTextEditor } from "~/components/rich-text-editor";
 import {
   AI_PERMISSIONS,
@@ -53,12 +54,15 @@ export function SessionEditor({
   status,
   year,
   timeZones,
+  hostId,
 }: {
   initial: SessionFormInput;
   errors?: FieldErrors;
   status: EditorStatus;
   year: number | null;
   timeZones: string[];
+  /** The session's host, who can't also be a co-host. */
+  hostId: string | null;
 }) {
   const busy = useNavigation().state !== "idle";
   const [title, setTitle] = useState(initial.title);
@@ -143,6 +147,21 @@ export function SessionEditor({
             ))}
           </div>
         </fieldset>
+      </Fieldset>
+
+      <Fieldset legend="Co-hosts">
+        <div>
+          <label htmlFor="coHosts" className="block font-medium">Co-hosts <span className="font-normal">(optional)</span></label>
+          <p id="coHosts-help" className="text-sm">
+            Type @ and the person's name, then choose them from the list. Separate several people with commas.
+            Only members registered for {year ? `Limicon ${year}` : "Limicon"} can co-host. Co-hosts can edit the session, and,
+            like you, they're going without having to RSVP.
+          </p>
+          <div className="mt-1">
+            <CoHostField initial={initial.coHosts} excludeIds={hostId ? [hostId] : []} error={errors.coHosts} describedBy="coHosts-help" />
+          </div>
+          <FieldError id="coHosts-error" message={errors.coHosts} />
+        </div>
       </Fieldset>
 
       <Fieldset legend="When">

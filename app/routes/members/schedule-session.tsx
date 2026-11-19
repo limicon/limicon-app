@@ -96,6 +96,8 @@ export default function ScheduleSession({ loaderData }: Route.ComponentProps) {
           {rsvps.capacity === null
             ? `${rsvps.registered} going`
             : `${rsvps.registered} of ${rsvps.capacity} places taken`}
+          {/* Hosts are going without RSVPs, and don't take places. */}
+          {session.hosts.length > 0 && `, plus ${session.hosts.length === 1 ? "the host" : `${session.hosts.length} hosts`}`}
           {rsvps.waitlisted > 0 && ` · ${rsvps.waitlisted} on the waitlist`}
         </p>
         {finished ? (

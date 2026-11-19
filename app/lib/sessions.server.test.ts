@@ -9,8 +9,10 @@ import {
   acceptGuidelines,
   createSession,
   deleteSession,
+  findMembers,
   getEditableSession,
   hasAcceptedGuidelines,
+  ineligibleCoHosts,
   listHostedSessions,
   updateSession,
 } from "./sessions.server";
@@ -34,16 +36,30 @@ async function inRolledBackTransaction(work: (tx: Db) => Promise<void>) {
 }
 
 async function setUp(tx: Db) {
-  const account = async () => {
+  const account = async (name?: [string, string]) => {
     const [user] = await tx<{ id: string }[]>`
-      insert into auth.users (id, email, aud, role)
-      values (gen_random_uuid(), ${`host-${crypto.randomUUID()}@example.org`}, 'authenticated', 'authenticated')
+      insert into auth.users (id, email, aud, role, raw_user_meta_data)
+      values (gen_random_uuid(), ${`host-${crypto.randomUUID()}@example.org`}, 'authenticated', 'authenticated',
+              ${tx.json(name ? { given_name: name[0], family_name: name[1] } : {})})
       returning id
     `;
     return user!.id;
   };
   const [edition] = await tx<{ id: number }[]>`insert into public.editions (year) values (2098) returning id`;
-  return { host: await account(), other: await account(), editionId: Number(edition!.id) };
+  const editionId = Number(edition!.id);
+  const ticket = async (profileId: string) => {
+    await tx`insert into public.tickets (profile_id, edition_id, status) values (${profileId}, ${editionId}, 'comp')`;
+    return profileId;
+  };
+  return {
+    host: await account(),
+    other: await account(),
+    editionId,
+    // Registered members who can co-host, and someone without a ticket.
+    ada: await ticket(await account(["Ada", "Lovelace"])),
+    grace: await ticket(await account(["Grace", "Hopper"])),
+    stranger: await account(["Adam", "Stranger"]),
+  };
 }
 
 const form: SessionFormInput = {
@@ -51,7 +67,7 @@ const form: SessionFormInput = {
   sessionTypes: ["dialog", "fun"], experience: ["kid_friendly"], date: "2027-03-17", start: "12:00",
   lengthMinutes: "60", timeZone: "America/Toronto", meetingLink: "https://zoom.us/j/1", city: "", venueNote: "",
   maxParticipants: "", waitlist: false, recorded: "no", recordingAudience: "", aiAllowed: "yes",
-  aiPermissions: ["transcription"],
+  aiPermissions: ["transcription"], coHosts: [],
 };
 
 function values(input: Partial<SessionFormInput> = {}): SessionValues {
@@ -82,7 +98,7 @@ describe("sessions", () => {
         expect.objectContaining({ id, title: form.title, published: true, role: "host" }),
       ]);
       const saved = await getEditableSession(tx, id, { userId: host, isAdmin: false });
-      expect(saved).toEqual({ id, published: true, ...values() });
+      expect(saved).toEqual({ id, published: true, hostId: host, coHosts: [], ...values() });
     });
   });
 
@@ -123,6 +139,42 @@ describe("sessions", () => {
       expect(await deleteSession(tx, id)).toBe("unpublished");
       expect(await getEditableSession(tx, id, { userId: host, isAdmin: false })).toMatchObject({ published: false });
       expect(await tx`select 1 from public.session_rsvps where session_id = ${id}`).toHaveLength(1);
+    });
+  });
+
+  test("co-hosts are saved and changed with the session, and their RSVPs give way to the waitlist", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const { host, other, ada, grace, editionId } = await setUp(tx);
+      const id = await createSession(tx, { userId: host, editionId, values: values({ maxParticipants: "1", waitlist: true }), publish: true });
+      await tx`insert into public.session_rsvps (session_id, profile_id, status, created_at) values (${id}, ${ada}, 'registered', now() - interval '1 minute')`;
+      await tx`insert into public.session_rsvps (session_id, profile_id, status) values (${id}, ${other}, 'waitlisted')`;
+
+      const coHosts = (ids: string[]) => ids.map((personId) => ({ id: personId, name: "" }));
+      await updateSession(tx, id, values({ maxParticipants: "1", waitlist: true, coHosts: coHosts([ada, grace, host]) }), true);
+      const saved = await getEditableSession(tx, id, { userId: grace, isAdmin: false });
+      expect(saved?.hostId).toBe(host);
+      expect(saved?.coHosts).toEqual([
+        { id: ada, name: "Ada Lovelace" },
+        { id: grace, name: "Grace Hopper" },
+      ]);
+      const rsvps = await tx<{ profile_id: string; status: string }[]>`select profile_id, status from public.session_rsvps where session_id = ${id}`;
+      expect(rsvps).toEqual([{ profile_id: other, status: "registered" }]);
+
+      await updateSession(tx, id, values({ coHosts: coHosts([grace]) }), true);
+      expect((await getEditableSession(tx, id, { userId: host, isAdmin: false }))?.coHosts.map((p) => p.name)).toEqual(["Grace Hopper"]);
+      expect(await listHostedSessions(tx, host, editionId)).toHaveLength(1);
+    });
+  });
+
+  test("only registered members can be found and added as co-hosts", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const { ada, grace, stranger, editionId } = await setUp(tx);
+      const found = await findMembers(tx, editionId, "@ad");
+      expect(found.map((person) => person.name)).toEqual(["Ada Lovelace"]);
+      expect(found[0]!.hint).toMatch(/^h•••@example\.org$/);
+      expect(await findMembers(tx, editionId, "")).toEqual([]);
+      expect(await findMembers(tx, editionId, "%")).toEqual([]);
+      expect(await ineligibleCoHosts(tx, editionId, [ada, grace, stranger])).toEqual([stranger]);
     });
   });
 

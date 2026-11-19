@@ -1,6 +1,6 @@
 import { useFetcher } from "react-router";
 
-type Status = "registered" | "waitlisted" | null;
+type Status = "registered" | "waitlisted" | "hosting" | null;
 
 const primary =
   "rounded bg-[#15383F] px-4 py-2 font-semibold text-[#F3E6D7] disabled:opacity-60 dark:bg-[#F3E6D7] dark:text-[#15383F]";
@@ -29,6 +29,15 @@ export function RsvpButton({
   const shown: Status | "pending" =
     pending === "rsvp" ? "pending" : pending === "cancel" ? null : status;
   const refused = fetcher.data?.outcome === "full";
+
+  // Hosts are always going, with no RSVP to make or cancel.
+  if (status === "hosting") {
+    return (
+      <span className="inline-block rounded-full bg-[#CDEBE3] px-3 py-0.5 text-sm font-semibold text-[#0F4A3C]">
+        Going · You're hosting
+      </span>
+    );
+  }
 
   if (shown === "registered" || shown === "waitlisted") {
     return (

@@ -80,6 +80,15 @@ describe("rsvp", () => {
       expect(await rsvp(tx, { sessionId: "nope", userId: member })).toBe("not-found");
     });
   });
+
+  test("hosts and co-hosts are going without an RSVP", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const [sessionId, host] = [await session(tx, { capacity: 1 }), await account(tx)];
+      await tx`insert into public.session_hosts (session_id, profile_id, role) values (${sessionId}, ${host}, 'co-host')`;
+      expect(await rsvp(tx, { sessionId, userId: host })).toBe("hosting");
+      expect(await getRsvpSummary(tx, sessionId, host)).toMatchObject({ registered: 0, mine: "hosting" });
+    });
+  });
 });
 
 describe("cancelRsvp", () => {

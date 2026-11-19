@@ -37,6 +37,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     id: session.id,
     title: session.title,
     published: session.published,
+    hostId: session.hostId,
     input: sessionToFormInput(session),
     meta,
     year: edition.year,
@@ -131,6 +132,7 @@ export default function AdminSessionEdit({ loaderData, actionData }: Route.Compo
         status={published ? "published" : "draft"}
         year={loaderData.year}
         timeZones={loaderData.timeZones}
+        hostId={loaderData.hostId}
       />
       <details className="mt-10 max-w-3xl rounded-lg border border-[#E8B4B0] p-4">
         <summary className="cursor-pointer font-semibold">Delete this session</summary>

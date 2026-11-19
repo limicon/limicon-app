@@ -13,8 +13,8 @@ export type ScheduledSession = {
   city: string | null;
   /** Host and co-host names, host first. */
   hosts: string[];
-  /** The viewer's RSVP, if they have one. */
-  myRsvp: "registered" | "waitlisted" | null;
+  /** The viewer's RSVP, if they have one, or "hosting" when they host it (hosts are always going). */
+  myRsvp: "registered" | "waitlisted" | "hosting" | null;
 };
 
 /** Everything a session's page shows to members (CAL-10). */
@@ -34,7 +34,7 @@ export type SessionDetails = ScheduledSession & {
 export type ScheduleFilters = {
   /** The member looking, whose RSVPs show on each session. */
   viewerId: string;
-  /** My Schedule: only sessions the viewer has RSVPed to (CAL-7). */
+  /** My Schedule: only sessions the viewer has RSVPed to or hosts (CAL-7). */
   mineOnly: boolean;
   /** Hosting: only sessions the viewer hosts or co-hosts. */
   hostingOnly?: boolean;
@@ -68,16 +68,14 @@ export async function listScheduledSessions(
              from public.session_hosts h join public.profiles p on p.id = h.profile_id
              where h.session_id = s.id
            ), '{}') as hosts,
-           mine.status as "myRsvp"
+           case when hosting.profile_id is not null then 'hosting' else mine.status end as "myRsvp"
     from public.sessions s
     left join public.session_rsvps mine on mine.session_id = s.id and mine.profile_id = ${filters.viewerId}
+    left join public.session_hosts hosting on hosting.session_id = s.id and hosting.profile_id = ${filters.viewerId}
     where s.edition_id = ${editionId}
       and s.published
-      and (not ${filters.mineOnly} or mine.status is not null)
-      and (
-        not ${filters.hostingOnly ?? false}
-        or exists (select 1 from public.session_hosts h where h.session_id = s.id and h.profile_id = ${filters.viewerId})
-      )
+      and (not ${filters.mineOnly} or mine.status is not null or hosting.profile_id is not null)
+      and (not ${filters.hostingOnly ?? false} or hosting.profile_id is not null)
       and ${filters.past ? sql`s.ends_at <= ${filters.now}` : sql`s.ends_at > ${filters.now}`}
       and (${filters.theme}::text is null or s.theme = ${filters.theme})
       and (${filters.sessionType}::text is null or ${filters.sessionType} = any (s.session_types))
@@ -118,9 +116,10 @@ export async function getSessionDetails(
            exists (
              select 1 from public.session_hosts h where h.session_id = s.id and h.profile_id = ${viewerId}
            ) as "viewerHosts",
-           mine.status as "myRsvp"
+           case when hosting.profile_id is not null then 'hosting' else mine.status end as "myRsvp"
     from public.sessions s
     left join public.session_rsvps mine on mine.session_id = s.id and mine.profile_id = ${viewerId}
+    left join public.session_hosts hosting on hosting.session_id = s.id and hosting.profile_id = ${viewerId}
     where s.id = ${sessionId} and s.edition_id = ${editionId} and s.published
   `;
   return row ?? null;

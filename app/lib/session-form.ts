@@ -53,6 +53,7 @@ export const AI_PERMISSIONS = [
 ] as const;
 
 export const TITLE_MAX = 60;
+export const CO_HOSTS_MAX = 10;
 export const DESCRIPTION_MAX = 10_000;
 export const LENGTH_MIN = 15;
 export const LENGTH_MAX = 12 * 60;
@@ -79,7 +80,12 @@ export type SessionFormInput = {
   recordingAudience: string;
   aiAllowed: string;
   aiPermissions: string[];
+  /** Members picked as co-hosts. The names only label the tags; the server checks the ids. */
+  coHosts: Person[];
 };
+
+/** A member as the co-host field shows them. */
+export type Person = { id: string; name: string };
 
 /** A session's columns, ready to save. */
 export type SessionValues = {
@@ -102,6 +108,8 @@ export type SessionValues = {
   privacy: "private" | "participants" | "members" | "public";
   aiAssistantAllowed: boolean;
   aiPermissions: string[];
+  /** Co-hosts' profile ids, besides the host who created the session. */
+  coHostIds: string[];
 };
 
 export type FieldErrors = Partial<Record<keyof SessionFormInput, string>>;
@@ -137,8 +145,18 @@ export function readSessionForm(form: { get(name: string): unknown; getAll(name:
     recordingAudience: text("recordingAudience"),
     aiAllowed: text("aiAllowed"),
     aiPermissions: list("aiPermissions"),
+    coHosts: list("coHosts").flatMap((value) => {
+      try {
+        const person = JSON.parse(value) as Partial<Person>;
+        return typeof person.id === "string" ? [{ id: person.id, name: String(person.name ?? "").slice(0, 200) }] : [];
+      } catch {
+        return [];
+      }
+    }),
   };
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const oneOf = <T extends { value: string }>(options: readonly T[], value: string) =>
   options.some((option) => option.value === value);
@@ -237,6 +255,11 @@ export function checkSessionForm(
   if (input.aiPermissions.some((permission) => !oneOf(AI_PERMISSIONS, permission))) errors.aiPermissions = "Choose from the listed permissions.";
   else if (aiAllowed && publish && input.aiPermissions.length === 0) errors.aiPermissions = "Choose what the assistant may do, or answer No.";
 
+  // Co-hosts: members picked from the search, never typed names.
+  const coHostIds = [...new Set(input.coHosts.map((person) => person.id))];
+  if (coHostIds.some((id) => !UUID.test(id))) errors.coHosts = "Choose co-hosts from the list of registered members.";
+  else if (coHostIds.length > CO_HOSTS_MAX) errors.coHosts = `A session can have up to ${CO_HOSTS_MAX} co-hosts.`;
+
   // About this session.
   const descriptionDoc = readDescription(input.description);
   const description = richTextToPlain(descriptionDoc);
@@ -266,12 +289,13 @@ export function checkSessionForm(
       privacy,
       aiAssistantAllowed: aiAllowed,
       aiPermissions: aiAllowed ? input.aiPermissions : [],
+      coHostIds,
     },
   };
 }
 
 /** Fills the form from a saved session, showing its times in the zone the host chose. */
-export function sessionToFormInput(session: SessionValues): SessionFormInput {
+export function sessionToFormInput(session: SessionValues & { coHosts?: Person[] }): SessionFormInput {
   const start = session.startsAt ? instantToZoned(session.startsAt, session.timeZone) : null;
   const length =
     session.startsAt && session.endsAt
@@ -297,6 +321,7 @@ export function sessionToFormInput(session: SessionValues): SessionFormInput {
     recordingAudience: session.privacy === "private" ? "" : session.privacy,
     aiAllowed: session.aiAssistantAllowed ? "yes" : "no",
     aiPermissions: session.aiPermissions,
+    coHosts: session.coHosts ?? [],
   };
 }
 

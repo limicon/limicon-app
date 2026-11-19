@@ -117,7 +117,7 @@ describe("Hosting", () => {
 });
 
 describe("My Schedule", () => {
-  test("shows only the sessions the viewer RSVPed to, with their status", async () => {
+  test("shows only the sessions the viewer RSVPed to or hosts, with their status", async () => {
     await inRolledBackTransaction(async (tx) => {
       const { editionId, coHost, ids } = await setUp(tx);
       await tx`insert into public.session_rsvps (session_id, profile_id, status) values (${ids.later}, ${coHost}, 'waitlisted')`;
@@ -126,11 +126,12 @@ describe("My Schedule", () => {
       const mine = await listScheduledSessions(tx, editionId, { ...upcoming, viewerId: coHost, mineOnly: true });
       expect(mine.map((s) => [s.title, s.myRsvp])).toEqual([
         ["Happening now", "registered"],
+        ["Sooner", "hosting"],
         ["Later", "waitlisted"],
       ]);
 
       const everything = await listScheduledSessions(tx, editionId, { ...upcoming, viewerId: coHost });
-      expect(everything.find((s) => s.title === "Sooner")?.myRsvp).toBeNull();
+      expect(everything.find((s) => s.title === "Sooner")?.myRsvp).toBe("hosting");
     });
   });
 });

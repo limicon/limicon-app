@@ -2,7 +2,7 @@
 
 How sessions sit in time: times and time zones, the session lifecycle, repeating sessions, and RSVPs. [`feature-calendaring.md`](feature-calendaring.md) covers getting sessions onto members' own calendars. The session form's fields and what hosts and admins may do are in the PRD: [Session form fields](Limicon%20Platform%20PRD.md#session-form-fields) and requirements SES-1 to SES-10 and CAL-1 to CAL-10.
 
-Status: draft, 2026-11-18. Built: hosting (host guidelines, the session editor with drafts and publishing, each host's list of sessions, in `app/routes/members/host*.tsx`), and the schedule's list view with session pages, RSVPs, the waitlist and My Schedule (`app/routes/members/schedule*.tsx`). Not yet: co-hosts, Duplicate, and the three-day and month views.
+Status: draft, 2026-11-18. Built: hosting (host guidelines, the session editor with drafts, publishing and co-hosts, each host's list of sessions, in `app/routes/members/host*.tsx`), and the schedule's list view with session pages, RSVPs, the waitlist and My Schedule (`app/routes/members/schedule*.tsx`). Not yet: Duplicate, and the three-day and month views.
 
 ## Times and time zones
 
@@ -47,6 +47,10 @@ Limicon doesn't make recurrence easy. The editor has no Repeat control, and no r
 
 Each copy is an ordinary session to everything else, including RSVPs, reminders, feeds, invites, harvest forms and content. Nothing has to expand rules or track exceptions to them, and calendar events need no `RRULE` or time-zone blocks.
 
+## Co-hosts
+
+Hosts add co-hosts in the editor (SES-5) by typing @ and a name, then choosing the person, as an email app picks recipients; a comma, Enter or Tab takes the highlighted match. Only tags are posted, so typed text never becomes a co-host. The search (`/members/host/people`, `findMembers`) finds members who can co-host: current-edition ticket holders and admins, not deactivated, by name or a whole email address, with a masked email to tell apart people of the same name. On save the server checks every id again (`ineligibleCoHosts`). Co-hosts can edit the session like its host; the host who created it can't be removed.
+
 ## Schedule
 
 Members > Schedule (`app/routes/members/schedule*.tsx`) shows the edition's published sessions. The queries are in `app/lib/schedule.server.ts`.
@@ -64,7 +68,8 @@ Members > Schedule (`app/routes/members/schedule*.tsx`) shows the edition's publ
 
 - RSVPs live only in the app: one click to RSVP and one to cancel (CAL-5). RSVPs open while a session is published and close when it ends. Replies to calendar invites aren't read back ([`feature-calendaring.md`](feature-calendaring.md#replies-to-invites)).
 - `session_rsvps` holds the session, the member, the status (registered or waitlisted) and `created_at`. Reminders come from members' own calendars (CAL-6), so RSVPs store no reminder choice.
-- **My Schedule** is the schedule page filtered to the member's RSVPs (`?view=mine`), with the same search and filters.
+- **My Schedule** is the schedule page filtered to the member's RSVPs and the sessions they host (`?view=mine`), with the same search and filters.
+- **Hosts are going.** Hosts and co-hosts never RSVP to their own sessions: they show as "Going · You're hosting", don't take places, and `rsvp()` returns `hosting` for them. Adding someone as a co-host removes their RSVP and moves the waitlist up into the freed place.
 - **Capacity.** The capacity check and the insert happen in one transaction that locks the session row (`select … for update`), so two members can't take the last place at once.
 - **Waitlist.** When a registered member cancels, the earliest waitlisted RSVP becomes registered. Calendaring treats a promotion like a new RSVP.
 - **Unpublished sessions** keep their RSVPs, as history and as the list of members who were told, and a re-published session has them back. Deleting a session that has RSVPs unpublishes it instead.
