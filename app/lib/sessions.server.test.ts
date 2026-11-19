@@ -13,6 +13,7 @@ import {
   getEditableSession,
   hasAcceptedGuidelines,
   ineligibleCoHosts,
+  listOtherDates,
   listHostedSessions,
   updateSession,
 } from "./sessions.server";
@@ -67,7 +68,7 @@ const form: SessionFormInput = {
   sessionTypes: ["dialog", "fun"], experience: ["kid_friendly"], date: "2027-03-17", start: "12:00",
   lengthMinutes: "60", timeZone: "America/Toronto", meetingLink: "https://zoom.us/j/1", city: "", venueNote: "",
   maxParticipants: "", waitlist: false, recorded: "no", recordingAudience: "", aiAllowed: "yes",
-  aiPermissions: ["transcription"], coHosts: [],
+  aiPermissions: ["transcription"], coHosts: [], repeat: "", repeatUntil: "", extraDates: [], extraStarts: [],
 };
 
 function values(input: Partial<SessionFormInput> = {}): SessionValues {
@@ -98,7 +99,8 @@ describe("sessions", () => {
         expect.objectContaining({ id, title: form.title, published: true, role: "host" }),
       ]);
       const saved = await getEditableSession(tx, id, { userId: host, isAdmin: false });
-      expect(saved).toEqual({ id, published: true, hostId: host, coHosts: [], ...values() });
+      const { repeats: _, ...saveable } = values();
+      expect(saved).toEqual({ id, published: true, hostId: host, coHosts: [], ...saveable });
     });
   });
 
@@ -163,6 +165,32 @@ describe("sessions", () => {
       await updateSession(tx, id, values({ coHosts: coHosts([grace]) }), true);
       expect((await getEditableSession(tx, id, { userId: host, isAdmin: false }))?.coHosts.map((p) => p.name)).toEqual(["Grace Hopper"]);
       expect(await listHostedSessions(tx, host, editionId)).toHaveLength(1);
+    });
+  });
+
+  test("a repeating session is saved as one linked session per date", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const { host, other, editionId } = await setUp(tx);
+      const weekly = checkSessionForm({ ...form, repeat: "weekly", repeatUntil: "2027-03-31" }, { publish: true });
+      if (!weekly.ok) throw new Error(JSON.stringify(weekly.errors));
+      const id = await createSession(tx, { userId: host, editionId, values: weekly.values, publish: true });
+
+      const hosted = await listHostedSessions(tx, host, editionId);
+      expect(hosted.map((s) => s.startsAt?.toISOString())).toEqual([
+        "2027-03-17T16:00:00.000Z",
+        "2027-03-24T16:00:00.000Z",
+        "2027-03-31T16:00:00.000Z",
+      ]);
+      expect(hosted.every((s) => s.published && s.role === "host")).toBe(true);
+
+      const others = await listOtherDates(tx, id, false);
+      expect(others.map((d) => d.startsAt?.toISOString())).toEqual(["2027-03-24T16:00:00.000Z", "2027-03-31T16:00:00.000Z"]);
+      // Each date is its own session: unpublishing one hides it from members only.
+      await tx`update public.sessions set published = false where id = ${others[1]!.id}`;
+      expect(await listOtherDates(tx, id, true)).toHaveLength(1);
+      // A session that doesn't repeat has no other dates.
+      const single = await createSession(tx, { userId: other, editionId, values: values(), publish: true });
+      expect(await listOtherDates(tx, single, false)).toEqual([]);
     });
   });
 

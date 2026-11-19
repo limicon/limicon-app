@@ -2,7 +2,7 @@
 
 How sessions sit in time: times and time zones, the session lifecycle, repeating sessions, and RSVPs. [`feature-calendaring.md`](feature-calendaring.md) covers getting sessions onto members' own calendars. The session form's fields and what hosts and admins may do are in the PRD: [Session form fields](Limicon%20Platform%20PRD.md#session-form-fields) and requirements SES-1 to SES-10 and CAL-1 to CAL-10.
 
-Status: draft, 2026-11-18. Built: hosting (host guidelines, the session editor with drafts, publishing and co-hosts, each host's list of sessions, in `app/routes/members/host*.tsx`), and the schedule's list view with session pages, RSVPs, the waitlist and My Schedule (`app/routes/members/schedule*.tsx`). Not yet: Duplicate, and the three-day and month views.
+Status: draft, 2026-11-18. Built: hosting (host guidelines, the session editor with drafts, publishing and co-hosts, each host's list of sessions, in `app/routes/members/host*.tsx`), and the schedule's list view with session pages, RSVPs, the waitlist and My Schedule (`app/routes/members/schedule*.tsx`). Also repeating sessions and the About preview on schedule cards. Not yet: Duplicate, and the three-day and month views.
 
 ## Times and time zones
 
@@ -38,14 +38,13 @@ A session is either unpublished or published. "Save draft" in the editor saves i
 
 ## Repeating sessions
 
-Limicon doesn't make recurrence easy. The editor has no Repeat control, and no recurrence rules exist. A host who wants a session to happen more than once duplicates it.
+A new session's form asks whether it repeats: no, weekly, every two weeks, or on other dates the host lists, each with its own start time. Weekly and two-weekly repeats run until a date the host picks, which defaults to the event's last day. Saving creates one full session per date in one transaction (`createSession`), all sharing a `sessions.series_id`. No recurrence rules are stored.
 
-- **Duplicate.** Any session the host can edit has a Duplicate action. It opens the editor with every field filled in from the original, co-hosts included, and the date left empty. Saving creates a new, independent session.
-- **Clock time.** The copy keeps the original's clock time in the session's zone, and the host picks only the date. Compute the copy's start and end from that local date and time. Adding days to the original start shifts copies that fall after a daylight-saving change.
-- **Each copy is a full session,** with its own RSVPs, capacity, waitlist, meeting link, status and calendar event.
-- **Linking copies (option).** Copies can stay unlinked, or Duplicate can give them a shared `sessions.series_id` (uuid, nullable). With a link, session pages can show "Also on" with links to the other dates. Any action that works across the series, such as RSVPing to all of it or editing "this and later sessions", brings back the easy recurrence Limicon is avoiding.
-
-Each copy is an ordinary session to everything else, including RSVPs, reminders, feeds, invites, harvest forms and content. Nothing has to expand rules or track exceptions to them, and calendar events need no `RRULE` or time-zone blocks.
+- **Clock time.** Each date keeps the first one's clock time in the session's zone, so a weekly noon session stays at noon across a daylight-saving change (`checkRepeats` in `app/lib/session-form.ts`). Adding days to the first start would shift later dates by an hour.
+- **Each date is a full session,** with its own RSVPs, capacity, waitlist, meeting link, status and calendar event. Hosts edit, unpublish or delete each date on its own; the edit page lists the series' other dates, and the session page shows members the published ones under "Also on".
+- **Nothing works across the series,** such as RSVPing to every date or editing "this and later sessions". Each date is an ordinary session to everything else, including RSVPs, reminders, feeds, invites, harvest forms and content, so calendar events need no `RRULE` or time-zone blocks.
+- **Limits.** Up to 30 extra dates, all within the event.
+- **Duplicate (not built).** A Duplicate action on any session the host can edit would open the editor filled in from the original, co-hosts included, with the date left empty.
 
 ## Co-hosts
 
@@ -58,6 +57,7 @@ Members > Schedule (`app/routes/members/schedule*.tsx`) shows the edition's publ
 - **List view.** Sessions grouped by the viewer's calendar day, upcoming soonest first, with past sessions behind a filter. The three-day and month views (CAL-1) come next.
 - **Theme colors (CAL-11).** `app/lib/themes.ts` gives each theme a color, used only as a stripe and a dot beside the theme's name, never as text color. A legend lists all nine.
 - **About this session.** Hosts format the description in a basic rich text editor (bold, italics, underline, strikethrough, lists, quotes, links, emoji; no headings or uploads). `sessions.description_doc` holds the cleaned document (`app/lib/rich-text.ts`) that session pages draw; `sessions.description` keeps its plain text for search.
+- **Cards.** A click anywhere on a session's card opens its page. The card shows the first two lines of About this session, and Read more opens the full formatted text in place; the RSVP and Edit controls, Read more and the opened text keep their own clicks.
 - **Three views.** Limicon Schedule (every session), My Schedule (`?view=mine`, below) and Hosting (`?view=hosting`: published sessions the member hosts or co-hosts, each with an Edit link, and a "+ Host a Session" button). Drafts stay under Host a session.
 - **Search and filters (CAL-2).** The search matches titles, descriptions and host names, ignoring case. Theme and session type filter too. All of them live in the URL, so a filtered view can be shared.
 - **The viewer's time zone (CAL-3).** The zone a member picks, saved as `profiles.time_zone`; otherwise their browser's, which the page reads on the first visit and keeps in a `tz` cookie; otherwise Toronto's. `app/lib/format-time.ts` names the zone and locale in every format, so the server and the browser render the same text and hydration matches. A session's page also shows the host's own time when the zones differ.

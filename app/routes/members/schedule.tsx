@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Form, Link, useSearchParams, useSubmit } from "react-router";
 
+import { RichText } from "~/components/rich-text";
 import { RsvpButton } from "~/components/rsvp-button";
 import { useBrowserZone, useScheduleRefresh } from "~/components/schedule-refresh";
 import { ThemeLabel } from "~/components/theme-label";
@@ -139,16 +141,22 @@ function groupByDay(sessions: ScheduledSession[], zone: string): [string, Schedu
 
 function SessionCard({ session, zone, canRsvp, hosting }: { session: ScheduledSession; zone: string; canRsvp: boolean; hosting: boolean }) {
   return (
+    // The title's link stretches over the whole card, so a click anywhere opens the session; the
+    // RSVP and Edit controls sit above it and keep their own clicks.
     <article
       aria-labelledby={`session-${session.id}`}
-      className="flex overflow-hidden rounded-lg border border-[#C9DADC] bg-white dark:border-[#24363B] dark:bg-[#12201F]"
+      className="group relative flex overflow-hidden rounded-lg border border-[#C9DADC] bg-white transition-colors hover:border-[#15383F] hover:bg-[#F7FAFA] has-[a[data-card]:focus-visible]:outline-2 has-[a[data-card]:focus-visible]:outline-[#15383F] dark:border-[#24363B] dark:bg-[#12201F] dark:hover:border-[#8CC7D3] dark:hover:bg-[#162826] dark:has-[a[data-card]:focus-visible]:outline-[#8CC7D3]"
     >
       <span aria-hidden="true" className="w-1.5 shrink-0" style={{ background: themeColor(session.theme) }} />
       <div className="grid min-w-0 flex-1 gap-1 p-4 sm:grid-cols-[9rem_1fr_auto] sm:items-start sm:gap-4">
         <span className="font-semibold tabular-nums">{timeRange(session.startsAt, session.endsAt, zone)}</span>
         <div className="grid min-w-0 gap-1">
           <h3 id={`session-${session.id}`} className="text-lg font-semibold">
-            <Link to={`/members/schedule/${session.id}`} className="hover:underline">
+            <Link
+              to={`/members/schedule/${session.id}`}
+              data-card
+              className="group-hover:underline after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
+            >
               {session.title}
             </Link>
           </h3>
@@ -158,9 +166,10 @@ function SessionCard({ session, zone, canRsvp, hosting }: { session: ScheduledSe
             {session.city && <span>In person, {session.city}</span>}
           </p>
           {session.hosts.length > 0 && <p className="text-sm">With {session.hosts.join(", ")}</p>}
+          {session.description && <About session={session} />}
         </div>
         {hosting ? (
-          <div className="mt-2 sm:mt-0">
+          <div className="relative z-10 mt-2 justify-self-start sm:mt-0">
             <Link
               to={`/members/host/${session.id}`}
               className="inline-block rounded border border-[#15383F] px-4 py-2 font-semibold dark:border-[#8CC7D3]"
@@ -170,12 +179,47 @@ function SessionCard({ session, zone, canRsvp, hosting }: { session: ScheduledSe
             </Link>
           </div>
         ) : canRsvp && (
-          <div className="mt-2 sm:mt-0">
+          <div className="relative z-10 mt-2 justify-self-start sm:mt-0">
             <RsvpButton sessionId={session.id} status={session.myRsvp} title={session.title} />
           </div>
         )}
       </div>
     </article>
+  );
+}
+
+/**
+ * About this session on the card: two lines, and a Read more button that opens the full text in
+ * place, so members can read it without leaving the schedule. The button and the opened text sit
+ * above the card's link, so clicking them, or links in the text, doesn't open the session's page.
+ */
+function About({ session }: { session: ScheduledSession }) {
+  const [open, setOpen] = useState(false);
+  const id = `about-${session.id}`;
+  // Short, single-paragraph text shows whole, with nothing to expand.
+  const long = session.description!.length > 140 || session.description!.includes("\n");
+  return (
+    <div className="mt-1 text-sm">
+      {open && session.descriptionDoc ? (
+        <div id={id} className="relative z-10 cursor-auto rounded-md bg-[#F4F7F7] p-3 dark:bg-[#0F1C1E]">
+          <RichText doc={session.descriptionDoc} />
+        </div>
+      ) : (
+        <p id={id} className={long ? "line-clamp-2" : ""}>{session.description}</p>
+      )}
+      {long && (
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={id}
+          onClick={() => setOpen(!open)}
+          className="relative z-10 mt-1 font-semibold underline"
+        >
+          {open ? "Show less" : "Read more"}
+          <span className="sr-only"> about {session.title}</span>
+        </button>
+      )}
+    </div>
   );
 }
 

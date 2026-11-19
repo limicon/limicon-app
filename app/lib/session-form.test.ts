@@ -23,6 +23,10 @@ const complete: SessionFormInput = {
   aiAllowed: "no",
   aiPermissions: [],
   coHosts: [],
+  repeat: "",
+  repeatUntil: "",
+  extraDates: [],
+  extraStarts: [],
 };
 
 const draft = (input: Partial<SessionFormInput>) =>
@@ -33,7 +37,7 @@ function emptyForm(): SessionFormInput {
     title: "", description: "", intention: "", theme: "", sessionTypes: [], experience: [],
     date: "", start: "", lengthMinutes: "", timeZone: "America/Toronto", meetingLink: "",
     city: "", venueNote: "", maxParticipants: "", waitlist: false, recorded: "",
-    recordingAudience: "", aiAllowed: "", aiPermissions: [], coHosts: [],
+    recordingAudience: "", aiAllowed: "", aiPermissions: [], coHosts: [], repeat: "", repeatUntil: "", extraDates: [], extraStarts: [],
   };
 }
 
@@ -153,6 +157,51 @@ describe("readSessionForm and sessionToFormInput", () => {
     if (!result.ok) throw new Error("expected a valid form");
     const description = JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "We talk about the in-between." }] }] });
     expect(sessionToFormInput(result.values)).toEqual({ ...complete, description, meetingLink: "https://zoom.us/j/123" });
+  });
+});
+
+describe("repeating sessions", () => {
+  const window = { first: "2027-03-07", last: "2027-04-03" };
+  const check = (input: Partial<SessionFormInput>) =>
+    checkSessionForm({ ...complete, date: "2027-03-10", start: "12:00", lengthMinutes: "60", ...input }, { publish: true, eventWindow: window });
+  const starts = (result: ReturnType<typeof check>) => {
+    if (!result.ok) throw new Error(JSON.stringify(result.errors));
+    return result.values.repeats.map((r) => r.startsAt.toISOString());
+  };
+
+  test("weekly keeps the clock time across a daylight-saving change, up to the event's last day", () => {
+    // Toronto moves to daylight time on 14 March: noon is 17:00 UTC before and 16:00 after.
+    expect(starts(check({ repeat: "weekly" }))).toEqual([
+      "2027-03-17T16:00:00.000Z",
+      "2027-03-24T16:00:00.000Z",
+      "2027-03-31T16:00:00.000Z",
+    ]);
+  });
+
+  test("every two weeks stops at the date the host chose, and each repeat keeps the length", () => {
+    const result = check({ repeat: "biweekly", repeatUntil: "2027-03-24" });
+    expect(starts(result)).toEqual(["2027-03-24T16:00:00.000Z"]);
+    if (result.ok) expect(result.values.repeats[0]!.endsAt.toISOString()).toBe("2027-03-24T17:00:00.000Z");
+  });
+
+  test("custom dates each have their own start time, skipping blank rows and the first date", () => {
+    expect(starts(check({ repeat: "custom", extraDates: ["2027-03-20", "", "2027-03-10"], extraStarts: ["09:30", "", "12:00"] }))).toEqual([
+      "2027-03-20T13:30:00.000Z",
+    ]);
+  });
+
+  test("explains what's missing or out of range", () => {
+    expect(check({ repeat: "custom", extraDates: [""], extraStarts: [""] })).toMatchObject({ ok: false, errors: { extraDates: expect.any(String) } });
+    expect(check({ repeat: "custom", extraDates: ["2027-03-20"], extraStarts: [""] })).toMatchObject({ ok: false, errors: { extraDates: expect.stringContaining("start time") } });
+    expect(check({ repeat: "custom", extraDates: ["2027-05-01"], extraStarts: ["12:00"] })).toMatchObject({ ok: false, errors: { extraDates: expect.stringContaining("within the event") } });
+    expect(check({ repeat: "weekly", repeatUntil: "2027-03-12" })).toMatchObject({ ok: false, errors: { repeatUntil: expect.stringContaining("a week") } });
+    expect(check({ repeat: "weekly", repeatUntil: "2027-05-01" })).toMatchObject({ ok: false, errors: { repeatUntil: expect.any(String) } });
+    expect(check({ repeat: "monthly" })).toMatchObject({ ok: false, errors: { repeat: expect.any(String) } });
+    expect(draft({ title: "An idea", repeat: "weekly" })).toMatchObject({ ok: false, errors: { repeat: expect.any(String) } });
+  });
+
+  test("a session that doesn't repeat has no repeats", () => {
+    expect(starts(check({}))).toEqual([]);
   });
 });
 

@@ -54,6 +54,7 @@ export async function saveSessionForm(
   if (sessionId) await updateSession(db, sessionId, result.values, publish);
 
   const params = new URLSearchParams({ saved: publish ? "published" : "draft" });
+  if (!sessionId && result.values.repeats.length) params.set("repeats", String(result.values.repeats.length));
   if (result.warnings.length) params.set("warning", result.warnings[0]!);
   throw redirect(`${paths.session(id)}?${params}`);
 }

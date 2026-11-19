@@ -54,6 +54,16 @@ export const AI_PERMISSIONS = [
 
 export const TITLE_MAX = 60;
 export const CO_HOSTS_MAX = 10;
+/** The most extra dates one form can add, so a slip can't flood the calendar. */
+export const REPEATS_MAX = 30;
+
+/** How a new session can repeat. Each date becomes its own session. */
+export const REPEATS = [
+  { value: "", label: "No, just once" },
+  { value: "weekly", label: "Weekly" },
+  { value: "biweekly", label: "Every two weeks" },
+  { value: "custom", label: "On other dates I choose" },
+] as const;
 export const DESCRIPTION_MAX = 10_000;
 export const LENGTH_MIN = 15;
 export const LENGTH_MAX = 12 * 60;
@@ -82,6 +92,13 @@ export type SessionFormInput = {
   aiPermissions: string[];
   /** Members picked as co-hosts. The names only label the tags; the server checks the ids. */
   coHosts: Person[];
+  /** Repeating, for a new session: "", weekly, biweekly or custom. */
+  repeat: string;
+  /** The last date a weekly or two-weekly session may fall on. */
+  repeatUntil: string;
+  /** Custom repeats: the other dates and their start times, in the session's time zone. */
+  extraDates: string[];
+  extraStarts: string[];
 };
 
 /** A member as the co-host field shows them. */
@@ -110,6 +127,8 @@ export type SessionValues = {
   aiPermissions: string[];
   /** Co-hosts' profile ids, besides the host who created the session. */
   coHostIds: string[];
+  /** Further dates for a repeating session, each saved as a session of its own. */
+  repeats: { startsAt: Date; endsAt: Date }[];
 };
 
 export type FieldErrors = Partial<Record<keyof SessionFormInput, string>>;
@@ -145,6 +164,10 @@ export function readSessionForm(form: { get(name: string): unknown; getAll(name:
     recordingAudience: text("recordingAudience"),
     aiAllowed: text("aiAllowed"),
     aiPermissions: list("aiPermissions"),
+    repeat: text("repeat"),
+    repeatUntil: text("repeatUntil"),
+    extraDates: list("extraDates").map((v) => v.trim()),
+    extraStarts: list("extraStarts").map((v) => v.trim()),
     coHosts: list("coHosts").flatMap((value) => {
       try {
         const person = JSON.parse(value) as Partial<Person>;
@@ -213,6 +236,8 @@ export function checkSessionForm(
       }
     }
   }
+
+  const repeats = checkRepeats(input, { startsAt, endsAt, eventWindow: options.eventWindow }, errors);
 
   // Where.
   const inPerson = input.sessionTypes.includes("in_person");
@@ -290,12 +315,83 @@ export function checkSessionForm(
       aiAssistantAllowed: aiAllowed,
       aiPermissions: aiAllowed ? input.aiPermissions : [],
       coHostIds,
+      repeats,
     },
   };
 }
 
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME = /^\d{2}:\d{2}$/;
+
+/** "YYYY-MM-DD" plus `days`. */
+function addDays(date: string, days: number): string {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(Date.UTC(y!, m! - 1, d! + days)).toISOString().slice(0, 10);
+}
+
+/**
+ * The further dates a repeating session falls on, at the same clock time in its time zone, so a
+ * weekly noon session stays at noon across a daylight-saving change. Adds any problems to `errors`.
+ */
+function checkRepeats(
+  input: SessionFormInput,
+  first: { startsAt: Date | null; endsAt: Date | null; eventWindow?: { first: string | null; last: string | null } },
+  errors: FieldErrors,
+): { startsAt: Date; endsAt: Date }[] {
+  if (!input.repeat) return [];
+  if (!REPEATS.some((option) => option.value === input.repeat)) {
+    errors.repeat = "Choose how the session repeats from the list.";
+    return [];
+  }
+  if (!first.startsAt || !first.endsAt) {
+    if (!errors.date && !errors.start && !errors.lengthMinutes) errors.repeat = "Choose the first date and start time, then how it repeats.";
+    return [];
+  }
+  const window = first.eventWindow;
+  const outside = (date: string) => Boolean((window?.first && date < window.first) || (window?.last && date > window.last));
+
+  const dates: { date: string; start: string }[] = [];
+  if (input.repeat === "custom") {
+    const rows = input.extraDates.map((date, i) => ({ date, start: input.extraStarts[i] ?? "" })).filter((row) => row.date || row.start);
+    if (rows.length === 0) errors.extraDates = "Add at least one more date, or choose not to repeat.";
+    else if (rows.some((row) => !DATE.test(row.date) || !TIME.test(row.start))) errors.extraDates = "Give each extra date a start time.";
+    else if (rows.some((row) => outside(row.date))) errors.extraDates = "Choose dates within the event.";
+    else dates.push(...rows);
+  } else {
+    const until = input.repeatUntil || window?.last || "";
+    const step = input.repeat === "weekly" ? 7 : 14;
+    if (!DATE.test(until)) errors.repeatUntil = "Choose the last date it can repeat on.";
+    else if (window?.last && until > window.last) errors.repeatUntil = "Choose a date within the event.";
+    else {
+      for (let date = addDays(input.date, step); date <= until && dates.length <= REPEATS_MAX; date = addDays(date, step)) {
+        dates.push({ date, start: input.start });
+      }
+      if (dates.length === 0) errors.repeatUntil = `Choose a date at least ${step === 7 ? "a week" : "two weeks"} after the first one.`;
+    }
+  }
+  if (dates.length > REPEATS_MAX) {
+    errors[input.repeat === "custom" ? "extraDates" : "repeatUntil"] = `A session can repeat up to ${REPEATS_MAX} times.`;
+    return [];
+  }
+
+  const length = first.endsAt.getTime() - first.startsAt.getTime();
+  const seen = new Set([first.startsAt.getTime()]);
+  const repeats: { startsAt: Date; endsAt: Date }[] = [];
+  for (const { date, start } of dates) {
+    const instant = zonedToInstant(date, start, input.timeZone);
+    if (instant === "nonexistent") {
+      errors[input.repeat === "custom" ? "extraDates" : "repeatUntil"] = `${start} doesn't exist on ${date} in this time zone, because the clocks change. Choose another time.`;
+      return [];
+    }
+    if (seen.has(instant.getTime())) continue;
+    seen.add(instant.getTime());
+    repeats.push({ startsAt: instant, endsAt: new Date(instant.getTime() + length) });
+  }
+  return repeats.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
+}
+
 /** Fills the form from a saved session, showing its times in the zone the host chose. */
-export function sessionToFormInput(session: SessionValues & { coHosts?: Person[] }): SessionFormInput {
+export function sessionToFormInput(session: Omit<SessionValues, "repeats"> & { coHosts?: Person[] }): SessionFormInput {
   const start = session.startsAt ? instantToZoned(session.startsAt, session.timeZone) : null;
   const length =
     session.startsAt && session.endsAt
@@ -322,6 +418,10 @@ export function sessionToFormInput(session: SessionValues & { coHosts?: Person[]
     aiAllowed: session.aiAssistantAllowed ? "yes" : "no",
     aiPermissions: session.aiPermissions,
     coHosts: session.coHosts ?? [],
+    repeat: "",
+    repeatUntil: "",
+    extraDates: [],
+    extraStarts: [],
   };
 }
 

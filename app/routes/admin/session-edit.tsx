@@ -130,7 +130,7 @@ export default function AdminSessionEdit({ loaderData, actionData }: Route.Compo
       </section>
 
       <SessionEditor
-        key={loaderData.title + String(published)}
+        key={loaderData.id + String(published)}
         initial={actionData?.input ?? loaderData.input}
         errors={actionData?.errors}
         status={published ? "published" : "draft"}

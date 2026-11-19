@@ -2,7 +2,7 @@ import type { Db } from "~/lib/db.server";
 import type { Person, SessionValues } from "~/lib/session-form";
 
 /** A session as its hosts see it in the editor. */
-export type EditableSession = SessionValues & {
+export type EditableSession = Omit<SessionValues, "repeats"> & {
   id: string;
   published: boolean;
   /** The member who created it, who can't be added again as a co-host. */
@@ -104,24 +104,49 @@ export async function createSession(
   args: { userId: string; editionId: number; values: SessionValues; publish: boolean },
 ): Promise<string> {
   const { userId, editionId, values: v, publish } = args;
+  // A repeating session is one session per date, linked by a series id (docs/feature-sessions.md).
+  const seriesId = v.repeats.length ? crypto.randomUUID() : null;
+  const dates = [{ startsAt: v.startsAt, endsAt: v.endsAt }, ...v.repeats];
   return sql.begin(async (tx) => {
-    const [row] = await tx<{ id: string }[]>`
-      insert into public.sessions (
-        edition_id, created_by, published, title, description, description_doc, intention, theme, session_types,
-        experience, starts_at, ends_at, time_zone, meeting_link, city, venue_note,
-        max_participants, waitlist_enabled, privacy, ai_assistant_allowed, ai_permissions
-      ) values (
-        ${editionId}, ${userId}, ${publish}, ${v.title}, ${v.description}, ${descriptionJson(sql, v)}, ${v.intention}, ${v.theme},
-        ${v.sessionTypes}::text[], ${v.experience}::text[], ${v.startsAt}, ${v.endsAt},
-        ${v.timeZone}, ${v.meetingLink}, ${v.city}, ${v.venueNote}, ${v.maxParticipants},
-        ${v.waitlistEnabled}, ${v.privacy}, ${v.aiAssistantAllowed}, ${v.aiPermissions}::text[]
-      )
-      returning id
-    `;
-    await tx`insert into public.session_hosts (session_id, profile_id, role) values (${row!.id}, ${userId}, 'host')`;
-    await saveCoHosts(tx as unknown as Db, row!.id, v.coHostIds);
-    return row!.id;
+    const ids: string[] = [];
+    for (const { startsAt, endsAt } of dates) {
+      const [row] = await tx<{ id: string }[]>`
+        insert into public.sessions (
+          edition_id, created_by, published, title, description, description_doc, intention, theme, session_types,
+          experience, starts_at, ends_at, time_zone, meeting_link, city, venue_note,
+          max_participants, waitlist_enabled, privacy, ai_assistant_allowed, ai_permissions, series_id
+        ) values (
+          ${editionId}, ${userId}, ${publish}, ${v.title}, ${v.description}, ${descriptionJson(sql, v)}, ${v.intention}, ${v.theme},
+          ${v.sessionTypes}::text[], ${v.experience}::text[], ${startsAt}, ${endsAt},
+          ${v.timeZone}, ${v.meetingLink}, ${v.city}, ${v.venueNote}, ${v.maxParticipants},
+          ${v.waitlistEnabled}, ${v.privacy}, ${v.aiAssistantAllowed}, ${v.aiPermissions}::text[], ${seriesId}
+        )
+        returning id
+      `;
+      await tx`insert into public.session_hosts (session_id, profile_id, role) values (${row!.id}, ${userId}, 'host')`;
+      await saveCoHosts(tx as unknown as Db, row!.id, v.coHostIds);
+      ids.push(row!.id);
+    }
+    return ids[0]!;
   }) as Promise<string>;
+}
+
+/** A date of a repeating session, for listing a session's other dates. */
+export type SeriesDate = { id: string; startsAt: Date | null; endsAt: Date | null; timeZone: string; published: boolean };
+
+/**
+ * The other sessions in a session's series, soonest first: every one for its hosts and admins, or
+ * only published ones for members (`publishedOnly`). Empty when the session doesn't repeat.
+ */
+export async function listOtherDates(sql: Db, sessionId: string, publishedOnly: boolean): Promise<SeriesDate[]> {
+  if (!UUID.test(sessionId)) return [];
+  return sql<SeriesDate[]>`
+    select o.id, o.starts_at as "startsAt", o.ends_at as "endsAt", o.time_zone as "timeZone", o.published
+    from public.sessions s
+    join public.sessions o on o.series_id = s.series_id and o.id <> s.id
+    where s.id = ${sessionId} and (not ${publishedOnly} or o.published)
+    order by o.starts_at asc nulls last
+  `;
 }
 
 /** Saves a session's fields and whether it's published. Callers check permission first. */

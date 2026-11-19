@@ -13,14 +13,15 @@ export type ScheduledSession = {
   city: string | null;
   /** Host and co-host names, host first. */
   hosts: string[];
+  /** About this session: plain text for the card's preview, and the formatted document. */
+  description: string | null;
+  descriptionDoc: RichDoc | null;
   /** The viewer's RSVP, if they have one, or "hosting" when they host it (hosts are always going). */
   myRsvp: "registered" | "waitlisted" | "hosting" | null;
 };
 
 /** Everything a session's page shows to members (CAL-10). */
 export type SessionDetails = ScheduledSession & {
-  description: string | null;
-  descriptionDoc: RichDoc | null;
   intention: string | null;
   experience: string[];
   meetingLink: string | null;
@@ -68,6 +69,7 @@ export async function listScheduledSessions(
              from public.session_hosts h join public.profiles p on p.id = h.profile_id
              where h.session_id = s.id
            ), '{}') as hosts,
+           s.description, s.description_doc as "descriptionDoc",
            case when hosting.profile_id is not null then 'hosting' else mine.status end as "myRsvp"
     from public.sessions s
     left join public.session_rsvps mine on mine.session_id = s.id and mine.profile_id = ${filters.viewerId}

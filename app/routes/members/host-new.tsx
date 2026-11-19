@@ -26,12 +26,12 @@ const blank: SessionFormInput = {
   title: "", description: "", intention: "", theme: "", sessionTypes: [], experience: [],
   date: "", start: "", lengthMinutes: "60", timeZone: "America/Toronto", meetingLink: "",
   city: "", venueNote: "", maxParticipants: "", waitlist: false, recorded: "",
-  recordingAudience: "", aiAllowed: "", aiPermissions: [], coHosts: [],
+  recordingAudience: "", aiAllowed: "", aiPermissions: [], coHosts: [], repeat: "", repeatUntil: "", extraDates: [], extraStarts: [],
 };
 
 export async function loader({ context }: Route.LoaderArgs) {
   const { edition, services } = await requireGuidelines(context);
-  return { year: edition.year, timeZones: timeZoneNames(), hostId: services.viewer!.userId };
+  return { year: edition.year, lastDay: edition.lastDay, timeZones: timeZoneNames(), hostId: services.viewer!.userId };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -56,6 +56,7 @@ export default function HostNew({ loaderData, actionData }: Route.ComponentProps
         year={loaderData.year}
         timeZones={loaderData.timeZones}
         hostId={loaderData.hostId}
+        lastDay={loaderData.lastDay}
       />
     </>
   );

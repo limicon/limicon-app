@@ -9,6 +9,7 @@ import {
   LENGTH_MAX,
   LENGTH_MIN,
   RECORDING_AUDIENCES,
+  REPEATS,
   SESSION_TYPES,
   THEMES,
   TITLE_MAX,
@@ -55,6 +56,7 @@ export function SessionEditor({
   year,
   timeZones,
   hostId,
+  lastDay = null,
 }: {
   initial: SessionFormInput;
   errors?: FieldErrors;
@@ -63,6 +65,8 @@ export function SessionEditor({
   timeZones: string[];
   /** The session's host, who can't also be a co-host. */
   hostId: string | null;
+  /** The event's last day ("YYYY-MM-DD"), where weekly repeats stop unless the host says sooner. */
+  lastDay?: string | null;
 }) {
   const busy = useNavigation().state !== "idle";
   const [title, setTitle] = useState(initial.title);
@@ -199,6 +203,7 @@ export function SessionEditor({
           </select>
           <FieldError id="timeZone-error" message={errors.timeZone} />
         </div>
+        {status === "new" && <RepeatFields initial={initial} errors={errors} lastDay={lastDay} />}
       </Fieldset>
 
       <Fieldset legend="Where">
@@ -351,4 +356,99 @@ function editorStart(value: string): RichDoc | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Whether a new session repeats: weekly or every two weeks until a date, or on dates the host
+ * lists. Each date becomes its own session with the same details, which the host can then edit
+ * or cancel one at a time.
+ */
+function RepeatFields({ initial, errors, lastDay }: { initial: SessionFormInput; errors: FieldErrors; lastDay: string | null }) {
+  const [repeat, setRepeat] = useState(initial.repeat);
+  const [rows, setRows] = useState(() => {
+    const saved = initial.extraDates.map((date, i) => ({ key: i, date, start: initial.extraStarts[i] ?? "" }));
+    return saved.length ? saved : [{ key: 0, date: "", start: "" }];
+  });
+  const nextKey = Math.max(...rows.map((row) => row.key)) + 1;
+  const setRow = (key: number, field: "date" | "start", value: string) =>
+    setRows(rows.map((row) => (row.key === key ? { ...row, [field]: value } : row)));
+
+  return (
+    <fieldset {...errorProps("repeat", errors)} className="grid gap-4">
+      <legend className="font-medium">Does this session repeat?</legend>
+      <p id="repeat-help" className="-mt-2 text-sm">
+        Each date becomes its own session on the calendar, with the same details and co-hosts. You can edit or cancel each one on its own later.
+      </p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {REPEATS.map((option) => (
+          <label key={option.value} className="flex items-center gap-3 rounded border border-[#DCE6E7] p-3 dark:border-[#24363B]">
+            <input
+              type="radio" name="repeat" value={option.value} checked={repeat === option.value}
+              onChange={() => setRepeat(option.value)} aria-describedby="repeat-help" className="size-4 shrink-0"
+            />
+            <span className="font-medium">{option.label}</span>
+          </label>
+        ))}
+      </div>
+      <FieldError id="repeat-error" message={errors.repeat} />
+
+      {(repeat === "weekly" || repeat === "biweekly") && (
+        <div>
+          <label htmlFor="repeatUntil" className="block font-medium">Repeat until</label>
+          <p id="repeatUntil-help" className="text-sm">
+            {repeat === "weekly" ? "Every week" : "Every two weeks"} on the same day and at the same time, up to and including this date.
+          </p>
+          <input
+            id="repeatUntil" name="repeatUntil" type="date" defaultValue={initial.repeatUntil || lastDay || ""} max={lastDay ?? undefined}
+            className={`mt-1 sm:max-w-60 ${input}`}
+            aria-describedby={errors.repeatUntil ? "repeatUntil-help repeatUntil-error" : "repeatUntil-help"}
+            aria-invalid={errors.repeatUntil ? true : undefined}
+          />
+          <FieldError id="repeatUntil-error" message={errors.repeatUntil} />
+        </div>
+      )}
+
+      {repeat === "custom" && (
+        <fieldset {...errorProps("extraDates", errors)}>
+          <legend className="font-medium">Other dates and times</legend>
+          <p className="text-sm">In the same time zone as above. Each one runs for the same length.</p>
+          <ul className="mt-2 grid gap-3">
+            {rows.map((row, index) => (
+              <li key={row.key} className="flex flex-wrap items-end gap-3">
+                <div>
+                  <label htmlFor={`extraDate-${row.key}`} className="block text-sm font-medium">Date {index + 2}</label>
+                  <input
+                    id={`extraDate-${row.key}`} name="extraDates" type="date" value={row.date} max={lastDay ?? undefined}
+                    onChange={(e) => setRow(row.key, "date", e.target.value)} className={`mt-1 ${input}`}
+                  />
+                </div>
+                <div>
+                  <label htmlFor={`extraStart-${row.key}`} className="block text-sm font-medium">Start time</label>
+                  <input
+                    id={`extraStart-${row.key}`} name="extraStarts" type="time" step={300} value={row.start}
+                    onChange={(e) => setRow(row.key, "start", e.target.value)} className={`mt-1 ${input}`}
+                  />
+                </div>
+                {rows.length > 1 && (
+                  <button
+                    type="button" onClick={() => setRows(rows.filter((r) => r.key !== row.key))}
+                    className="px-2 py-2 text-sm underline" aria-label={`Remove date ${index + 2}`}
+                  >
+                    Remove
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button" onClick={() => setRows([...rows, { key: nextKey, date: "", start: rows.at(-1)?.start ?? "" }])}
+            className="mt-3 rounded border border-[#15383F] px-4 py-2 text-sm font-semibold dark:border-[#8CC7D3]"
+          >
+            + Add another date
+          </button>
+          <FieldError id="extraDates-error" message={errors.extraDates} />
+        </fieldset>
+      )}
+    </fieldset>
+  );
 }

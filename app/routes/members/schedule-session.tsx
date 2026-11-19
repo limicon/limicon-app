@@ -8,6 +8,7 @@ import { fullTimeRange, zoneName } from "~/lib/format-time";
 import { RsvpButton } from "~/components/rsvp-button";
 import { cancelRsvp, getRsvpSummary, rsvp } from "~/lib/rsvps.server";
 import { getSessionDetails, scheduleVersion } from "~/lib/schedule.server";
+import { listOtherDates } from "~/lib/sessions.server";
 import { EXPERIENCE, RECORDING_AUDIENCES, SESSION_TYPES } from "~/lib/session-form";
 import { themeColor } from "~/lib/themes";
 import { getViewerZone } from "~/lib/viewer-zone.server";
@@ -23,14 +24,15 @@ export async function loader({ request, context, params }: Route.LoaderArgs) {
   if (!edition) throw data("Session not found", { status: 404 });
   const db = services.db();
   const userId = services.viewer!.userId;
-  const [session, version, viewerZone, rsvps] = await Promise.all([
+  const [session, version, viewerZone, rsvps, otherDates] = await Promise.all([
     getSessionDetails(db, params.sessionId, edition.id, userId),
     scheduleVersion(db, edition.id),
     getViewerZone(db, userId, request.headers.get("Cookie")),
     getRsvpSummary(db, params.sessionId, userId),
+    listOtherDates(db, params.sessionId, true),
   ]);
   if (!session) throw data("Session not found", { status: 404 });
-  return { session, version, viewerZone, rsvps, canEdit: session.viewerHosts || isAdmin, year: edition.year };
+  return { session, version, viewerZone, rsvps, otherDates, canEdit: session.viewerHosts || isAdmin, year: edition.year };
 }
 
 /** RSVPs or cancels, for the signed-in member (CAL-5). */
@@ -52,7 +54,7 @@ const label = <T extends { value: string; label: string }>(options: readonly T[]
   options.find((option) => option.value === value)?.label ?? value;
 
 export default function ScheduleSession({ loaderData }: Route.ComponentProps) {
-  const { session, version, viewerZone, rsvps, canEdit, year } = loaderData;
+  const { session, version, viewerZone, rsvps, otherDates, canEdit, year } = loaderData;
   const full = rsvps.capacity !== null && rsvps.registered >= rsvps.capacity;
   const finished = new Date(session.endsAt).getTime() <= Date.now();
   useScheduleRefresh(version);
@@ -145,6 +147,22 @@ export default function ScheduleSession({ loaderData }: Route.ComponentProps) {
         <section className="mt-6" aria-labelledby="intention">
           <h2 id="intention" className="text-xl font-semibold">Intention</h2>
           <p className="mt-2 whitespace-pre-line">{session.intention}</p>
+        </section>
+      )}
+
+      {otherDates.length > 0 && (
+        <section className="mt-6" aria-labelledby="also-on">
+          <h2 id="also-on" className="text-xl font-semibold">Also on</h2>
+          <p className="text-sm">This session repeats. Each date has its own RSVPs.</p>
+          <ul className="mt-2 grid gap-1">
+            {otherDates.map((date) => (
+              <li key={date.id}>
+                <Link to={`/members/schedule/${date.id}`} className="underline">
+                  {fullTimeRange(date.startsAt!, date.endsAt!, viewerZone.zone)}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
