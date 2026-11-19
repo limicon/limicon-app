@@ -2,7 +2,7 @@
 
 The Organizing Team's console at `/admin` (ADM-1). It covers the current edition: the one with the latest year. Its user and session pages follow the Festival platform's admin console (`reference-festival.md` → 5.8 and 9.7).
 
-Status: draft, 2026-11-19. Built: Overview, Edit, Users, Orders, Guests, Sessions, Tickets, FAQ, Policies and Team. Discount codes, forms, emails, editing the rest of the public website, and the sessions and form-response exports come with the features they manage.
+Status: draft, 2026-11-19. Built: Overview, Edit, Users, Orders, Guests, Sessions, Tickets, Website, FAQ, Policies and Team, and editing the website on the site itself. Discount codes, forms, emails, and the sessions and form-response exports come with the features they manage.
 
 ## Access
 
@@ -22,11 +22,19 @@ Status: draft, 2026-11-19. Built: Overview, Edit, Users, Orders, Guests, Session
 | Guests | How many people hold a ticket, then each one: name, email (a mail link), address from their registration and a link to their profile. First-name order, switchable to last name; search; download with a checkbox per column. |
 | Sessions | Every session, drafts included, filtered by status or co-creation. Admins edit any session in the hosts' editor inside the console, publish, take off the calendar or delete it (SES-4), see its hosts and RSVPs, and mark co-creation meetings (SES-9). |
 | Tickets | Comp tickets for an existing account, which admins issue and remove (REG-9), as an order of one. A preview of the registration form as registrants see it, with **Edit** to reword, reorder, remove and add fields: short answer, long answer, checkbox (optionally linking to a page), headline or paragraph text. Then every ticket holder. |
+| Website | The public website's pages (PUB-1, PUB-2): add a page, edit it on the website or here, put it in or out of the menu, order the menu, publish or unpublish, delete. **✎ Edit website**, at the foot of the menu, opens the home page in edit mode. |
 | FAQ | The public `/faq` page's questions and answers (PUB-1), added and updated as questions come in. |
 | Policies | The Privacy Policy and Code of Conduct, each with **Edit**, which opens it in the rich text editor; saved changes show on `/privacy` and `/conduct` straight away. Until a policy is first edited, its page shows the text in `app/content/policies.tsx`. |
 | Team | Who holds which permission, and who granted it. Adding an email with an account grants at once; otherwise it waits in `admin_invitations` until that address first signs in. No email is sent. |
 
 The calendar switch is stored, but the schedule and Host a session pages don't act on it yet. Members don't see the member links yet either. Checkout isn't built, so nothing creates paid or pending orders yet; until then the Orders page shows comps and any imported tickets.
+
+## The website builder
+
+- Every public page except the fixed ones (sign-in, account, tickets, FAQ, policies) is a `site_pages` row built from sections: text, image, image and text, columns, buttons, and the event (its image, name, teaser, dates and About from the Edit page). The front page is `home` at `/`; others are at `/<address>`. Each section has a plain, tinted or dark background.
+- Admins edit a page in two places with the same editor (`components/page-editor.tsx`): on the page itself, through the **Edit this page** button only admins see (`?edit=1`), and in the console at `/admin/website/<address>`. The editor lays sections out as the page will look, with **+ Add section** between them, ↑ ↓ and Remove on each, and page settings (title, address, menu name, in menu, published). Save or Cancel.
+- Unpublished pages are drafts only admins can open. Published pages in the menu appear in the console's order, before FAQ and Members, and in the footer's site map.
+- The editor posts the sections' order as JSON and each section's content as fields named `<field>:<id>`; `readPageForm` in `app/lib/site-pages.ts` rebuilds the sections, keeping only what each kind uses.
 
 ## Rich text and uploads
 
@@ -37,5 +45,5 @@ The calendar switch is stored, but the schedule and Host a session pages don't a
 ## Code
 
 - `app/routes/admin/`: the layout and one route per page, plus the CSV downloads (`*-csv.ts`) and `upload.ts`. `app/routes/media.ts` serves uploads.
-- `app/lib/admin.server.ts`, `admin-users.server.ts`, `orders.server.ts`, `event.server.ts`, `site-documents.server.ts`, `registration.server.ts` and `faq.server.ts`: the queries, tested against the local database.
+- `app/lib/admin.server.ts`, `admin-users.server.ts`, `orders.server.ts`, `event.server.ts`, `site-documents.server.ts`, `site-pages.server.ts`, `registration.server.ts` and `faq.server.ts`: the queries, tested against the local database. `page-route.server.ts` loads and saves a page for the public routes and the console.
 - `app/lib/admin-forms.ts`, `admin-tables.ts`, `admin-users.ts` and `registration-form.ts`: form checks, table columns, filters and sorting, shared by pages, downloads and queries.

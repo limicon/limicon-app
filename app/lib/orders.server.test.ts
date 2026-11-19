@@ -8,6 +8,7 @@ import type { Db } from "./db.server";
 import { getEventDetails, saveEventDetails } from "./event.server";
 import { countGuests, getOrderSummary, listGuests, listOrders } from "./orders.server";
 import { getSiteDocument, saveSiteDocument } from "./site-documents.server";
+import { getPage, listMenuPages, movePage, savePage } from "./site-pages.server";
 
 // Runs against the local Supabase database from `npm run db:start`.
 const sql = postgres(
@@ -138,5 +139,27 @@ test("an edited policy replaces the built-in text", async () => {
     const body = { type: "doc" as const, content: [{ type: "paragraph" as const, content: [{ type: "text" as const, text: "New policy" }] }] };
     await saveSiteDocument(tx, "privacy", body, by);
     expect(await getSiteDocument(tx, "privacy")).toMatchObject({ title: "Privacy Policy", body, updatedBy: "Ada Lovelace" });
+  });
+});
+
+test("pages save, refuse a taken address, and fill the menu in order when published", async () => {
+  await inRolledBackTransaction(async (tx) => {
+    const by = await person(tx, "Ada", "Lovelace");
+    await tx`delete from public.site_pages where slug <> 'home'`;
+    const meta = (slug: string, published = true) => ({ title: slug, slug, menuLabel: "", inMenu: true, published });
+    expect(await savePage(tx, null, meta("history"), [], by)).toBe("saved");
+    expect(await savePage(tx, null, meta("contact"), [], by)).toBe("saved");
+    expect(await savePage(tx, null, meta("drafty", false), [], by)).toBe("saved");
+    expect(await savePage(tx, null, meta("history"), [], by)).toBe("taken");
+
+    expect((await listMenuPages(tx)).map((p) => p.slug)).toEqual(["history", "contact"]);
+    await movePage(tx, "contact", -1);
+    expect((await listMenuPages(tx)).map((p) => p.slug)).toEqual(["contact", "history"]);
+
+    // Renaming keeps the page, under its new address.
+    expect(await savePage(tx, "history", { ...meta("our-history"), menuLabel: "History" }, [{ id: "e", type: "event", background: "plain" }], by)).toBe("saved");
+    expect(await getPage(tx, "history")).toBeNull();
+    expect(await getPage(tx, "our-history")).toMatchObject({ menuLabel: "History", sections: [{ type: "event" }], updatedBy: "Ada Lovelace" });
+    expect((await listMenuPages(tx)).map((p) => p.label)).toEqual(["contact", "History"]);
   });
 });

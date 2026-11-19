@@ -20,6 +20,7 @@ const sections = [
   { to: "/admin/guests", label: "Guests" },
   { to: "/admin/sessions", label: "Sessions" },
   { to: "/admin/tickets", label: "Tickets" },
+  { to: "/admin/website", label: "Website" },
   { to: "/admin/faq", label: "FAQ" },
   { to: "/admin/policies", label: "Policies" },
   { to: "/admin/team", label: "Team" },
@@ -53,6 +54,14 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
                   </NavLink>
                 </li>
               ))}
+              <li className="md:mt-4 md:border-t md:border-white/15 md:pt-4">
+                <a
+                  href="/?edit=1"
+                  className="block rounded bg-[#F3E6D7] px-2 py-1.5 font-semibold text-[#2A1E14] hover:bg-white md:px-3"
+                >
+                  ✎ Edit website
+                </a>
+              </li>
             </ul>
           </nav>
           <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/15 pt-4 text-sm md:mt-8 md:flex-col md:items-start">

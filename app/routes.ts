@@ -1,7 +1,8 @@
 import { type RouteConfig, index, layout, prefix, route } from "@react-router/dev/routes";
 
 export default [
-  // The public website: a typical site with one Members link in its menu.
+  // The public website: pages admins build, the account and registration pages, and one Members
+  // link in its menu.
   layout("routes/public/layout.tsx", [
     index("routes/public/home.tsx"),
     route("sign-in", "routes/public/sign-in.tsx"),
@@ -11,6 +12,8 @@ export default [
     route("faq", "routes/public/faq.tsx"),
     route("privacy", "routes/public/privacy.tsx"),
     route("conduct", "routes/public/conduct.tsx"),
+    // Pages admins add in the website builder. Every fixed address above wins over this one.
+    route(":slug", "routes/public/page.tsx"),
   ]),
 
   // The Members area: a site of its own, open only to ticket holders and admins.
@@ -44,6 +47,8 @@ export default [
       route("tickets/form", "routes/admin/registration-form.tsx"),
       route("faq", "routes/admin/faq.tsx"),
       route("policies", "routes/admin/policies.tsx"),
+      route("website", "routes/admin/website.tsx"),
+      route("website/:slug", "routes/admin/website-page.tsx"),
       route("policies/:slug", "routes/admin/policy-edit.tsx"),
       route("team", "routes/admin/team.tsx"),
     ]),

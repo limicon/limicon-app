@@ -3,16 +3,17 @@ import { Link, NavLink, Outlet } from "react-router";
 
 import { MembersMessage } from "~/components/members-message";
 import { servicesContext } from "~/context";
+import { listMenuPages } from "~/lib/site-pages.server";
 import type { Route } from "./+types/layout";
 
 export async function loader({ context }: Route.LoaderArgs) {
   const services = context.get(servicesContext);
-  const membership = await services.membership();
-  return { signedIn: services.viewer !== null, membership };
+  const [membership, menuPages] = await Promise.all([services.membership(), listMenuPages(services.db())]);
+  return { signedIn: services.viewer !== null, membership, menuPages };
 }
 
 export default function PublicLayout({ loaderData }: Route.ComponentProps) {
-  const { signedIn, membership } = loaderData;
+  const { signedIn, membership, menuPages } = loaderData;
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-gray-200 dark:border-gray-800">
@@ -23,6 +24,11 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
           <Link to="/" className="mr-auto text-xl font-semibold">
             Limicon
           </Link>
+          {menuPages.map((p) => (
+            <NavLink key={p.slug} to={`/${p.slug}`} className="font-medium">
+              {p.label}
+            </NavLink>
+          ))}
           <NavLink to="/faq" className="font-medium">
             FAQ
           </NavLink>
@@ -36,7 +42,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
       <div className="flex-1">
         <Outlet />
       </div>
-      <SiteFooter signedIn={signedIn} />
+      <SiteFooter signedIn={signedIn} menuPages={menuPages} />
     </div>
   );
 }
@@ -54,9 +60,10 @@ function AdminButton() {
 }
 
 /** The site map at the foot of every public page. It is the only place the policies are linked. */
-function SiteFooter({ signedIn }: { signedIn: boolean }) {
+function SiteFooter({ signedIn, menuPages }: { signedIn: boolean; menuPages: { slug: string; label: string }[] }) {
   const links = [
     { to: "/", label: "Home" },
+    ...menuPages.map((p) => ({ to: `/${p.slug}`, label: p.label })),
     { to: "/faq", label: "FAQ" },
     { to: "/members", label: "Members" },
     signedIn ? { to: "/account", label: "Your account" } : { to: "/sign-in", label: "Sign in" },

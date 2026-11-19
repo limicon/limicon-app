@@ -376,7 +376,7 @@ The model separates an account (a person, permanent) from a ticket (a person's p
 | conversations, conversation\_members, messages, reactions | Direct and group messaging | type, title, body, author, created\_at |
 | reports | Moderation | reporter, target message or profile, reason, status |
 | stitchfest\_submissions | Stitchfest portal | profile, edition, project fields, status, presentation slot |
-| site\_pages | Editable site content | slug, title, body, menu position, published |
+| site\_pages | The public website's pages, built from sections | slug, title, menu label, in menu, menu position, published, sections (text, image, image and text, columns, buttons, event) |
 | site\_documents | The policies, edited in the console | slug, title, body (rich text), updated\_by |
 | faq\_entries | The public FAQ, edited in the console | question, answer, published, sort order, updated\_by |
 | mailing\_list | Public sign-ups | email, source, subscribed\_at |

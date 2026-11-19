@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-19 | Lauren (with Opus 5.5) | Admins build the website's pages from sections
+
+Public pages, the home page included, are `site_pages` rows built from sections (text, images, columns, buttons, the event). Admins edit them on the page itself (`?edit=1`) or in the console's Website tab, add pages, and order the menu. `docs/feature-admin-console.md` covers it.
+
+---
+
 ## 2026-11-19 | Lauren (with Opus 5.5) | Admins edit the event, registration form and policies
 
 The console adds Orders, Guests and Policies, edits the event's name, dates, image and About, and edits the registration form's fields. Rich text is TipTap JSON, cleaned on save; uploads go to the R2 bucket `limicon-media`, which must exist before the next deploy (`config-cloudflare.md`).
