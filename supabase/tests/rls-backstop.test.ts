@@ -47,7 +47,7 @@ describe("row-level security backstop", () => {
       `;
       await tx`
         insert into public.admin_permissions (profile_id, permission)
-        values (${user!.id}, 'test')
+        values (${user!.id}, 'full')
       `;
       const [tier] = await tx<{ id: number }[]>`
         insert into public.ticket_tiers (edition_id, name, price_cents)
@@ -147,11 +147,10 @@ describe("new accounts", () => {
     });
   });
 
-  test("get the admin permissions they were invited to, whatever the email's case", async () => {
+  test("get the admin role they were invited to, whatever the email's case", async () => {
     await inRolledBackTransaction(async (tx) => {
       await tx`
-        insert into public.admin_invitations (email, permission)
-        values ('invited-admin@example.org', 'full'), ('invited-admin@example.org', 'finance')
+        insert into public.admin_invitations (email, permission) values ('invited-admin@example.org', 'full')
       `;
       const [user] = await tx<{ id: string }[]>`
         insert into auth.users (id, email, aud, role)
@@ -162,7 +161,7 @@ describe("new accounts", () => {
       const granted = await tx`
         select permission from public.admin_permissions where profile_id = ${user!.id} order by permission
       `;
-      expect(granted.map((row) => row.permission)).toEqual(["finance", "full"]);
+      expect(granted.map((row) => row.permission)).toEqual(["full"]);
       const left = await tx`select 1 from public.admin_invitations where email = 'invited-admin@example.org'`;
       expect(left, "invitations are used up").toHaveLength(0);
     });

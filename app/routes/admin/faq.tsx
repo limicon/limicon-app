@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { data, Form, redirect, useNavigation } from "react-router";
 
 import { Badge, card, dangerButton, FieldError, formatWhen, inputClass, Notice, PageHeading, primaryButton, secondaryButton } from "~/components/admin-ui";
@@ -5,7 +6,11 @@ import { FaqAnswer } from "~/components/faq-answer";
 import { servicesContext } from "~/context";
 import { checkFaqForm, FAQ_ANSWER_MAX, FAQ_QUESTION_MAX, type FaqInput } from "~/lib/admin-forms";
 import { addFaq, deleteFaq, listAllFaq, moveFaq, updateFaq } from "~/lib/faq.server";
+import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/faq";
+
+/** Needs the `website` privilege (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("website")];
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "FAQ · Admin · Limicon" }];
@@ -87,31 +92,31 @@ export default function AdminFaq({ loaderData, actionData }: Route.ComponentProp
             const failed = actionData?.entryId === entry.id;
             return (
               <li key={entry.id} id={`entry-${entry.id}`} className={card}>
-                <details open={failed}>
-                  <summary className="flex cursor-pointer flex-wrap items-center gap-2">
-                    <span className="font-semibold">{entry.question}</span>
-                    {!entry.published && <Badge tone="amber">Draft</Badge>}
-                  </summary>
-                  <div className="mt-3 text-sm">
-                    <FaqAnswer text={entry.answer} />
-                  </div>
-                  <p className="mt-3 text-xs opacity-80">
-                    Updated {formatWhen(entry.updatedAt)}{entry.updatedBy ? ` by ${entry.updatedBy}` : ""}
-                  </p>
-                  <div className="mt-4 border-t border-[#E2E8E9] pt-4 dark:border-[#24363B]">
-                    <FaqForm
-                      entryId={entry.id}
-                      initial={failed ? actionData.input : { question: entry.question, answer: entry.answer, published: entry.published }}
-                      errors={failed ? actionData.errors : {}}
-                      busy={busy}
-                    />
-                  </div>
-                </details>
+                <FaqEntry
+                  // A save changes updatedAt, which closes the form again.
+                  key={String(entry.updatedAt)}
+                  entry={entry}
+                  initial={failed ? actionData.input : { question: entry.question, answer: entry.answer, published: entry.published }}
+                  errors={failed ? actionData.errors : {}}
+                  startEditing={failed}
+                  busy={busy}
+                />
                 <Form method="post" className="mt-3 flex flex-wrap gap-2">
                   <input type="hidden" name="entryId" value={entry.id} />
                   <button type="submit" name="intent" value="up" disabled={busy || index === 0} aria-label={`Move "${entry.question}" up`} className={`${secondaryButton} disabled:opacity-40`}>↑ Up</button>
                   <button type="submit" name="intent" value="down" disabled={busy || index === entries.length - 1} aria-label={`Move "${entry.question}" down`} className={`${secondaryButton} disabled:opacity-40`}>↓ Down</button>
-                  <button type="submit" name="intent" value="delete" disabled={busy} className={dangerButton}>Delete</button>
+                  <button
+                    type="submit"
+                    name="intent"
+                    value="delete"
+                    disabled={busy}
+                    onClick={(event) => {
+                      if (!window.confirm(`Delete “${entry.question}”?`)) event.preventDefault();
+                    }}
+                    className={dangerButton}
+                  >
+                    Delete
+                  </button>
                 </Form>
               </li>
             );
@@ -122,16 +127,62 @@ export default function AdminFaq({ loaderData, actionData }: Route.ComponentProp
   );
 }
 
+/**
+ * One question as visitors see it, with an Edit button that opens its form in place. The form
+ * opens by itself when a save needs fixing.
+ */
+function FaqEntry({
+  entry,
+  initial,
+  errors,
+  startEditing,
+  busy,
+}: {
+  entry: { id: number; question: string; answer: string; published: boolean; updatedAt: Date; updatedBy: string | null };
+  initial: FaqInput;
+  errors: Partial<Record<keyof FaqInput, string>>;
+  startEditing: boolean;
+  busy: boolean;
+}) {
+  const [editing, setEditing] = useState(startEditing);
+  if (editing) {
+    return (
+      <div>
+        <p className="mb-3 font-semibold">Editing this question</p>
+        <FaqForm entryId={entry.id} initial={initial} errors={errors} busy={busy} onCancel={() => setEditing(false)} />
+      </div>
+    );
+  }
+  return (
+    <div>
+      <div className="flex flex-wrap items-start gap-3">
+        <h3 className="min-w-0 flex-1 font-semibold">
+          {entry.question} {!entry.published && <Badge tone="amber">Draft</Badge>}
+        </h3>
+        <button type="button" onClick={() => setEditing(true)} className={primaryButton}>Edit</button>
+      </div>
+      <div className="mt-2 text-sm">
+        <FaqAnswer text={entry.answer} />
+      </div>
+      <p className="mt-3 text-xs opacity-80">
+        Updated {formatWhen(entry.updatedAt)}{entry.updatedBy ? ` by ${entry.updatedBy}` : ""}
+      </p>
+    </div>
+  );
+}
+
 function FaqForm({
   entryId,
   initial,
   errors,
   busy,
+  onCancel,
 }: {
   entryId: number | null;
   initial: FaqInput;
   errors: Partial<Record<keyof FaqInput, string>>;
   busy: boolean;
+  onCancel?: () => void;
 }) {
   const key = entryId ?? "new";
   const err = (name: keyof FaqInput) => (errors[name] ? { "aria-invalid": true, "aria-describedby": `${name}-${key}-error` } : {});
@@ -156,6 +207,9 @@ function FaqForm({
         <button type="submit" name="intent" value={entryId === null ? "add" : "save"} disabled={busy} className={entryId === null ? primaryButton : secondaryButton}>
           {entryId === null ? "Add question" : "Save"}
         </button>
+        {onCancel && (
+          <button type="button" onClick={onCancel} className={`${secondaryButton} ml-2`}>Cancel</button>
+        )}
       </div>
     </Form>
   );

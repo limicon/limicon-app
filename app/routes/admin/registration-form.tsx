@@ -16,7 +16,11 @@ import {
   type FieldKind,
 } from "~/lib/registration-form";
 import { getRegistrationFields, saveRegistrationFields } from "~/lib/registration.server";
+import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/registration-form";
+
+/** Needs the `settings` privilege (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("settings")];
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Edit registration form · Admin · Limicon" }];
@@ -53,7 +57,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const result = checkFieldsForm(await request.formData(), (label, taken) => keyFromLabel(label, taken));
   if (!result.ok) return data({ input: result.input, errors: result.errors, message: result.message }, { status: 400 });
   await saveRegistrationFields(services.db(), edition.id, result.fields);
-  throw redirect("/admin/tickets?done=form");
+  throw redirect("/admin/settings?saved=form#tickets");
 }
 
 type Row = FieldInput & { id: number };
@@ -90,7 +94,7 @@ export default function AdminRegistrationForm({ loaderData, actionData }: Route.
   return (
     <>
       <p>
-        <Link to="/admin/tickets" className="underline">Back to Tickets</Link>
+        <Link to="/admin/settings#tickets" className="underline">Back to Settings</Link>
       </p>
       <div className="mt-4">
         <PageHeading title="Edit the registration form">
@@ -149,7 +153,7 @@ export default function AdminRegistrationForm({ loaderData, actionData }: Route.
 
         <div className="mt-2 flex flex-wrap gap-3 border-t border-[#E2E8E9] pt-4 dark:border-[#24363B]">
           <button type="submit" disabled={busy} className={primaryButton}>Save form</button>
-          <Link to="/admin/tickets" className={secondaryButton}>Cancel</Link>
+          <Link to="/admin/settings#tickets" className={secondaryButton}>Cancel</Link>
         </div>
       </Form>
     </>

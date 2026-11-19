@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { card, formatWhen, PageHeading } from "~/components/admin-ui";
 import { servicesContext } from "~/context";
 import { formatDollars } from "~/lib/admin-forms";
-import { getOverview, type Overview, type OverviewTotals, type RecentBuyer } from "~/lib/admin.server";
+import { getOverview, type IncompleteOrder, type Overview, type OverviewTotals, type RecentBuyer } from "~/lib/admin.server";
 import type { Route } from "./+types/overview";
 
 export function meta({}: Route.MetaArgs) {
@@ -13,13 +13,22 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ context }: Route.LoaderArgs) {
   const services = context.get(servicesContext);
   const { edition } = await services.membership();
-  if (!edition) return { year: null, overview: null };
-  return { year: edition.year, overview: await getOverview(services.db(), edition.id) };
+  if (!edition) return { year: null, overview: null, canSeeOrders: false };
+  const [overview, privileges] = await Promise.all([getOverview(services.db(), edition.id), services.privileges()]);
+  // Money and buyers' names need the `orders` privilege; every admin sees the counts.
+  const canSeeOrders = privileges.has("orders");
+  if (!canSeeOrders) {
+    overview.recentBuyers = [];
+    overview.incomplete = [];
+    overview.totals.revenueCents = 0;
+    overview.thisWeek.revenueCents = 0;
+  }
+  return { year: edition.year, overview, canSeeOrders };
 }
 
 /** The console's front page: how registration and hosting are going for the current edition. */
 export default function AdminOverview({ loaderData }: Route.ComponentProps) {
-  const { overview, year } = loaderData;
+  const { overview, year, canSeeOrders } = loaderData;
   if (!overview) {
     return (
       <PageHeading title="Overview">
@@ -27,7 +36,7 @@ export default function AdminOverview({ loaderData }: Route.ComponentProps) {
       </PageHeading>
     );
   }
-  const { totals, thisWeek, recentBuyers } = overview;
+  const { totals, thisWeek, recentBuyers, incomplete } = overview;
   return (
     <>
       <PageHeading title="Overview">
@@ -36,8 +45,10 @@ export default function AdminOverview({ loaderData }: Route.ComponentProps) {
 
       <section aria-labelledby="totals-heading">
         <h2 id="totals-heading" className="text-xl font-semibold">Totals</h2>
-        <TotalsRow totals={totals} pendingInvitations={overview.pendingInvitations} />
+        <TotalsRow totals={totals} pendingInvitations={overview.pendingInvitations} showMoney={canSeeOrders} />
       </section>
+
+      {canSeeOrders && <IncompletePurchases orders={incomplete} />}
 
       <section aria-labelledby="week-heading" className="mt-6 max-w-5xl">
         <details className="group">
@@ -49,9 +60,9 @@ export default function AdminOverview({ loaderData }: Route.ComponentProps) {
               The last 7 days · {recentBuyers.length} {recentBuyers.length === 1 ? "purchase" : "purchases"} · open to see who
             </span>
           </summary>
-          <BuyerList buyers={recentBuyers} />
+          {canSeeOrders ? <BuyerList buyers={recentBuyers} /> : <p className="mt-3 text-sm">Your admin role doesn't include buyers' names.</p>}
         </details>
-        <TotalsRow totals={thisWeek} />
+        <TotalsRow totals={thisWeek} showMoney={canSeeOrders} />
       </section>
 
       <div className="mt-6 grid max-w-5xl gap-4">
@@ -60,8 +71,7 @@ export default function AdminOverview({ loaderData }: Route.ComponentProps) {
 
       <section aria-labelledby="sessions-heading" className="mt-10">
         <h2 id="sessions-heading" className="text-xl font-semibold">Sessions</h2>
-        <dl className="mt-3 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat label="Added to the calendar, all years" value={overview.sessions.allTime} detail="Past and present" />
+        <dl className="mt-3 grid max-w-5xl gap-3 sm:grid-cols-3">
           <Stat label={`On the ${year} calendar`} value={overview.sessions.published} to="/admin/sessions?show=published" />
           <Stat label="Drafts" value={overview.sessions.drafts} to="/admin/sessions?show=drafts" />
           <Stat label="Hosts" value={overview.sessions.hosts} />
@@ -71,11 +81,15 @@ export default function AdminOverview({ loaderData }: Route.ComponentProps) {
   );
 }
 
-function TotalsRow({ totals, pendingInvitations }: { totals: OverviewTotals; pendingInvitations?: number }) {
+function TotalsRow({ totals, pendingInvitations, showMoney }: { totals: OverviewTotals; pendingInvitations?: number; showMoney: boolean }) {
   return (
     <dl className="mt-3 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <Stat label="Ticket holders" value={totals.ticketHolders} detail={`${totals.paid} paid · ${totals.comp} comp`} to="/admin/guests" />
-      <Stat label="Ticket revenue" value={formatDollars(totals.revenueCents)} detail="Before Stripe fees" to="/admin/orders" />
+      {showMoney ? (
+        <Stat label="Ticket revenue" value={formatDollars(totals.revenueCents)} detail="Before Stripe fees" to="/admin/orders" />
+      ) : (
+        <Stat label="Ticket revenue" value="—" detail="Not in your admin role" />
+      )}
       <Stat label="Accounts" value={totals.accounts} to="/admin/users" />
       <Stat
         label="Admins"
@@ -84,6 +98,55 @@ function TotalsRow({ totals, pendingInvitations }: { totals: OverviewTotals; pen
         to="/admin/team"
       />
     </dl>
+  );
+}
+
+/** Checkouts people started and didn't finish, newest first, so an admin can follow up. */
+function IncompletePurchases({ orders }: { orders: IncompleteOrder[] }) {
+  return (
+    <section aria-labelledby="incomplete-heading" className={`mt-6 max-w-5xl rounded-lg border p-4 ${orders.length ? "border-[#E8B4B0] bg-[#FCEDEC] dark:bg-[#2A1513]" : "border-[#C9DADC] bg-white dark:border-[#24363B] dark:bg-[#12201F]"}`}>
+      <div className="flex flex-wrap items-baseline gap-x-3">
+        <h2 id="incomplete-heading" className="text-xl font-semibold">
+          {orders.length ? `⚠ ${orders.length} incomplete ${orders.length === 1 ? "purchase" : "purchases"}` : "Incomplete purchases"}
+        </h2>
+        {orders.length > 0 && (
+          <Link to="/admin/orders?status=pending" className="text-sm underline">See them in Orders</Link>
+        )}
+      </div>
+      {orders.length === 0 ? (
+        <p className="mt-2 text-sm">None. Everyone who started buying a ticket finished.</p>
+      ) : (
+        <>
+          <p className="mt-1 text-sm">These people started buying a ticket and didn't finish paying. Email them to follow up.</p>
+          <div className="mt-3 overflow-x-auto rounded border border-[#E8B4B0] bg-white dark:bg-[#12201F]">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-[#FCEDEC] dark:bg-[#2A1513]">
+                <tr>
+                  <th scope="col" className="px-3 py-2 font-semibold">Name</th>
+                  <th scope="col" className="px-3 py-2 font-semibold">Email</th>
+                  <th scope="col" className="px-3 py-2 font-semibold">Ticket</th>
+                  <th scope="col" className="px-3 py-2 text-right font-semibold">Price</th>
+                  <th scope="col" className="px-3 py-2 font-semibold">Started</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((o) => (
+                  <tr key={o.orderId} className="border-t border-[#F3D3D0] dark:border-[#3A2220]">
+                    <td className="px-3 py-2">
+                      <Link to={`/admin/users/${o.profileId}`} className="font-semibold underline">{o.name ?? o.email ?? "Unknown"}</Link>
+                    </td>
+                    <td className="px-3 py-2 break-all">{o.email && <a href={`mailto:${o.email}`} className="underline">{o.email}</a>}</td>
+                    <td className="px-3 py-2">{o.tier ?? "No tier"}{o.quantity > 1 ? ` × ${o.quantity}` : ""}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatDollars(o.amountCents)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{formatWhen(o.startedAt, { dateStyle: "medium", timeStyle: "short" })} UTC</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 

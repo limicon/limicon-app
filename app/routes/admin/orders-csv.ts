@@ -4,10 +4,10 @@ import { servicesContext } from "~/context";
 import { toCsv } from "~/lib/admin-forms";
 import { ORDER_COLUMNS, pickColumns, readOrderFilters, type OrderColumn } from "~/lib/admin-tables";
 import { listOrders, type OrderRow } from "~/lib/orders.server";
-import { requireAdmin } from "~/middleware/services.server";
+import { requireAdmin, requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/orders-csv";
 
-export const middleware: Route.MiddlewareFunction[] = [requireAdmin];
+export const middleware: Route.MiddlewareFunction[] = [requireAdmin, requirePrivilege("orders")];
 
 const STATUS: Record<OrderRow["status"], string> = { paid: "Paid", pending: "Incomplete", comp: "Comped", refunded: "Refunded" };
 

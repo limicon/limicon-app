@@ -86,7 +86,7 @@ function SiteButtonLink({ label, href, style }: { label: string; href: string; s
   );
 }
 
-/** The event as admins describe it on the console's Edit page. */
+/** The event as admins describe it on the console's Settings page. */
 function EventSection({ event, signedIn }: { event: EventDetails | null; signedIn: boolean }) {
   return (
     <div className="mx-auto max-w-3xl">

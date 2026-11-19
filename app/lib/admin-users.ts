@@ -13,7 +13,7 @@ export const TICKET_FILTERS = [
 
 export const ROLE_FILTERS = [
   { value: "any", label: "Any role" },
-  { value: "admin", label: "Admins" },
+  { value: "admin", label: "Admins (any role)" },
   { value: "host", label: "Hosts" },
   { value: "member", label: "No role" },
 ] as const;
@@ -35,7 +35,8 @@ type Value<T extends readonly { value: string }[]> = T[number]["value"];
 export type UserFilters = {
   q: string;
   ticket: Value<typeof TICKET_FILTERS>;
-  role: Value<typeof ROLE_FILTERS>;
+  /** One of ROLE_FILTERS, or `r:<role key>` for the people holding one role. */
+  role: Value<typeof ROLE_FILTERS> | `r:${string}`;
   account: Value<typeof ACCOUNT_FILTERS>;
   sort: Value<typeof USER_SORTS>;
   page: number;
@@ -51,7 +52,7 @@ export function readUserFilters(query: URLSearchParams): UserFilters {
   return {
     q: (query.get("q") ?? "").trim().slice(0, 100),
     ticket: pick(TICKET_FILTERS, query.get("ticket")),
-    role: pick(ROLE_FILTERS, query.get("role")),
+    role: /^r:[a-z][a-z0-9_]{0,39}$/.test(query.get("role") ?? "") ? (query.get("role") as `r:${string}`) : pick(ROLE_FILTERS, query.get("role")),
     account: pick(ACCOUNT_FILTERS, query.get("account")),
     sort: pick(USER_SORTS, query.get("sort")),
     page: Number.isInteger(page) && page > 0 ? page : 1,

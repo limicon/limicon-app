@@ -2,6 +2,8 @@ import { env, waitUntil } from "cloudflare:workers";
 import { redirect, type MiddlewareFunction } from "react-router";
 
 import { servicesContext, type Viewer } from "~/context";
+import type { Privilege } from "~/lib/admin-roles";
+import { getPrivileges } from "~/lib/admin-roles.server";
 import { createDb, type Db } from "~/lib/db.server";
 import type { Membership } from "~/lib/membership";
 import { getMembership } from "~/lib/membership.server";
@@ -33,12 +35,19 @@ export const servicesMiddleware: MiddlewareFunction<Response> = async (
   let sql: Db | undefined;
   const db = () => (sql ??= createDb(env.HYPERDRIVE.connectionString));
   let membership: Promise<Membership> | undefined;
+  const getMembershipOnce = () => (membership ??= getMembership(db(), viewer?.userId ?? null));
+  let privileges: Promise<Set<Privilege>> | undefined;
 
   context.set(servicesContext, {
     supabase,
     viewer,
     db,
-    membership: () => (membership ??= getMembership(db(), viewer?.userId ?? null)),
+    membership: getMembershipOnce,
+    // A deactivated admin keeps their role but may do nothing until reactivated.
+    privileges: () =>
+      (privileges ??= getMembershipOnce().then((m) =>
+        m.isAdmin && viewer ? getPrivileges(db(), viewer.userId) : new Set<Privilege>(),
+      )),
     settings: { googleSignInEnabled: env.GOOGLE_SIGN_IN_ENABLED === "true" },
     media: env.MEDIA,
   });
@@ -74,6 +83,20 @@ export const requireAdmin: MiddlewareFunction<Response> = async ({ context }) =>
   const { isAdmin } = await services.membership();
   if (!isAdmin) throw new Response("Not found", { status: 404 });
 };
+
+/**
+ * Route middleware for a console page that needs a privilege. Runs after `requireAdmin`, so the
+ * viewer is an admin; one whose role lacks the privilege is told so.
+ */
+export function requirePrivilege(privilege: Privilege): MiddlewareFunction<Response> {
+  return async ({ context }) => {
+    const services = context.get(servicesContext);
+    if (!services.viewer) throw redirect("/sign-in");
+    if (!(await services.privileges()).has(privilege)) {
+      throw new Response("Your admin role doesn't include this page. Ask an admin who manages roles.", { status: 403 });
+    }
+  };
+}
 
 /** Route middleware for the Members area: anyone without access sees why instead. */
 export const requireMembership: MiddlewareFunction<Response> = async ({ context }) => {

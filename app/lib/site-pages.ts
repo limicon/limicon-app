@@ -15,7 +15,7 @@ export const SECTION_KINDS = [
   { type: "imageText", label: "Image and text", help: "A picture beside text." },
   { type: "columns", label: "Columns", help: "Two or three blocks of text side by side." },
   { type: "buttons", label: "Buttons", help: "One or more buttons linking to pages, such as Register." },
-  { type: "event", label: "Event", help: "The event's image, name, teaser, dates and About, from the Edit page." },
+  { type: "event", label: "Event", help: "The event's image, name, teaser, dates and About, from the Settings page." },
 ] as const;
 export type SectionType = (typeof SECTION_KINDS)[number]["type"];
 

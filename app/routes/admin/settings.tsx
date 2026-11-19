@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { data, Form, redirect, useNavigation } from "react-router";
+import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import { card, dangerButton, FieldError, inputClass, Notice, PageHeading, primaryButton, secondaryButton } from "~/components/admin-ui";
 import { ImageUploadField } from "~/components/image-upload-field";
+import { RegistrationFields } from "~/components/registration-fields";
 import { RichTextEditor } from "~/components/rich-text-editor";
 import { servicesContext } from "~/context";
 import {
+  checkEmailField,
   checkEventForm,
   checkLinksForm,
   checkTierForm,
@@ -25,6 +27,7 @@ import {
   addTier,
   deleteTier,
   getEditionSettings,
+  issueCompTicket,
   listMemberLinks,
   listTiers,
   saveMemberLinks,
@@ -33,12 +36,18 @@ import {
 } from "~/lib/admin.server";
 import { getEventDetails, saveEventDetails } from "~/lib/event.server";
 import { MEDIA_KEY } from "~/lib/media";
+import { blankRegistration } from "~/lib/registration-form";
+import { getRegistrationFields } from "~/lib/registration.server";
 import { readRichText, type RichDoc } from "~/lib/rich-text";
 import { instantToZoned, isValidTimeZone, timeZoneNames, zonedToInstant } from "~/lib/zoned-time";
+import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/settings";
 
+/** Needs the `settings` privilege (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("settings")];
+
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Edit · Admin · Limicon" }];
+  return [{ title: "Settings · Admin · Limicon" }];
 }
 
 async function currentEdition(context: Route.LoaderArgs["context"]) {
@@ -51,11 +60,12 @@ async function currentEdition(context: Route.LoaderArgs["context"]) {
 export async function loader({ context, request }: Route.LoaderArgs) {
   const { services, edition } = await currentEdition(context);
   const db = services.db();
-  const [event, settings, links, tiers] = await Promise.all([
+  const [event, settings, links, tiers, fields] = await Promise.all([
     getEventDetails(db, edition.id),
     getEditionSettings(db, edition.id),
     listMemberLinks(db, edition.id),
     listTiers(db, edition.id),
+    getRegistrationFields(db, edition.id),
   ]);
   const zoned = (at: Date | null, zone: string | null) => (at && zone ? instantToZoned(at, zone) : { date: "", time: "" });
   const start = zoned(event.startsAt, event.startTimeZone);
@@ -80,6 +90,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     settings,
     links,
     tiers,
+    fields,
     saved: new URL(request.url).searchParams.get("saved"),
   };
 }
@@ -88,7 +99,14 @@ type ActionData =
   | { form: "event"; input: EventInput; about: RichDoc | null; errors: Partial<Record<keyof EventInput, string>> }
   | { form: "links"; input: MemberLink[]; errors: LinkErrors; message?: string }
   | { form: "tier"; tierId: number | null; input: TierInput; errors: Partial<Record<keyof TierInput, string>> }
+  | { form: "comp"; input: string; error: string }
   | { form: "problem"; message: string };
+
+const compProblems = {
+  "no-account": "No account uses that email yet. Ask them to sign in once on the website, then try again.",
+  "has-ticket": "They already have a ticket for this edition.",
+  "bad-tier": "Choose one of this edition's tiers.",
+} as const;
 
 export async function action({ request, context }: Route.ActionArgs) {
   const { services, edition } = await currentEdition(context);
@@ -111,6 +129,15 @@ export async function action({ request, context }: Route.ActionArgs) {
     // The old image is no longer shown anywhere once the new one is saved.
     if (replaced) await services.media.delete(replaced);
     throw redirect("/admin/settings?saved=event");
+  }
+
+  if (intent === "comp") {
+    const email = checkEmailField(form);
+    if (!email.ok) return data<ActionData>({ form: "comp", input: email.input, error: email.error }, { status: 400 });
+    const tierValue = Number(form.get("tierId"));
+    const outcome = await issueCompTicket(db, { editionId: edition.id, email: email.email, tierId: Number.isInteger(tierValue) && tierValue > 0 ? tierValue : null });
+    if (outcome !== "issued") return data<ActionData>({ form: "comp", input: email.email, error: compProblems[outcome] }, { status: 409 });
+    throw redirect("/admin/settings?saved=comp#tickets");
   }
 
   if (intent === "settings") {
@@ -153,6 +180,8 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 const savedMessages: Record<string, string> = {
   event: "Event saved. The home page shows the changes now.",
+  comp: "Comp ticket issued. They can open the Members area now.",
+  form: "Registration form saved. Registrants see the new form now.",
   settings: "Switches saved.",
   links: "Links saved.",
   "tier-added": "Tier added.",
@@ -160,14 +189,14 @@ const savedMessages: Record<string, string> = {
   "tier-deleted": "Tier removed.",
 };
 
-export default function AdminEdit({ loaderData, actionData }: Route.ComponentProps) {
-  const { settings, links, tiers, year, saved } = loaderData;
+export default function AdminSettings({ loaderData, actionData }: Route.ComponentProps) {
+  const { settings, links, tiers, fields, year, saved } = loaderData;
   const busy = useNavigation().state !== "idle";
 
   return (
     <>
-      <PageHeading title="Edit">
-        <p>Limicon {year}: the event's details as the public sees them, the registration and calendar switches, member links and ticket tiers.</p>
+      <PageHeading title="Settings">
+        <p>Limicon {year}: the event as the public sees it, tickets and the registration form, ticket tiers, the registration and calendar switches, and member links.</p>
       </PageHeading>
       {saved && savedMessages[saved] && !actionData && <Notice>{savedMessages[saved]}</Notice>}
       {actionData?.form === "problem" && <Notice tone="problem">{actionData.message}</Notice>}
@@ -180,33 +209,53 @@ export default function AdminEdit({ loaderData, actionData }: Route.ComponentPro
         busy={busy}
       />
 
-      <Form method="post" className={`${card} mt-10 grid max-w-3xl gap-4`} key={JSON.stringify(settings)}>
-        <input type="hidden" name="intent" value="settings" />
-        <h2 className="text-lg font-semibold">Switches</h2>
-        <Switch
-          name="registrationOpen"
-          label="Registration is open"
-          help="When it's closed, the tickets page says so instead of registering people (REG-10)."
-          defaultChecked={settings.registrationOpen}
-        />
-        <Switch
-          name="calendarOpen"
-          label="The calendar is on"
-          help="Recorded now. The schedule and Host a session pages don't act on it yet (CAL-9)."
-          defaultChecked={settings.calendarOpen}
-        />
-        <div>
-          <button type="submit" disabled={busy} className={primaryButton}>Save switches</button>
-        </div>
-      </Form>
+      <section id="tickets" aria-labelledby="tickets-heading" className="mt-10 max-w-3xl scroll-mt-4">
+        <h2 id="tickets-heading" className="text-xl font-semibold">Tickets</h2>
 
-      <LinksForm
-        key={JSON.stringify(links)}
-        initial={actionData?.form === "links" ? actionData.input : links}
-        errors={actionData?.form === "links" ? actionData.errors : {}}
-        message={actionData?.form === "links" ? actionData.message : undefined}
-        busy={busy}
-      />
+        <Form method="post" className={`${card} mt-4 grid gap-3`} key={actionData?.form === "comp" ? actionData.input : "comp"}>
+          <h3 className="text-lg font-semibold">Issue a comp ticket</h3>
+          <div className="grid items-end gap-3 sm:grid-cols-[1fr_12rem_auto]">
+            <div>
+              <label htmlFor="comp-email" className="block text-sm font-medium">Their email</label>
+              <input
+                id="comp-email"
+                name="email"
+                type="email"
+                autoComplete="off"
+                defaultValue={actionData?.form === "comp" ? actionData.input : ""}
+                className={`${inputClass} mt-1`}
+                {...(actionData?.form === "comp" ? { "aria-invalid": true, "aria-describedby": "comp-email-error" } : {})}
+              />
+            </div>
+            <div>
+              <label htmlFor="comp-tier" className="block text-sm font-medium">Tier</label>
+              <select id="comp-tier" name="tierId" defaultValue="" className={`${inputClass} mt-1`}>
+                <option value="">No tier</option>
+                {tiers.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+            <button type="submit" name="intent" value="comp" disabled={busy} className={primaryButton}>Issue ticket</button>
+          </div>
+          <FieldError id="comp-email-error" message={actionData?.form === "comp" ? actionData.error : undefined} />
+          <p className="text-sm opacity-80">
+            The person needs an account first: anyone can make one by signing in once. Remove a comp from the person's page under Users.
+          </p>
+        </Form>
+
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold">What registrants see</h3>
+            <p className="text-sm opacity-80">The registration form on the tickets page, before choosing a ticket. This preview can't be filled in.</p>
+          </div>
+          <Link to="/admin/settings/form" className={primaryButton}>Edit</Link>
+        </div>
+        <div className="mt-4 grid gap-6 rounded-lg border-2 border-dashed border-[#C9DADC] bg-[#F4F7F7] p-4 dark:border-[#24363B] dark:bg-[#0B1417]" aria-label="Preview of the registration form">
+          <p className="text-2xl font-semibold">Register for Limicon {year}</p>
+          <RegistrationFields fields={fields} input={blankRegistration(fields)} email={null} preview />
+        </div>
+      </section>
 
       <section aria-labelledby="tiers-heading" className="mt-10 max-w-3xl">
         <h2 id="tiers-heading" className="text-xl font-semibold">Ticket tiers</h2>
@@ -248,6 +297,34 @@ export default function AdminEdit({ loaderData, actionData }: Route.ComponentPro
           </li>
         </ul>
       </section>
+
+      <Form method="post" className={`${card} mt-10 grid max-w-3xl gap-4`} key={JSON.stringify(settings)}>
+        <input type="hidden" name="intent" value="settings" />
+        <h2 className="text-lg font-semibold">Switches</h2>
+        <Switch
+          name="registrationOpen"
+          label="Registration is open"
+          help="When it's closed, the tickets page says so instead of registering people (REG-10)."
+          defaultChecked={settings.registrationOpen}
+        />
+        <Switch
+          name="calendarOpen"
+          label="The calendar is on"
+          help="Recorded now. The schedule and Host a session pages don't act on it yet (CAL-9)."
+          defaultChecked={settings.calendarOpen}
+        />
+        <div>
+          <button type="submit" disabled={busy} className={primaryButton}>Save switches</button>
+        </div>
+      </Form>
+
+      <LinksForm
+        key={JSON.stringify(links)}
+        initial={actionData?.form === "links" ? actionData.input : links}
+        errors={actionData?.form === "links" ? actionData.errors : {}}
+        message={actionData?.form === "links" ? actionData.message : undefined}
+        busy={busy}
+      />
     </>
   );
 }

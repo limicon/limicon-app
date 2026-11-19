@@ -3,7 +3,11 @@ import { Link } from "react-router";
 import { card, formatWhen, Notice, PageHeading, primaryButton } from "~/components/admin-ui";
 import { servicesContext } from "~/context";
 import { listSiteDocuments } from "~/lib/site-documents.server";
+import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/policies";
+
+/** Needs the `website` privilege (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("website")];
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Policies · Admin · Limicon" }];

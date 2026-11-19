@@ -7,7 +7,11 @@ import { CodeOfConduct, PrivacyPolicy } from "~/content/policies";
 import { servicesContext } from "~/context";
 import { readRichText, type RichDoc } from "~/lib/rich-text";
 import { getSiteDocument, isPolicySlug, saveSiteDocument } from "~/lib/site-documents.server";
+import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/policy-edit";
+
+/** Needs the `website` privilege (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("website")];
 
 export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: `${loaderData?.title ?? "Policy"} · Admin · Limicon` }];

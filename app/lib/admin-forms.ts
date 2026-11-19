@@ -6,18 +6,6 @@ import { normalizeEmail } from "~/lib/validation";
 
 type FormLike = { get(name: string): unknown };
 
-/**
- * Admin permissions (AUTH-5). Only `full` exists until the Organizing Team decides which narrower
- * ones it wants (PRD open question 2); any permission opens the console, and managing the team
- * needs `full`.
- */
-export const ADMIN_PERMISSIONS = [{ value: "full", label: "Full access" }] as const;
-export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number]["value"];
-
-export function isAdminPermission(value: unknown): value is AdminPermission {
-  return ADMIN_PERMISSIONS.some((permission) => permission.value === value);
-}
-
 function text(form: FormLike, name: string) {
   const value = form.get(name);
   return typeof value === "string" ? value.trim() : "";

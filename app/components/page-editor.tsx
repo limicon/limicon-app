@@ -242,7 +242,7 @@ function EditableSection({ section, event }: { section: Section; event: EventDet
           </div>
           <p className="mx-auto mt-4 max-w-3xl rounded bg-[#FFF8E1] p-3 text-sm text-[#3A3214]">
             The event's image, name, teaser, dates and About come from the{" "}
-            <Link to="/admin/settings" className="underline">Edit page</Link> in the admin console.
+            <Link to="/admin/settings" className="underline">Settings page</Link> in the admin console.
           </p>
         </SectionShell>
       );

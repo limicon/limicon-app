@@ -1,13 +1,19 @@
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import { Badge, card, dangerButton, FieldError, formatWhen, inputClass, Notice, PageHeading, primaryButton, secondaryButton } from "~/components/admin-ui";
+import { RoleSelect } from "~/components/role-select";
 import { servicesContext } from "~/context";
-import { ADMIN_PERMISSIONS, formatDollars, isAdminPermission, NOTE_MAX } from "~/lib/admin-forms";
-import { getAdminPermissions, isUuid, revokeAdminPermission } from "~/lib/admin.server";
-import { addUserNote, deleteUserNote, getUser, grantAdminPermission, setDeactivated, updateUserName } from "~/lib/admin-users.server";
+import { formatDollars, NOTE_MAX } from "~/lib/admin-forms";
+import { isUuid, removeCompTicket } from "~/lib/admin.server";
+import { listRoles, setUserRole } from "~/lib/admin-roles.server";
+import { addUserNote, deleteUserNote, getUser, setDeactivated, updateUserName } from "~/lib/admin-users.server";
 import { NAME_MAX } from "~/lib/registration-form";
 import { getRegistrationFields } from "~/lib/registration.server";
+import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/user";
+
+/** Needs the `people` privilege (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("people")];
 
 export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: `${loaderData?.displayName ?? "User"} · Admin · Limicon` }];
@@ -18,20 +24,31 @@ async function load(context: Route.LoaderArgs["context"], userId: string) {
   const { edition } = await services.membership();
   if (!edition || !isUuid(userId)) throw data("User not found", { status: 404 });
   const db = services.db();
-  const [user, mine] = await Promise.all([getUser(db, userId, edition.id), getAdminPermissions(db, services.viewer!.userId)]);
+  const [user, privileges, roles] = await Promise.all([getUser(db, userId, edition.id), services.privileges(), listRoles(db)]);
   if (!user) throw data("User not found", { status: 404 });
-  return { services, db, edition, user, canManageRoles: mine.includes("full"), viewerId: services.viewer!.userId };
+  return {
+    services,
+    db,
+    edition,
+    user,
+    roles: roles.map(({ key, name }) => ({ key, name })),
+    canManageRoles: privileges.has("roles"),
+    canComp: privileges.has("settings"),
+    viewerId: services.viewer!.userId,
+  };
 }
 
 export async function loader({ context, params, request }: Route.LoaderArgs) {
-  const { db, edition, user, canManageRoles, viewerId } = await load(context, params.userId);
+  const { db, edition, user, roles, canManageRoles, canComp, viewerId } = await load(context, params.userId);
   const fields = (await getRegistrationFields(db, edition.id)).map(({ key, kind, label }) => ({ key, kind, label }));
   const name = [user.firstName, user.lastName].filter(Boolean).join(" ");
   return {
     user,
     year: edition.year,
     displayName: name || user.email || "Unknown",
+    roles,
     canManageRoles,
+    canComp,
     isSelf: user.id === viewerId,
     viewerId,
     fields,
@@ -42,7 +59,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 type ActionData = { form: "name"; error: string } | { form: "note"; error: string; body: string } | { form: "problem"; error: string };
 
 export async function action({ context, params, request }: Route.ActionArgs) {
-  const { db, user, canManageRoles, viewerId } = await load(context, params.userId);
+  const { db, edition, user, roles, canManageRoles, canComp, viewerId } = await load(context, params.userId);
   const form = await request.formData();
   const intent = form.get("intent");
   const back = (done: string) => redirect(`/admin/users/${user.id}?done=${done}`);
@@ -61,24 +78,25 @@ export async function action({ context, params, request }: Route.ActionArgs) {
     throw back("name");
   }
 
-  if (intent === "grant" || intent === "revoke") {
-    if (!canManageRoles) throw data("Only admins with full access can change roles.", { status: 403 });
-    const permission = form.get("permission");
-    if (!isAdminPermission(permission) && !(intent === "revoke" && typeof permission === "string")) {
-      return data<ActionData>({ form: "problem", error: "Choose a permission." }, { status: 400 });
-    }
-    if (intent === "revoke" && user.id === viewerId) {
-      return data<ActionData>({ form: "problem", error: "You can't remove your own access. Ask another admin." }, { status: 409 });
-    }
-    if (intent === "grant") await grantAdminPermission(db, user.id, permission as string, viewerId);
-    else await revokeAdminPermission(db, user.id, permission as string);
-    throw back(intent === "grant" ? "granted" : "revoked");
+  if (form.get("role") !== null && form.get("profileId") !== null) {
+    if (!canManageRoles) throw data("Your admin role can't change roles.", { status: 403 });
+    if (user.id === viewerId) return data<ActionData>({ form: "problem", error: "You can't change your own role. Ask another admin." }, { status: 409 });
+    const role = String(form.get("role"));
+    if (role && !roles.some((r) => r.key === role)) return data<ActionData>({ form: "problem", error: "That role no longer exists." }, { status: 400 });
+    await setUserRole(db, user.id, role || null, viewerId);
+    throw back("role");
+  }
+
+  if (intent === "remove-comp") {
+    if (!canComp) throw data("Your admin role can't change tickets.", { status: 403 });
+    await removeCompTicket(db, edition.id, Number(form.get("ticketId")));
+    throw back("comp-removed");
   }
 
   if (intent === "deactivate" || intent === "reactivate") {
     if (user.id === viewerId) return data<ActionData>({ form: "problem", error: "You can't deactivate your own account." }, { status: 409 });
     if (user.permissions.length && !canManageRoles) {
-      return data<ActionData>({ form: "problem", error: "Only admins with full access can deactivate another admin." }, { status: 403 });
+      return data<ActionData>({ form: "problem", error: "Only admins who manage roles can deactivate another admin." }, { status: 403 });
     }
     await setDeactivated(db, user.id, intent === "deactivate");
     throw back(intent === "deactivate" ? "deactivated" : "reactivated");
@@ -103,8 +121,8 @@ export async function action({ context, params, request }: Route.ActionArgs) {
 
 const doneMessages: Record<string, string> = {
   name: "Name saved.",
-  granted: "Role added.",
-  revoked: "Role removed.",
+  role: "Role changed.",
+  "comp-removed": "Comp ticket removed.",
   deactivated: "Account deactivated. They can't open the Members area or this console until it's reactivated.",
   reactivated: "Account reactivated.",
   note: "Note added.",
@@ -119,12 +137,12 @@ const ticketBadge = {
 
 /** One person: their account, tickets, roles, sessions and registration answers, and admins' notes. */
 export default function AdminUser({ loaderData, actionData }: Route.ComponentProps) {
-  const { user, year, displayName, canManageRoles, isSelf, viewerId, fields, done } = loaderData;
+  const { user, year, displayName, roles, canManageRoles, canComp, isSelf, viewerId, fields, done } = loaderData;
   const questionLabel = new Map(fields.map((f) => [f.key, f.label]));
   const questionOrder = fields.map((f) => f.key);
   const busy = useNavigation().state !== "idle";
-  const held = new Set(user.permissions.map((p) => p.permission));
-  const grantable = ADMIN_PERMISSIONS.filter((p) => !held.has(p.value));
+  const role = user.permissions[0];
+  const roleName = role ? (roles.find((r) => r.key === role.permission)?.name ?? role.permission) : null;
   // Answers to fields since removed from the form come last, under their key.
   const position = (key: string) => (questionOrder.includes(key) ? questionOrder.indexOf(key) : questionOrder.length);
   const answers = [...user.answers].sort((a, b) => position(a.question) - position(b.question));
@@ -185,7 +203,7 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
         </section>
 
         <section aria-labelledby="roles-heading" className={card}>
-          <h2 id="roles-heading" className="text-lg font-semibold">Roles</h2>
+          <h2 id="roles-heading" className="text-lg font-semibold">Role</h2>
           <ul className="mt-3 grid gap-2 text-sm">
             <li>
               <span className="font-medium">Member</span>
@@ -197,45 +215,28 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
                 <span className="opacity-80"> · {user.sessions.length} {user.sessions.length === 1 ? "session" : "sessions"} in {year}</span>
               </li>
             )}
-            {user.permissions.map((p) => (
-              <li key={p.permission} className="flex flex-wrap items-center gap-x-3">
-                <span>
-                  <span className="font-medium">Admin: {ADMIN_PERMISSIONS.find((a) => a.value === p.permission)?.label ?? p.permission}</span>
-                  <span className="opacity-80"> · since {formatWhen(p.grantedAt)}{p.grantedBy ? `, added by ${p.grantedBy}` : ""}</span>
-                </span>
-                {canManageRoles && !isSelf && (
-                  <Form method="post">
-                    <input type="hidden" name="permission" value={p.permission} />
-                    <button type="submit" name="intent" value="revoke" disabled={busy} className={dangerButton}>Remove</button>
-                  </Form>
-                )}
-              </li>
-            ))}
           </ul>
-          {canManageRoles ? (
-            grantable.length > 0 && (
-              <Form method="post" className="mt-4 flex flex-wrap items-end gap-2 border-t border-[#E2E8E9] pt-4 dark:border-[#24363B]">
-                <div>
-                  <label htmlFor="permission" className="block text-sm font-medium">Make them an admin</label>
-                  <select id="permission" name="permission" className={`${inputClass} mt-1`}>
-                    {grantable.map((p) => (
-                      <option key={p.value} value={p.value}>{p.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <button type="submit" name="intent" value="grant" disabled={busy} className={primaryButton}>Add role</button>
-              </Form>
-            )
-          ) : (
-            <p className="mt-4 text-sm opacity-80">Only admins with full access can change roles.</p>
-          )}
+          <div className="mt-4 border-t border-[#E2E8E9] pt-4 text-sm dark:border-[#24363B]">
+            <p className="font-medium">Admin role</p>
+            {canManageRoles && !isSelf ? (
+              <div className="mt-1">
+                <RoleSelect profileId={user.id} current={role?.permission ?? ""} roles={roles} label={`Admin role for ${displayName}`} />
+              </div>
+            ) : (
+              <p className="mt-1">{roleName ?? "None: a member, not an admin"}{isSelf && canManageRoles ? " (you can't change your own role)" : ""}</p>
+            )}
+            {role && (
+              <p className="mt-1 opacity-80">Since {formatWhen(role.grantedAt)}{role.grantedBy ? `, given by ${role.grantedBy}` : ""}</p>
+            )}
+            {canManageRoles && <Link to="/admin/roles" className="mt-2 inline-block underline">What each role can do</Link>}
+          </div>
         </section>
 
         <section aria-labelledby="tickets-heading" className={card}>
           <h2 id="tickets-heading" className="text-lg font-semibold">Tickets</h2>
           {user.tickets.length === 0 ? (
             <p className="mt-2 text-sm">
-              No tickets. <Link to="/admin/tickets" className="underline">Issue a comp ticket</Link>
+              No tickets.{canComp && <> <Link to="/admin/settings#tickets" className="underline">Issue a comp ticket</Link></>}
             </p>
           ) : (
             <ul className="mt-2 grid gap-1 text-sm">
@@ -246,6 +247,12 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
                   <span className="opacity-80">
                     {t.tier ?? "No tier"} · {formatDollars(t.amountPaidCents)} · {formatWhen(t.createdAt)}
                   </span>
+                  {canComp && t.status === "comp" && t.year === year && (
+                    <Form method="post">
+                      <input type="hidden" name="ticketId" value={t.id} />
+                      <button type="submit" name="intent" value="remove-comp" disabled={busy} className={dangerButton}>Remove comp</button>
+                    </Form>
+                  )}
                 </li>
               ))}
             </ul>

@@ -1,6 +1,6 @@
 /**
  * The event's public details (PUB-2): name, teaser, start and end, image and About. Admins edit
- * them on the console's Edit page; the home page shows them.
+ * them on the console's Settings page; the home page shows them.
  */
 import type { Db } from "~/lib/db.server";
 import { cleanRichText, type RichDoc } from "~/lib/rich-text";

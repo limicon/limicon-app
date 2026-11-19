@@ -2,32 +2,38 @@ import { data, Form, redirect, useNavigation } from "react-router";
 
 import { card, dangerButton, FieldError, formatWhen, inputClass, Notice, PageHeading, primaryButton } from "~/components/admin-ui";
 import { servicesContext } from "~/context";
-import { ADMIN_PERMISSIONS, checkEmailField, isAdminPermission } from "~/lib/admin-forms";
-import { cancelInvitation, getAdminPermissions, inviteAdmin, isUuid, listTeam, revokeAdminPermission } from "~/lib/admin.server";
+import { checkEmailField } from "~/lib/admin-forms";
+import { cancelInvitation, inviteAdmin, isUuid, listTeam } from "~/lib/admin.server";
+import { listRoles, setUserRole } from "~/lib/admin-roles.server";
+import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/team";
+
+/** Needs the `roles` privilege (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("roles")];
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Team · Admin · Limicon" }];
 }
 
-const permissionLabel = (value: string) => ADMIN_PERMISSIONS.find((p) => p.value === value)?.label ?? value;
-
 export async function loader({ context, request }: Route.LoaderArgs) {
   const services = context.get(servicesContext);
   const db = services.db();
   const userId = services.viewer!.userId;
-  const [team, mine] = await Promise.all([listTeam(db), getAdminPermissions(db, userId)]);
-  return { ...team, userId, canManage: mine.includes("full"), done: new URL(request.url).searchParams.get("done") };
+  const [team, roles] = await Promise.all([listTeam(db), listRoles(db)]);
+  return {
+    ...team,
+    userId,
+    roles: roles.map(({ key, name }) => ({ key, name })),
+    canManage: true,
+    done: new URL(request.url).searchParams.get("done"),
+  };
 }
 
-/** Granting and revoking admin access (AUTH-5) needs the `full` permission. */
+/** Inviting admins and taking roles away (AUTH-5); the middleware checks the `roles` privilege. */
 export async function action({ request, context }: Route.ActionArgs) {
   const services = context.get(servicesContext);
   const db = services.db();
   const userId = services.viewer!.userId;
-  if (!(await getAdminPermissions(db, userId)).includes("full")) {
-    throw data("Only admins with full access can change the team.", { status: 403 });
-  }
   const form = await request.formData();
   const intent = form.get("intent");
   const permission = form.get("permission");
@@ -35,16 +41,18 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (intent === "invite") {
     const email = checkEmailField(form);
     if (!email.ok) return data({ input: email.input, error: email.error }, { status: 400 });
-    if (!isAdminPermission(permission)) return data({ input: email.email, error: "Choose a permission." }, { status: 400 });
+    if (typeof permission !== "string" || !(await listRoles(db)).some((r) => r.key === permission)) {
+      return data({ input: email.email, error: "Choose a role." }, { status: 400 });
+    }
     const outcome = await inviteAdmin(db, { email: email.email, permission, invitedBy: userId });
     throw redirect(`/admin/team?done=${outcome}`);
   }
 
   if (intent === "revoke") {
     const profileId = form.get("profileId");
-    if (!isUuid(profileId) || typeof permission !== "string") throw data("Not found", { status: 404 });
+    if (!isUuid(profileId)) throw data("Not found", { status: 404 });
     if (profileId === userId) return data({ input: "", error: "You can't remove your own access. Ask another admin." }, { status: 409 });
-    await revokeAdminPermission(db, profileId, permission);
+    await setUserRole(db, profileId, null, userId);
     throw redirect("/admin/team?done=revoked");
   }
 
@@ -59,15 +67,16 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 const doneMessages: Record<string, string> = {
-  granted: "They have an account already, so they're an admin now.",
-  invited: "Invited. They become an admin the first time they sign in with that address.",
-  already: "They already have that access, or an invitation for it.",
+  granted: "They have an account already, so they have that role now.",
+  invited: "Invited. They get the role the first time they sign in with that address.",
+  already: "They already have a role, or an invitation. Change an admin's role on the Users page.",
   revoked: "Access removed.",
   cancelled: "Invitation cancelled.",
 };
 
 export default function AdminTeam({ loaderData, actionData }: Route.ComponentProps) {
-  const { members, invitations, userId, canManage, done } = loaderData;
+  const { members, invitations, userId, canManage, roles, done } = loaderData;
+  const permissionLabel = (value: string) => roles.find((r) => r.key === value)?.name ?? value;
   const busy = useNavigation().state !== "idle";
   return (
     <>
@@ -94,10 +103,10 @@ export default function AdminTeam({ loaderData, actionData }: Route.ComponentPro
               />
             </div>
             <div>
-              <label htmlFor="permission" className="block text-sm font-medium">Access</label>
+              <label htmlFor="permission" className="block text-sm font-medium">Role</label>
               <select id="permission" name="permission" className={`${inputClass} mt-1`}>
-                {ADMIN_PERMISSIONS.map((p) => (
-                  <option key={p.value} value={p.value}>{p.label}</option>
+                {roles.map((r) => (
+                  <option key={r.key} value={r.key}>{r.name}</option>
                 ))}
               </select>
             </div>

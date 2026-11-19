@@ -71,7 +71,8 @@ export async function listUsers(
             when 'admin' then cardinality(p.permissions) > 0
             when 'host' then p."hostedSessions" > 0
             when 'member' then cardinality(p.permissions) = 0 and p."hostedSessions" = 0
-            else true
+            when 'any' then true
+            else ${f.role.startsWith("r:") ? f.role.slice(2) : ""}::text = any(p.permissions)
           end
     order by ${order}, p.id
     ${perPage === null ? sql`` : sql`limit ${perPage} offset ${(f.page - 1) * perPage}`}
@@ -171,15 +172,6 @@ export async function setDeactivated(sql: Db, profileId: string, deactivated: bo
   await sql`
     update public.profiles set deactivated_at = ${deactivated ? sql`now()` : null}, updated_at = now()
     where id = ${profileId}
-  `;
-}
-
-/** Grants a permission to an account. Callers check the granter holds `full`. */
-export async function grantAdminPermission(sql: Db, profileId: string, permission: string, grantedBy: string) {
-  await sql`
-    insert into public.admin_permissions (profile_id, permission, granted_by)
-    values (${profileId}, ${permission}, ${grantedBy})
-    on conflict do nothing
   `;
 }
 

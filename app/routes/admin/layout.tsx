@@ -1,6 +1,7 @@
 import { Form, Link, NavLink, Outlet } from "react-router";
 
 import { servicesContext } from "~/context";
+import type { Privilege } from "~/lib/admin-roles";
 import { requireAdmin } from "~/middleware/services.server";
 import type { Route } from "./+types/layout";
 
@@ -8,22 +9,23 @@ export const middleware: Route.MiddlewareFunction[] = [requireAdmin];
 
 export async function loader({ context }: Route.LoaderArgs) {
   const services = context.get(servicesContext);
-  const { edition } = await services.membership();
-  return { editionYear: edition?.year ?? null, email: services.viewer?.email ?? null };
+  const [{ edition }, privileges] = await Promise.all([services.membership(), services.privileges()]);
+  return { editionYear: edition?.year ?? null, email: services.viewer?.email ?? null, privileges: [...privileges] };
 }
 
-const sections = [
+/** The console's pages, each with the privilege it needs (none for the Overview). */
+const sections: { to: string; label: string; end?: boolean; needs?: Privilege }[] = [
   { to: "/admin", label: "Overview", end: true },
-  { to: "/admin/settings", label: "Edit" },
-  { to: "/admin/users", label: "Users" },
-  { to: "/admin/orders", label: "Orders" },
-  { to: "/admin/guests", label: "Guests" },
-  { to: "/admin/sessions", label: "Sessions" },
-  { to: "/admin/tickets", label: "Tickets" },
-  { to: "/admin/website", label: "Website" },
-  { to: "/admin/faq", label: "FAQ" },
-  { to: "/admin/policies", label: "Policies" },
-  { to: "/admin/team", label: "Team" },
+  { to: "/admin/settings", label: "Settings", needs: "settings" },
+  { to: "/admin/users", label: "Users", needs: "people" },
+  { to: "/admin/orders", label: "Orders", needs: "orders" },
+  { to: "/admin/guests", label: "Guests", needs: "people" },
+  { to: "/admin/sessions", label: "Sessions", needs: "sessions" },
+  { to: "/admin/website", label: "Website", needs: "website" },
+  { to: "/admin/faq", label: "FAQ", needs: "website" },
+  { to: "/admin/policies", label: "Policies", needs: "website" },
+  { to: "/admin/roles", label: "Roles", needs: "roles" },
+  { to: "/admin/team", label: "Team", needs: "roles" },
 ];
 
 /** The admin console's shell (ADM-1): its own menu, apart from the public site and Members area. */
@@ -39,7 +41,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
           </Link>
           <nav aria-label="Admin" className="w-full md:mt-6">
             <ul className="flex flex-wrap gap-x-4 gap-y-1 md:flex-col md:gap-1">
-              {sections.map((section) => (
+              {sections.filter((section) => !section.needs || loaderData.privileges.includes(section.needs)).map((section) => (
                 <li key={section.to}>
                   <NavLink
                     to={section.to}
@@ -54,6 +56,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
                   </NavLink>
                 </li>
               ))}
+              {loaderData.privileges.includes("website") && (
               <li className="md:mt-4 md:border-t md:border-white/15 md:pt-4">
                 <a
                   href="/?edit=1"
@@ -62,6 +65,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
                   ✎ Edit website
                 </a>
               </li>
+              )}
             </ul>
           </nav>
           <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/15 pt-4 text-sm md:mt-8 md:flex-col md:items-start">

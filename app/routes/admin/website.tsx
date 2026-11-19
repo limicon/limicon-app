@@ -4,7 +4,11 @@ import { Badge, card, dangerButton, formatWhen, Notice, PageHeading, primaryButt
 import { servicesContext } from "~/context";
 import { pagePath } from "~/lib/site-pages";
 import { deletePage, listPages, movePage, setPageFlags } from "~/lib/site-pages.server";
+import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/website";
+
+/** Needs the `website` privilege (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("website")];
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Website · Admin · Limicon" }];

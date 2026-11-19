@@ -119,7 +119,7 @@ During the event, admins add relevant Liminal Calendar events to the Limicon cal
 - **AUTH-2** Sessions persist for at least 30 days on a device so members stay signed in.
 - **AUTH-3** One account per person. Accounts persist across years and keep their history.
 - **AUTH-4** Members can reset access themselves and delete their account.
-- **AUTH-5** Admin is a role with named permissions. Admins with the right permission can grant and revoke admin access.
+- **AUTH-5** Each admin holds one role: a name and a set of privileges, which admins define in the console. Admins whose role includes managing roles can create and change roles and give or take them away.
 
 ### Registration and ticketing
 
@@ -354,7 +354,8 @@ The model separates an account (a person, permanent) from a ticket (a person's p
 | Table | Purpose | Key fields |
 | --- | --- | --- |
 | profiles | One row per person, linked to the auth account | name, photo, location, bio, extended bio, links, keywords, time zone, allow\_messages, show\_in\_directory, deactivated\_at |
-| admin\_permissions | Who holds which admin permission | profile, permission, granted\_by, granted\_at |
+| admin\_roles | Named sets of admin privileges | key, name, privileges, built\_in |
+| admin\_permissions | Who holds which admin role (one each) | profile, role, granted\_by, granted\_at |
 | admin\_user\_notes | Private notes admins keep about a person | profile, author, body, created\_at |
 | editions | One row per Limicon year | year, name, teaser, start and end with their time zones, image, about (rich text), start and end dates, registration\_open, calendar\_open |
 | edition\_links | External links for members per edition (MEM-2) | edition, label, url, sort order |

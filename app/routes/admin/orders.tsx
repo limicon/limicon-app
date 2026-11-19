@@ -7,7 +7,11 @@ import { formatDollars } from "~/lib/admin-forms";
 import { getTierBreakdown, listTiers } from "~/lib/admin.server";
 import { ORDER_COLUMNS, ORDER_STATUSES, readOrderFilters, sortLink } from "~/lib/admin-tables";
 import { getOrderSummary, listOrders } from "~/lib/orders.server";
+import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/orders";
+
+/** Needs the `orders` privilege (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("orders")];
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Orders · Admin · Limicon" }];

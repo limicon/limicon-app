@@ -12,7 +12,6 @@ import {
   issueCompTicket,
   listAllSessions,
   listTeam,
-  listTickets,
   listTiers,
   removeCompTicket,
   unpublishSession,
@@ -74,13 +73,12 @@ describe("comp tickets", () => {
       expect(overview.weekly).toHaveLength(12);
       expect(overview.weekly.at(-1)!.tickets).toBe(1);
 
-      const [ticket] = await listTickets(tx, editionId, "pat");
-      expect(ticket).toMatchObject({ name: "Pat", email: pat.email, tier: "Community", status: "comp" });
-      expect(await listTickets(tx, editionId, "zz-no-match")).toEqual([]);
+      const [ticket] = await tx<{ id: string; status: string }[]>`select id, status from public.tickets where profile_id = ${pat.id}`;
+      expect(ticket).toMatchObject({ status: "comp" });
 
       // A tier with tickets stays.
       expect(await deleteTier(tx, editionId, tier!.id)).toBe(false);
-      expect(await removeCompTicket(tx, editionId, ticket!.id)).toBe(true);
+      expect(await removeCompTicket(tx, editionId, Number(ticket!.id))).toBe(true);
       // The comp's order goes with it.
       expect((await getOverview(tx, editionId)).recentBuyers).toEqual([]);
       expect(await deleteTier(tx, editionId, tier!.id)).toBe(true);

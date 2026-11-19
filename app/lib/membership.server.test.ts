@@ -87,7 +87,7 @@ describe("getMembership", () => {
   test("an admin is a member without a ticket", async () => {
     await inRolledBackTransaction(async (tx) => {
       const userId = await newAccount(tx);
-      await tx`insert into public.admin_permissions (profile_id, permission) values (${userId}, 'test')`;
+      await tx`insert into public.admin_permissions (profile_id, permission) values (${userId}, 'full')`;
       expect(await getMembership(tx, userId)).toMatchObject({ status: "member", isAdmin: true });
     });
   });

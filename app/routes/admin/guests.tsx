@@ -5,7 +5,11 @@ import { DownloadPanel, SortHeading } from "~/components/download-panel";
 import { servicesContext } from "~/context";
 import { GUEST_COLUMNS, readGuestFilters, sortLink } from "~/lib/admin-tables";
 import { countGuests, listGuests } from "~/lib/orders.server";
+import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/guests";
+
+/** Needs the `people` privilege (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("people")];
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Guests · Admin · Limicon" }];

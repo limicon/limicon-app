@@ -6,7 +6,11 @@ import { getEventDetails } from "~/lib/event.server";
 import { savePageAction } from "~/lib/page-route.server";
 import { newSection, pagePath, type PageMeta } from "~/lib/site-pages";
 import { getPage } from "~/lib/site-pages.server";
+import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/website-page";
+
+/** Needs the `website` privilege (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("website")];
 
 export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: `${loaderData?.meta.title || "New page"} · Website · Admin · Limicon` }];

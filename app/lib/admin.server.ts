@@ -3,20 +3,12 @@
  * that need a particular permission say so, and their callers check it.
  */
 import type { Db } from "~/lib/db.server";
-import type { AdminPermission, EditionSettings, MemberLink, TierValues } from "~/lib/admin-forms";
+import type { EditionSettings, MemberLink, TierValues } from "~/lib/admin-forms";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function isUuid(value: unknown): value is string {
   return typeof value === "string" && UUID.test(value);
-}
-
-/** The admin permissions a person holds. */
-export async function getAdminPermissions(sql: Db, userId: string): Promise<string[]> {
-  const rows = await sql<{ permission: string }[]>`
-    select permission from public.admin_permissions where profile_id = ${userId} order by permission
-  `;
-  return rows.map((row) => row.permission);
 }
 
 // --- Overview -------------------------------------------------------------------------------
@@ -43,14 +35,27 @@ export type RecentBuyer = {
   at: Date;
 };
 
+export type IncompleteOrder = {
+  orderId: number;
+  profileId: string;
+  name: string | null;
+  email: string | null;
+  tier: string | null;
+  quantity: number;
+  amountCents: number;
+  startedAt: Date;
+};
+
 export type Overview = {
   totals: OverviewTotals;
   thisWeek: OverviewTotals;
   /** Everyone whose order completed in the last 7 days, most recent first. */
   recentBuyers: RecentBuyer[];
+  /** Checkouts started and not finished, newest first, for admins to follow up. */
+  incomplete: IncompleteOrder[];
   /** Registrations (paid and comp) per week, oldest first, for the last 12 weeks. */
   weekly: { weekOf: string; tickets: number }[];
-  sessions: { allTime: number; published: number; drafts: number; hosts: number };
+  sessions: { published: number; drafts: number; hosts: number };
   pendingInvitations: number;
 };
 
@@ -72,7 +77,7 @@ export async function getOverview(sql: Db, editionId: number): Promise<Overview>
     `;
     return row!;
   };
-  const [all, week, recentBuyers, weekly, [other]] = await Promise.all([
+  const [all, week, recentBuyers, incomplete, weekly, [other]] = await Promise.all([
     totals(null),
     totals("7 days"),
     sql<(Omit<RecentBuyer, "orderId"> & { orderId: string })[]>`
@@ -87,6 +92,16 @@ export async function getOverview(sql: Db, editionId: number): Promise<Overview>
         and coalesce(o.completed_at, o.created_at) > now() - interval '7 days'
       order by at desc
     `,
+    sql<(Omit<IncompleteOrder, "orderId"> & { orderId: string })[]>`
+      select o.id as "orderId", p.id as "profileId", nullif(trim(concat_ws(' ', p.first_name, p.last_name)), '') as name,
+             u.email, tt.name as tier, o.quantity, o.amount_cents as "amountCents", o.created_at as "startedAt"
+      from public.orders o
+      join public.profiles p on p.id = o.buyer_id
+      left join auth.users u on u.id = p.id
+      left join public.ticket_tiers tt on tt.id = o.tier_id
+      where o.edition_id = ${editionId} and o.status = 'pending'
+      order by o.created_at desc
+    `,
     sql<Overview["weekly"]>`
       select to_char(week, 'YYYY-MM-DD') as "weekOf", count(t.id)::int as tickets
       from generate_series(
@@ -98,9 +113,8 @@ export async function getOverview(sql: Db, editionId: number): Promise<Overview>
       group by week
       order by week
     `,
-    sql<{ allTime: number; published: number; drafts: number; hosts: number; pendingInvitations: number }[]>`
+    sql<{ published: number; drafts: number; hosts: number; pendingInvitations: number }[]>`
       select
-        (select count(*) from public.sessions where published)::int as "allTime",
         (select count(*) from public.sessions where edition_id = ${editionId} and published)::int as published,
         (select count(*) from public.sessions where edition_id = ${editionId} and not published)::int as drafts,
         (select count(distinct h.profile_id) from public.session_hosts h
@@ -113,6 +127,7 @@ export async function getOverview(sql: Db, editionId: number): Promise<Overview>
     totals: all,
     thisWeek: week,
     recentBuyers: recentBuyers.map((b) => ({ ...b, orderId: Number(b.orderId) })),
+    incomplete: incomplete.map((o) => ({ ...o, orderId: Number(o.orderId) })),
     weekly: [...weekly],
     sessions,
     pendingInvitations,
@@ -303,35 +318,6 @@ export async function setCocreationMeeting(sql: Db, editionId: number, sessionId
 
 // --- Tickets --------------------------------------------------------------------------------
 
-export type AdminTicket = {
-  id: number;
-  name: string | null;
-  email: string | null;
-  tier: string | null;
-  status: "paid" | "comp" | "refunded";
-  amountPaidCents: number;
-  imported: boolean;
-  createdAt: Date;
-};
-
-/** An edition's registrations, newest first, optionally narrowed by name or email. */
-export async function listTickets(sql: Db, editionId: number, search = ""): Promise<AdminTicket[]> {
-  const pattern = `%${search.trim().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
-  const rows = await sql<(Omit<AdminTicket, "id"> & { id: string })[]>`
-    select t.id, nullif(trim(concat_ws(' ', p.first_name, p.last_name)), '') as name, u.email,
-           tt.name as tier, t.status, t.amount_paid_cents as "amountPaidCents", t.imported,
-           t.created_at as "createdAt"
-    from public.tickets t
-    join public.profiles p on p.id = t.profile_id
-    left join auth.users u on u.id = p.id
-    left join public.ticket_tiers tt on tt.id = t.tier_id
-    where t.edition_id = ${editionId}
-      and (${search.trim() === ""} or u.email ilike ${pattern} or concat_ws(' ', p.first_name, p.last_name) ilike ${pattern})
-    order by t.created_at desc
-  `;
-  return rows.map((row) => ({ ...row, id: Number(row.id) }));
-}
-
 export type CompResult = "issued" | "no-account" | "has-ticket" | "bad-tier";
 
 /**
@@ -431,13 +417,13 @@ export async function listTeam(sql: Db): Promise<{ members: TeamMember[]; invita
 }
 
 /**
- * Grants an admin permission by email (AUTH-5): straight away when the address has an account,
- * otherwise as an invitation that the first sign-in with that address turns into the permission.
- * Callers check the inviter holds `full`.
+ * Gives a role by email (AUTH-5): straight away when the address has an account and no role yet,
+ * otherwise as an invitation that the first sign-in with that address turns into the role.
+ * `permission` names the role. Callers check the inviter has the `roles` privilege.
  */
 export async function inviteAdmin(
   sql: Db,
-  args: { email: string; permission: AdminPermission; invitedBy: string },
+  args: { email: string; permission: string; invitedBy: string },
 ): Promise<"granted" | "invited" | "already"> {
   const [user] = await sql<{ id: string }[]>`select id from auth.users where lower(email) = ${args.email}`;
   if (user) {
@@ -456,11 +442,6 @@ export async function inviteAdmin(
     returning email
   `;
   return rows.length ? "invited" : "already";
-}
-
-/** Takes an admin permission away. Callers check the remover holds `full` and isn't removing their own. */
-export async function revokeAdminPermission(sql: Db, profileId: string, permission: string) {
-  await sql`delete from public.admin_permissions where profile_id = ${profileId} and permission = ${permission}`;
 }
 
 export async function cancelInvitation(sql: Db, email: string, permission: string) {

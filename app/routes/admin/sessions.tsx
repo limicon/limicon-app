@@ -3,7 +3,11 @@ import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { Badge, card, Notice, PageHeading, secondaryButton } from "~/components/admin-ui";
 import { servicesContext } from "~/context";
 import { isUuid, listAllSessions, setCocreationMeeting, unpublishSession, type AdminSession } from "~/lib/admin.server";
+import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/sessions";
+
+/** Needs the `sessions` privilege (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("sessions")];
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Sessions · Admin · Limicon" }];

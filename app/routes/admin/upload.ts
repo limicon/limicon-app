@@ -7,11 +7,18 @@ import type { Route } from "./+types/upload";
 
 export const middleware: Route.MiddlewareFunction[] = [requireAdmin];
 
+/** Uploads serve the event image (settings) and the website's pages and policies (website). */
+async function mayUpload(context: Route.ActionArgs["context"]) {
+  const privileges = await context.get(servicesContext).privileges();
+  return privileges.has("settings") || privileges.has("website");
+}
+
 /**
  * Stores one uploaded file in the media bucket and answers with its address, for the event image
  * and the rich text editors. Only admins upload. Pass `images=1` to accept only images.
  */
 export async function action({ request, context }: Route.ActionArgs) {
+  if (!(await mayUpload(context))) return data({ error: "Your admin role can't upload files." }, { status: 403 });
   const form = await request.formData();
   const file = form.get("file");
   if (!(file instanceof File) || file.size === 0) return data({ error: "Choose a file." }, { status: 400 });
