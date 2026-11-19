@@ -16,6 +16,18 @@ export function meta({}: Route.MetaArgs) {
   return [{ title: "Schedule · Members · Limicon" }];
 }
 
+type ScheduleView = "all" | "mine" | "hosting";
+
+const VIEWS: { value: ScheduleView; label: string }[] = [
+  { value: "all", label: "Limicon Schedule" },
+  { value: "mine", label: "My Schedule" },
+  { value: "hosting", label: "Hosting" },
+];
+
+const viewHref = (view: ScheduleView) => (view === "all" ? "/members/schedule" : `/members/schedule?view=${view}`);
+
+const primaryButton = "rounded bg-[#15383F] px-4 py-2 font-semibold text-[#F3E6D7] dark:bg-[#F3E6D7] dark:text-[#15383F]";
+
 const typeLabel = (value: string) => SESSION_TYPES.find((type) => type.value === value)?.label ?? value;
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -27,9 +39,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const params = new URL(request.url).searchParams;
   const theme = params.get("theme");
   const sessionType = params.get("type");
+  const view: ScheduleView = params.get("view") === "mine" ? "mine" : params.get("view") === "hosting" ? "hosting" : "all";
   const filters = {
     viewerId: services.viewer!.userId,
-    mineOnly: params.get("view") === "mine",
+    view,
+    mineOnly: view === "mine",
+    hostingOnly: view === "hosting",
     now: new Date(),
     past: params.get("when") === "past",
     theme: theme && (THEMES as readonly string[]).includes(theme) ? theme : null,
@@ -62,8 +77,15 @@ export default function Schedule({ loaderData }: Route.ComponentProps) {
 
   return (
     <>
-      <h1 className="text-3xl font-semibold">{filters.mineOnly ? "My Schedule" : "Limicon Schedule"}</h1>
-      <ScheduleToggle mineOnly={filters.mineOnly} />
+      <div className="flex max-w-4xl flex-wrap items-center justify-between gap-4">
+        <h1 className="text-3xl font-semibold">{VIEWS.find((v) => v.value === filters.view)!.label}</h1>
+        {filters.view === "hosting" && (
+          <Link to="/members/host/new" className={`${primaryButton} px-5 py-2.5`}>
+            <span aria-hidden="true">+ </span>Host a Session
+          </Link>
+        )}
+      </div>
+      <ScheduleToggle view={filters.view} />
       <TimeZoneLine zone={zone} now={now} timeZones={timeZones} />
       <Filters filters={filters} />
       <Legend />
@@ -72,7 +94,11 @@ export default function Schedule({ loaderData }: Route.ComponentProps) {
         <p className="mt-8">
           {filtered
             ? "No sessions match. Try another search, or clear the filters."
-            : filters.mineOnly
+            : filters.view === "hosting"
+              ? filters.past
+                ? "None of the sessions you host have finished yet."
+                : "You aren't hosting any sessions on the calendar yet. Host one with the button above; drafts stay under Host a session until you publish them."
+              : filters.mineOnly
               ? filters.past
                 ? "You didn't RSVP to any sessions that have finished."
                 : "You haven't RSVPed to any upcoming sessions yet. RSVP on the Limicon Schedule, and they'll appear here."
@@ -90,7 +116,7 @@ export default function Schedule({ loaderData }: Route.ComponentProps) {
               <ul className="mt-2 grid gap-3">
                 {daySessions.map((session) => (
                   <li key={session.id}>
-                    <SessionCard session={session} zone={zone} canRsvp={!filters.past} />
+                    <SessionCard session={session} zone={zone} canRsvp={!filters.past} hosting={filters.view === "hosting"} />
                   </li>
                 ))}
               </ul>
@@ -111,7 +137,7 @@ function groupByDay(sessions: ScheduledSession[], zone: string): [string, Schedu
   return [...days];
 }
 
-function SessionCard({ session, zone, canRsvp }: { session: ScheduledSession; zone: string; canRsvp: boolean }) {
+function SessionCard({ session, zone, canRsvp, hosting }: { session: ScheduledSession; zone: string; canRsvp: boolean; hosting: boolean }) {
   return (
     <article
       aria-labelledby={`session-${session.id}`}
@@ -133,7 +159,17 @@ function SessionCard({ session, zone, canRsvp }: { session: ScheduledSession; zo
           </p>
           {session.hosts.length > 0 && <p className="text-sm">With {session.hosts.join(", ")}</p>}
         </div>
-        {canRsvp && (
+        {hosting ? (
+          <div className="mt-2 sm:mt-0">
+            <Link
+              to={`/members/host/${session.id}`}
+              className="inline-block rounded border border-[#15383F] px-4 py-2 font-semibold dark:border-[#8CC7D3]"
+              aria-label={`Edit ${session.title}`}
+            >
+              Edit
+            </Link>
+          </div>
+        ) : canRsvp && (
           <div className="mt-2 sm:mt-0">
             <RsvpButton sessionId={session.id} status={session.myRsvp} title={session.title} />
           </div>
@@ -143,26 +179,25 @@ function SessionCard({ session, zone, canRsvp }: { session: ScheduledSession; zo
   );
 }
 
-/** Switches between every session and the viewer's own (CAL-7), keeping search and filters. */
-function ScheduleToggle({ mineOnly }: { mineOnly: boolean }) {
+/** Switches between every session, the viewer's RSVPs (CAL-7) and the sessions they host, keeping search and filters. */
+function ScheduleToggle({ view }: { view: ScheduleView }) {
   const [params] = useSearchParams();
-  const href = (mine: boolean) => {
+  const href = (target: ScheduleView) => {
     const next = new URLSearchParams(params);
-    if (mine) next.set("view", "mine");
-    else next.delete("view");
+    if (target === "all") next.delete("view");
+    else next.set("view", target);
     const query = next.toString();
     return `/members/schedule${query ? `?${query}` : ""}`;
   };
   const tab = (active: boolean) =>
-    `rounded-md px-4 py-2 font-semibold ${active ? "bg-[#15383F] text-[#F3E6D7] dark:bg-[#F3E6D7] dark:text-[#15383F]" : "hover:bg-black/5 dark:hover:bg-white/10"}`;
+    `flex items-center justify-center rounded-md px-2 py-2 text-center text-sm font-semibold sm:px-4 sm:text-base ${active ? "bg-[#15383F] text-[#F3E6D7] dark:bg-[#F3E6D7] dark:text-[#15383F]" : "hover:bg-black/5 dark:hover:bg-white/10"}`;
   return (
-    <nav aria-label="Which schedule" className="mt-4 inline-flex gap-1 rounded-lg border border-[#C9DADC] bg-white p-1 dark:border-[#24363B] dark:bg-[#12201F]">
-      <Link to={href(false)} className={tab(!mineOnly)} aria-current={!mineOnly ? "page" : undefined}>
-        Limicon Schedule
-      </Link>
-      <Link to={href(true)} className={tab(mineOnly)} aria-current={mineOnly ? "page" : undefined}>
-        My Schedule
-      </Link>
+    <nav aria-label="Which schedule" className="mt-4 grid grid-cols-3 gap-1 rounded-lg sm:inline-grid border border-[#C9DADC] bg-white p-1 dark:border-[#24363B] dark:bg-[#12201F]">
+      {VIEWS.map(({ value, label }) => (
+        <Link key={value} to={href(value)} className={tab(view === value)} aria-current={view === value ? "page" : undefined}>
+          {label}
+        </Link>
+      ))}
     </nav>
   );
 }
@@ -181,7 +216,7 @@ function TimeZoneLine({ zone, now, timeZones }: { zone: string; now: Date; timeZ
             {timeZones.map((name) => <option key={name} value={name}>{zoneName(name)}</option>)}
           </select>
         </div>
-        <button type="submit" className="rounded bg-[#15383F] px-4 py-2 font-semibold text-[#F3E6D7] dark:bg-[#F3E6D7] dark:text-[#15383F]">
+        <button type="submit" className={primaryButton}>
           Save
         </button>
       </Form>
@@ -192,47 +227,51 @@ function TimeZoneLine({ zone, now, timeZones }: { zone: string; now: Date; timeZ
 function Filters({ filters }: { filters: Route.ComponentProps["loaderData"]["filters"] }) {
   const submit = useSubmit();
   const [params] = useSearchParams();
-  const field = "mt-1 w-full rounded border border-[#9DB5B9] bg-white px-3 py-2 dark:border-[#3A5359] dark:bg-[#0F1C1E]";
+  const field = "w-full rounded border border-[#9DB5B9] bg-white px-3 py-2 dark:border-[#3A5359] dark:bg-[#0F1C1E]";
+  const label = "mb-1 block text-sm font-medium";
   return (
     <Form
       method="get"
       role="search"
-      className="mt-6 grid max-w-4xl gap-3 rounded-lg border border-[#C9DADC] bg-white p-4 sm:grid-cols-2 lg:grid-cols-[2fr_1.5fr_1fr_auto] dark:border-[#24363B] dark:bg-[#12201F]"
+      className="mt-6 grid max-w-4xl gap-4 rounded-lg border border-[#C9DADC] bg-white p-4 dark:border-[#24363B] dark:bg-[#12201F]"
       // Dropdowns apply as soon as they change; the search waits for Enter or the button.
       onChange={(event) => {
         if ((event.target as HTMLElement).tagName === "SELECT") submit(event.currentTarget);
       }}
     >
-      <div className="sm:col-span-2 lg:col-span-1">
-        <label htmlFor="q" className="block text-sm font-medium">Search</label>
-        <input id="q" name="q" type="search" defaultValue={filters.keyword ?? ""} placeholder="Title, host or description" className={field} />
-      </div>
+      {filters.view !== "all" && <input type="hidden" name="view" value={filters.view} />}
       <div>
-        <label htmlFor="theme" className="block text-sm font-medium">Theme</label>
-        <select id="theme" name="theme" defaultValue={filters.theme ?? ""} className={field}>
-          <option value="">All themes</option>
-          {THEMES.map((theme) => <option key={theme}>{theme}</option>)}
-        </select>
+        <label htmlFor="q" className={label}>Search</label>
+        <div className="flex gap-2">
+          <input id="q" name="q" type="search" defaultValue={filters.keyword ?? ""} placeholder="Title, host or description" className={`${field} min-w-0 flex-1`} />
+          <button type="submit" className={`${primaryButton} shrink-0`}>Search</button>
+        </div>
       </div>
-      <div>
-        <label htmlFor="type" className="block text-sm font-medium">Session type</label>
-        <select id="type" name="type" defaultValue={filters.sessionType ?? ""} className={field}>
-          <option value="">All types</option>
-          {SESSION_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-        </select>
-      </div>
-      <div className="flex flex-wrap items-end gap-3">
-        {filters.mineOnly && <input type="hidden" name="view" value="mine" />}
-        <select name="when" aria-label="Upcoming or past sessions" defaultValue={filters.past ? "past" : ""} className={field}>
-          <option value="">Upcoming</option>
-          <option value="past">Past</option>
-        </select>
-        <button type="submit" className="rounded bg-[#15383F] px-4 py-2 font-semibold text-[#F3E6D7] dark:bg-[#F3E6D7] dark:text-[#15383F]">
-          Search
-        </button>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div>
+          <label htmlFor="theme" className={label}>Theme</label>
+          <select id="theme" name="theme" defaultValue={filters.theme ?? ""} className={field}>
+            <option value="">All themes</option>
+            {THEMES.map((theme) => <option key={theme}>{theme}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="type" className={label}>Session type</label>
+          <select id="type" name="type" defaultValue={filters.sessionType ?? ""} className={field}>
+            <option value="">All types</option>
+            {SESSION_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="when" className={label}>When</label>
+          <select id="when" name="when" defaultValue={filters.past ? "past" : ""} className={field}>
+            <option value="">Upcoming</option>
+            <option value="past">Past</option>
+          </select>
+        </div>
       </div>
       {[...params.keys()].some((key) => key !== "view") && (
-        <Link to={filters.mineOnly ? "/members/schedule?view=mine" : "/members/schedule"} className="text-sm underline sm:col-span-2 lg:col-span-4">
+        <Link to={viewHref(filters.view)} className="justify-self-start text-sm underline">
           Clear search and filters
         </Link>
       )}

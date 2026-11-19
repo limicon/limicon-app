@@ -1,4 +1,5 @@
 import type { Db } from "~/lib/db.server";
+import type { RichDoc } from "~/lib/rich-text";
 
 /** A published session as members see it on the calendar. */
 export type ScheduledSession = {
@@ -19,6 +20,7 @@ export type ScheduledSession = {
 /** Everything a session's page shows to members (CAL-10). */
 export type SessionDetails = ScheduledSession & {
   description: string | null;
+  descriptionDoc: RichDoc | null;
   intention: string | null;
   experience: string[];
   meetingLink: string | null;
@@ -34,6 +36,8 @@ export type ScheduleFilters = {
   viewerId: string;
   /** My Schedule: only sessions the viewer has RSVPed to (CAL-7). */
   mineOnly: boolean;
+  /** Hosting: only sessions the viewer hosts or co-hosts. */
+  hostingOnly?: boolean;
   /** Only sessions ending after this instant, or starting before it when `past` is set. */
   now: Date;
   past: boolean;
@@ -70,6 +74,10 @@ export async function listScheduledSessions(
     where s.edition_id = ${editionId}
       and s.published
       and (not ${filters.mineOnly} or mine.status is not null)
+      and (
+        not ${filters.hostingOnly ?? false}
+        or exists (select 1 from public.session_hosts h where h.session_id = s.id and h.profile_id = ${filters.viewerId})
+      )
       and ${filters.past ? sql`s.ends_at <= ${filters.now}` : sql`s.ends_at > ${filters.now}`}
       and (${filters.theme}::text is null or s.theme = ${filters.theme})
       and (${filters.sessionType}::text is null or ${filters.sessionType} = any (s.session_types))
@@ -105,7 +113,7 @@ export async function getSessionDetails(
              from public.session_hosts h join public.profiles p on p.id = h.profile_id
              where h.session_id = s.id
            ), '{}') as hosts,
-           s.description, s.intention, s.experience, s.meeting_link as "meetingLink",
+           s.description, s.description_doc as "descriptionDoc", s.intention, s.experience, s.meeting_link as "meetingLink",
            s.venue_note as "venueNote", s.max_participants as "maxParticipants", s.privacy,
            exists (
              select 1 from public.session_hosts h where h.session_id = s.id and h.profile_id = ${viewerId}

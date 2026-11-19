@@ -150,6 +150,39 @@ describe("readSessionForm and sessionToFormInput", () => {
 
     const result = checkSessionForm(input, { publish: true });
     if (!result.ok) throw new Error("expected a valid form");
-    expect(sessionToFormInput(result.values)).toEqual({ ...complete, meetingLink: "https://zoom.us/j/123" });
+    const description = JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "We talk about the in-between." }] }] });
+    expect(sessionToFormInput(result.values)).toEqual({ ...complete, description, meetingLink: "https://zoom.us/j/123" });
+  });
+});
+
+describe("the formatted description", () => {
+  const bulleted = {
+    type: "doc",
+    content: [
+      { type: "paragraph", content: [{ type: "text", text: "Bring", marks: [{ type: "bold" }] }, { type: "text", text: " a notebook." }] },
+      { type: "bulletList", content: [{ type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "Pens" }] }] }] },
+      { type: "paragraph", content: [{ type: "text", text: "x", marks: [{ type: "link", attrs: { href: "javascript:alert(1)" } }] }] },
+    ],
+  };
+
+  test("keeps the editor's formatting, drops unsafe links, and saves plain text for search", () => {
+    const result = draft({ title: "An idea", description: JSON.stringify(bulleted) });
+    if (!result.ok) throw new Error("expected a valid form");
+    expect(result.values.description).toBe("Bring a notebook.\n• Pens\nx");
+    expect(result.values.descriptionDoc?.content[0]).toEqual(bulleted.content[0]);
+    expect(JSON.stringify(result.values.descriptionDoc)).not.toContain("javascript");
+  });
+
+  test("reads plain text as a paragraph a line, and an empty editor as no description", () => {
+    const plain = draft({ title: "An idea", description: "One\nTwo" });
+    if (!plain.ok) throw new Error("expected a valid form");
+    expect(plain.values.descriptionDoc?.content).toHaveLength(2);
+    const empty = draft({ title: "An idea", description: JSON.stringify({ type: "doc", content: [{ type: "paragraph" }] }) });
+    if (!empty.ok) throw new Error("expected a valid form");
+    expect(empty.values).toMatchObject({ description: null, descriptionDoc: null });
+  });
+
+  test("limits its length", () => {
+    expect(draft({ title: "An idea", description: "x".repeat(10_001) })).toMatchObject({ ok: false, errors: { description: expect.any(String) } });
   });
 });

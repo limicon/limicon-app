@@ -2,6 +2,7 @@
  * The Host a Session form: its options, and checking what a host submitted. Drafts need only a
  * title; publishing needs the rest of SES-6. Pure functions, so the rules are easy to test.
  */
+import { cleanRichText, plainToRichText, readRichText, richTextToPlain, type RichDoc } from "~/lib/rich-text";
 import { instantToZoned, isValidTimeZone, zonedToInstant } from "~/lib/zoned-time";
 
 export const THEMES = [
@@ -52,12 +53,14 @@ export const AI_PERMISSIONS = [
 ] as const;
 
 export const TITLE_MAX = 60;
+export const DESCRIPTION_MAX = 10_000;
 export const LENGTH_MIN = 15;
 export const LENGTH_MAX = 12 * 60;
 
 /** What the form posts, as plain strings; checkbox groups are arrays. */
 export type SessionFormInput = {
   title: string;
+  /** The description editor's document as JSON (plain text is read as one paragraph a line). */
   description: string;
   intention: string;
   theme: string;
@@ -81,7 +84,9 @@ export type SessionFormInput = {
 /** A session's columns, ready to save. */
 export type SessionValues = {
   title: string;
+  /** The description's plain text, for search; `descriptionDoc` is what members see. */
   description: string | null;
+  descriptionDoc: RichDoc | null;
   intention: string | null;
   theme: string | null;
   sessionTypes: string[];
@@ -232,6 +237,11 @@ export function checkSessionForm(
   if (input.aiPermissions.some((permission) => !oneOf(AI_PERMISSIONS, permission))) errors.aiPermissions = "Choose from the listed permissions.";
   else if (aiAllowed && publish && input.aiPermissions.length === 0) errors.aiPermissions = "Choose what the assistant may do, or answer No.";
 
+  // About this session.
+  const descriptionDoc = readDescription(input.description);
+  const description = richTextToPlain(descriptionDoc);
+  if (description.length > DESCRIPTION_MAX) errors.description = `Keep the description to ${DESCRIPTION_MAX.toLocaleString("en-US")} characters.`;
+
   if (Object.keys(errors).length > 0) return { ok: false, errors };
 
   return {
@@ -239,7 +249,8 @@ export function checkSessionForm(
     warnings,
     values: {
       title: input.title,
-      description: input.description || null,
+      description: description || null,
+      descriptionDoc,
       intention: input.intention || null,
       theme: input.theme || null,
       sessionTypes: input.sessionTypes,
@@ -268,7 +279,7 @@ export function sessionToFormInput(session: SessionValues): SessionFormInput {
       : "";
   return {
     title: session.title,
-    description: session.description ?? "",
+    description: JSON.stringify(session.descriptionDoc ?? plainToRichText(session.description ?? "")),
     intention: session.intention ?? "",
     theme: session.theme ?? "",
     sessionTypes: session.sessionTypes,
@@ -287,4 +298,11 @@ export function sessionToFormInput(session: SessionValues): SessionFormInput {
     aiAllowed: session.aiAssistantAllowed ? "yes" : "no",
     aiPermissions: session.aiPermissions,
   };
+}
+
+/** The description as a cleaned document: the editor posts JSON; anything else is plain text. */
+function readDescription(value: string): RichDoc | null {
+  if (!value) return null;
+  if (value.startsWith("{")) return readRichText(value);
+  return cleanRichText(plainToRichText(value));
 }

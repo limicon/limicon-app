@@ -1,5 +1,6 @@
 import { data, Link } from "react-router";
 
+import { RichText } from "~/components/rich-text";
 import { useBrowserZone, useScheduleRefresh } from "~/components/schedule-refresh";
 import { ThemeLabel } from "~/components/theme-label";
 import { servicesContext } from "~/context";
@@ -128,10 +129,14 @@ export default function ScheduleSession({ loaderData }: Route.ComponentProps) {
         )}
       </section>
 
-      {session.description && (
+      {(session.descriptionDoc || session.description) && (
         <section className="mt-6" aria-labelledby="about">
           <h2 id="about" className="text-xl font-semibold">About this session</h2>
-          <p className="mt-2 whitespace-pre-line">{session.description}</p>
+          {session.descriptionDoc ? (
+            <RichText doc={session.descriptionDoc} className="mt-2" />
+          ) : (
+            <p className="mt-2 whitespace-pre-line">{session.description}</p>
+          )}
         </section>
       )}
       {session.intention && (

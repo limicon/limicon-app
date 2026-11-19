@@ -106,6 +106,16 @@ describe("listScheduledSessions", () => {
   });
 });
 
+describe("Hosting", () => {
+  test("shows only the published sessions the viewer hosts or co-hosts", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const { editionId, coHost } = await setUp(tx);
+      const hosting = await listScheduledSessions(tx, editionId, { ...upcoming, viewerId: coHost, hostingOnly: true });
+      expect(hosting.map((s) => s.title)).toEqual(["Sooner"]);
+    });
+  });
+});
+
 describe("My Schedule", () => {
   test("shows only the sessions the viewer RSVPed to, with their status", async () => {
     await inRolledBackTransaction(async (tx) => {

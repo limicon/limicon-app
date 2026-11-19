@@ -25,7 +25,7 @@ Between 14 and 28 March, Toronto is 4 hours behind London instead of 5. A weekly
 
 ## Lifecycle
 
-A session is either unpublished or published. "Save draft" in the editor saves it unpublished.
+A session is either unpublished or published. "Save draft" in the editor saves it unpublished, and "Take off the calendar" turns a published session back into a draft, keeping every field.
 
 | Status | Calendar page | Members' own calendars |
 |---|---|---|
@@ -53,6 +53,8 @@ Members > Schedule (`app/routes/members/schedule*.tsx`) shows the edition's publ
 
 - **List view.** Sessions grouped by the viewer's calendar day, upcoming soonest first, with past sessions behind a filter. The three-day and month views (CAL-1) come next.
 - **Theme colors (CAL-11).** `app/lib/themes.ts` gives each theme a color, used only as a stripe and a dot beside the theme's name, never as text color. A legend lists all nine.
+- **About this session.** Hosts format the description in a basic rich text editor (bold, italics, underline, strikethrough, lists, quotes, links, emoji; no headings or uploads). `sessions.description_doc` holds the cleaned document (`app/lib/rich-text.ts`) that session pages draw; `sessions.description` keeps its plain text for search.
+- **Three views.** Limicon Schedule (every session), My Schedule (`?view=mine`, below) and Hosting (`?view=hosting`: published sessions the member hosts or co-hosts, each with an Edit link, and a "+ Host a Session" button). Drafts stay under Host a session.
 - **Search and filters (CAL-2).** The search matches titles, descriptions and host names, ignoring case. Theme and session type filter too. All of them live in the URL, so a filtered view can be shared.
 - **The viewer's time zone (CAL-3).** The zone a member picks, saved as `profiles.time_zone`; otherwise their browser's, which the page reads on the first visit and keeps in a `tz` cookie; otherwise Toronto's. `app/lib/format-time.ts` names the zone and locale in every format, so the server and the browser render the same text and hydration matches. A session's page also shows the host's own time when the zones differ.
 - **Live updates (CAL-4).** While the tab is visible, an open schedule or session page fetches `/members/schedule/version` every 10 seconds: a marker built from the count of published sessions, the latest `updated_at` and the total count. When it changes, the page reloads its data. Browsers can't subscribe to Supabase Realtime because the tables have no RLS policies, and Hyperdrive's read caching is off, so each check sees the current database.

@@ -15,6 +15,9 @@ export type HostedSession = {
   role: "host" | "co-host";
 };
 
+/** The description document as a jsonb parameter, or null. */
+const descriptionJson = (sql: Db, v: SessionValues) => (v.descriptionDoc ? sql.json(v.descriptionDoc as never) : null);
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function hasAcceptedGuidelines(sql: Db, userId: string, editionId: number) {
@@ -57,7 +60,7 @@ export async function getEditableSession(
 ): Promise<EditableSession | null> {
   if (!UUID.test(sessionId)) return null;
   const [row] = await sql<EditableSession[]>`
-    select s.id, s.published, s.title, s.description, s.intention, s.theme,
+    select s.id, s.published, s.title, s.description, s.description_doc as "descriptionDoc", s.intention, s.theme,
            s.session_types as "sessionTypes", s.experience,
            s.starts_at as "startsAt", s.ends_at as "endsAt", s.time_zone as "timeZone",
            s.meeting_link as "meetingLink", s.city, s.venue_note as "venueNote",
@@ -82,11 +85,11 @@ export async function createSession(
   return sql.begin(async (tx) => {
     const [row] = await tx<{ id: string }[]>`
       insert into public.sessions (
-        edition_id, created_by, published, title, description, intention, theme, session_types,
+        edition_id, created_by, published, title, description, description_doc, intention, theme, session_types,
         experience, starts_at, ends_at, time_zone, meeting_link, city, venue_note,
         max_participants, waitlist_enabled, privacy, ai_assistant_allowed, ai_permissions
       ) values (
-        ${editionId}, ${userId}, ${publish}, ${v.title}, ${v.description}, ${v.intention}, ${v.theme},
+        ${editionId}, ${userId}, ${publish}, ${v.title}, ${v.description}, ${descriptionJson(sql, v)}, ${v.intention}, ${v.theme},
         ${v.sessionTypes}::text[], ${v.experience}::text[], ${v.startsAt}, ${v.endsAt},
         ${v.timeZone}, ${v.meetingLink}, ${v.city}, ${v.venueNote}, ${v.maxParticipants},
         ${v.waitlistEnabled}, ${v.privacy}, ${v.aiAssistantAllowed}, ${v.aiPermissions}::text[]
@@ -104,6 +107,7 @@ export async function updateSession(sql: Db, sessionId: string, values: SessionV
   await sql`
     update public.sessions set
       published = ${publish}, title = ${v.title}, description = ${v.description},
+      description_doc = ${descriptionJson(sql, v)},
       intention = ${v.intention}, theme = ${v.theme},
       session_types = ${v.sessionTypes}::text[], experience = ${v.experience}::text[],
       starts_at = ${v.startsAt}, ends_at = ${v.endsAt}, time_zone = ${v.timeZone},

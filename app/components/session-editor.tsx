@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Form, useNavigation } from "react-router";
 
+import { RichTextEditor } from "~/components/rich-text-editor";
 import {
   AI_PERMISSIONS,
   EXPERIENCE,
@@ -13,6 +14,7 @@ import {
   type FieldErrors,
   type SessionFormInput,
 } from "~/lib/session-form";
+import { plainToRichText, type RichDoc } from "~/lib/rich-text";
 
 export type EditorStatus = "new" | "draft" | "published";
 
@@ -92,9 +94,14 @@ export function SessionEditor({
           <FieldError id="title-error" message={errors.title} />
         </div>
         <div>
-          <label htmlFor="description" className="block font-medium">About this session</label>
-          <p id="description-help" className="text-sm">What should participants expect? You can include links to materials and references.</p>
-          <textarea id="description" name="description" defaultValue={initial.description} rows={5} aria-describedby="description-help" className={`mt-1 ${input}`} />
+          <p className="block font-medium">About this session</p>
+          <p id="description-help" className="text-sm">
+            What should participants expect? Use the toolbar for bold, italics, underline, lists and links to materials and references.
+          </p>
+          <div className="mt-1">
+            <RichTextEditor name="description" initial={editorStart(initial.description)} label="About this session" describedBy="description-help" basic />
+          </div>
+          <FieldError id="description-error" message={errors.description} />
         </div>
         <div>
           <label htmlFor="intention" className="block font-medium">Intention <span className="font-normal">(optional)</span></label>
@@ -286,9 +293,16 @@ export function SessionEditor({
             <button type="submit" name="intent" value="publish" disabled={busy} className="rounded bg-[#15383F] px-5 py-2.5 font-semibold text-[#F3E6D7] disabled:opacity-60 dark:bg-[#F3E6D7] dark:text-[#15383F]">
               Save changes
             </button>
-            <button type="submit" name="intent" value="draft" disabled={busy} className="rounded border border-[#15383F] px-5 py-2.5 font-semibold disabled:opacity-60 dark:border-[#8CC7D3]">
+            <button
+              type="submit" name="intent" value="draft" disabled={busy} aria-describedby="take-off-note"
+              className="rounded border border-[#15383F] px-5 py-2.5 font-semibold disabled:opacity-60 dark:border-[#8CC7D3]"
+            >
               Take off the calendar
             </button>
+            <p id="take-off-note" className="basis-full text-sm">
+              Taking it off the calendar saves your session as a draft. None of its information is lost, and you can
+              publish it again any time.
+            </p>
           </>
         ) : (
           <>
@@ -308,4 +322,14 @@ export function SessionEditor({
       </div>
     </Form>
   );
+}
+
+/** The editor's starting document: the saved JSON, or nothing. */
+function editorStart(value: string): RichDoc | null {
+  if (!value.startsWith("{")) return value ? plainToRichText(value) : null;
+  try {
+    return JSON.parse(value) as RichDoc;
+  } catch {
+    return null;
+  }
 }
