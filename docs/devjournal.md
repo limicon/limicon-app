@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-19 | Lauren (with Opus 5.5) | Admins edit the event, registration form and policies
+
+The console adds Orders, Guests and Policies, edits the event's name, dates, image and About, and edits the registration form's fields. Rich text is TipTap JSON, cleaned on save; uploads go to the R2 bucket `limicon-media`, which must exist before the next deploy (`config-cloudflare.md`).
+
+---
+
 ## 2026-11-18 | Lauren (with Opus 5.5) | The Privacy Policy and Code of Conduct are public pages
 
 `/privacy` and `/conduct` carry the 5 February 2026 texts, linked from a site map at the foot of every public page and from the registration checkboxes. They stand in until the Organizing Team revises both for 2027; the text lives in `app/content/policies.tsx`.

@@ -1,8 +1,9 @@
 import { Link } from "react-router";
 
 /**
- * The Privacy Policy and Code of Conduct (PUB-1), as last updated on 5 February 2026. Members
- * agree to both when they register, so a change here changes what new registrants agree to.
+ * The Privacy Policy and Code of Conduct (PUB-1) as they stood on 5 February 2026. Admins edit
+ * them in the console's Policies page, which starts from this text; once a policy is edited
+ * there, its page shows the edited version instead (site_documents).
  */
 
 const link = "underline";

@@ -14,3 +14,18 @@ body {
     color-scheme: dark;
   }
 }
+
+/* The rich text editor's writing area, drawn like the rendered text (components/rich-text.tsx). */
+.rich-text-editor {
+  & > * + * { margin-top: 0.75rem; }
+  & h2 { @apply text-2xl font-semibold; }
+  & h3 { @apply text-xl font-semibold; }
+  & h4 { @apply text-lg font-semibold; }
+  & ul { @apply list-disc pl-6; }
+  & ol { @apply list-decimal pl-6; }
+  & blockquote { @apply border-l-4 border-current/30 pl-4 italic; }
+  & a { @apply underline; }
+  & img { @apply max-w-full rounded; }
+  & img.ProseMirror-selectednode { outline: 3px solid #2e6b78; }
+  & hr { @apply border-current/20; }
+}

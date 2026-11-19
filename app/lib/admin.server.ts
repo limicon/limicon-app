@@ -21,57 +21,107 @@ export async function getAdminPermissions(sql: Db, userId: string): Promise<stri
 
 // --- Overview -------------------------------------------------------------------------------
 
-export type Overview = {
-  accounts: number;
-  newAccountsThisWeek: number;
-  tickets: { paid: number; comp: number; refunded: number };
+/** The four headline numbers, for the whole edition or for the last 7 days. */
+export type OverviewTotals = {
+  ticketHolders: number;
+  paid: number;
+  comp: number;
   revenueCents: number;
-  byTier: { name: string; tickets: number; revenueCents: number }[];
+  accounts: number;
+  admins: number;
+};
+
+export type RecentBuyer = {
+  orderId: number;
+  profileId: string;
+  name: string | null;
+  email: string | null;
+  tier: string | null;
+  quantity: number;
+  status: "paid" | "comp";
+  amountCents: number;
+  at: Date;
+};
+
+export type Overview = {
+  totals: OverviewTotals;
+  thisWeek: OverviewTotals;
+  /** Everyone whose order completed in the last 7 days, most recent first. */
+  recentBuyers: RecentBuyer[];
   /** Registrations (paid and comp) per week, oldest first, for the last 12 weeks. */
   weekly: { weekOf: string; tickets: number }[];
-  sessions: { published: number; drafts: number; cocreation: number; hosts: number };
-  guidelineAcceptances: number;
-  admins: number;
+  sessions: { allTime: number; published: number; drafts: number; hosts: number };
   pendingInvitations: number;
 };
 
 /** The numbers for the console's front page, for one edition. */
 export async function getOverview(sql: Db, editionId: number): Promise<Overview> {
-  const [counts] = await sql<
-    {
-      accounts: number;
-      newAccountsThisWeek: number;
-      paid: number;
-      comp: number;
-      refunded: number;
-      revenueCents: number;
-      published: number;
-      drafts: number;
-      cocreation: number;
-      hosts: number;
-      guidelineAcceptances: number;
-      admins: number;
-      pendingInvitations: number;
-    }[]
-  >`
-    select
-      (select count(*) from public.profiles)::int as accounts,
-      (select count(*) from public.profiles where created_at > now() - interval '7 days')::int as "newAccountsThisWeek",
-      (select count(*) from public.tickets where edition_id = ${editionId} and status = 'paid')::int as paid,
-      (select count(*) from public.tickets where edition_id = ${editionId} and status = 'comp')::int as comp,
-      (select count(*) from public.tickets where edition_id = ${editionId} and status = 'refunded')::int as refunded,
-      (select coalesce(sum(amount_paid_cents), 0) from public.tickets
-        where edition_id = ${editionId} and status = 'paid')::int as "revenueCents",
-      (select count(*) from public.sessions where edition_id = ${editionId} and published)::int as published,
-      (select count(*) from public.sessions where edition_id = ${editionId} and not published)::int as drafts,
-      (select count(*) from public.sessions where edition_id = ${editionId} and is_cocreation_meeting)::int as cocreation,
-      (select count(distinct h.profile_id) from public.session_hosts h
-        join public.sessions s on s.id = h.session_id where s.edition_id = ${editionId})::int as hosts,
-      (select count(*) from public.host_guideline_acceptances where edition_id = ${editionId})::int as "guidelineAcceptances",
-      (select count(distinct profile_id) from public.admin_permissions)::int as admins,
-      (select count(distinct email) from public.admin_invitations)::int as "pendingInvitations"
-  `;
-  const byTier = await sql<Overview["byTier"]>`
+  const totals = async (since: string | null) => {
+    const after = since === null ? sql`true` : sql`created_at > now() - ${since}::interval`;
+    const [row] = await sql<OverviewTotals[]>`
+      select
+        (select count(*) from public.tickets where edition_id = ${editionId} and status in ('paid', 'comp') and ${after})::int as "ticketHolders",
+        (select count(*) from public.tickets where edition_id = ${editionId} and status = 'paid' and ${after})::int as paid,
+        (select count(*) from public.tickets where edition_id = ${editionId} and status = 'comp' and ${after})::int as comp,
+        (select coalesce(sum(amount_cents), 0) from public.orders
+          where edition_id = ${editionId} and status = 'paid'
+            and ${since === null ? sql`true` : sql`coalesce(completed_at, created_at) > now() - ${since}::interval`})::int as "revenueCents",
+        (select count(*) from public.profiles where ${after})::int as accounts,
+        (select count(distinct profile_id) from public.admin_permissions
+          where ${since === null ? sql`true` : sql`granted_at > now() - ${since}::interval`})::int as admins
+    `;
+    return row!;
+  };
+  const [all, week, recentBuyers, weekly, [other]] = await Promise.all([
+    totals(null),
+    totals("7 days"),
+    sql<(Omit<RecentBuyer, "orderId"> & { orderId: string })[]>`
+      select o.id as "orderId", p.id as "profileId", nullif(trim(concat_ws(' ', p.first_name, p.last_name)), '') as name,
+             u.email, tt.name as tier, o.quantity, o.status, o.amount_cents as "amountCents",
+             coalesce(o.completed_at, o.created_at) as at
+      from public.orders o
+      join public.profiles p on p.id = o.buyer_id
+      left join auth.users u on u.id = p.id
+      left join public.ticket_tiers tt on tt.id = o.tier_id
+      where o.edition_id = ${editionId} and o.status in ('paid', 'comp')
+        and coalesce(o.completed_at, o.created_at) > now() - interval '7 days'
+      order by at desc
+    `,
+    sql<Overview["weekly"]>`
+      select to_char(week, 'YYYY-MM-DD') as "weekOf", count(t.id)::int as tickets
+      from generate_series(
+        date_trunc('week', now()) - interval '11 weeks', date_trunc('week', now()), interval '1 week'
+      ) as week
+      left join public.tickets t
+        on t.edition_id = ${editionId} and t.status in ('paid', 'comp')
+        and date_trunc('week', t.created_at) = week
+      group by week
+      order by week
+    `,
+    sql<{ allTime: number; published: number; drafts: number; hosts: number; pendingInvitations: number }[]>`
+      select
+        (select count(*) from public.sessions where published)::int as "allTime",
+        (select count(*) from public.sessions where edition_id = ${editionId} and published)::int as published,
+        (select count(*) from public.sessions where edition_id = ${editionId} and not published)::int as drafts,
+        (select count(distinct h.profile_id) from public.session_hosts h
+          join public.sessions s on s.id = h.session_id where s.edition_id = ${editionId})::int as hosts,
+        (select count(distinct email) from public.admin_invitations)::int as "pendingInvitations"
+    `,
+  ]);
+  const { pendingInvitations, ...sessions } = other!;
+  return {
+    totals: all,
+    thisWeek: week,
+    recentBuyers: recentBuyers.map((b) => ({ ...b, orderId: Number(b.orderId) })),
+    weekly: [...weekly],
+    sessions,
+    pendingInvitations,
+  };
+}
+
+/** Ticket holders and revenue by tier, for the Orders page's details. */
+export async function getTierBreakdown(sql: Db, editionId: number) {
+  return sql<{ name: string; tickets: number; revenueCents: number }[]>`
     select coalesce(tt.name, 'No tier') as name, count(*)::int as tickets,
            coalesce(sum(t.amount_paid_cents) filter (where t.status = 'paid'), 0)::int as "revenueCents"
     from public.tickets t
@@ -80,38 +130,13 @@ export async function getOverview(sql: Db, editionId: number): Promise<Overview>
     group by tt.name, tt.sort_order
     order by tt.sort_order nulls last, tt.name
   `;
-  const weekly = await sql<Overview["weekly"]>`
-    select to_char(week, 'YYYY-MM-DD') as "weekOf", count(t.id)::int as tickets
-    from generate_series(
-      date_trunc('week', now()) - interval '11 weeks', date_trunc('week', now()), interval '1 week'
-    ) as week
-    left join public.tickets t
-      on t.edition_id = ${editionId} and t.status in ('paid', 'comp')
-      and date_trunc('week', t.created_at) = week
-    group by week
-    order by week
-  `;
-  const c = counts!;
-  return {
-    accounts: c.accounts,
-    newAccountsThisWeek: c.newAccountsThisWeek,
-    tickets: { paid: c.paid, comp: c.comp, refunded: c.refunded },
-    revenueCents: c.revenueCents,
-    byTier: [...byTier],
-    weekly: [...weekly],
-    sessions: { published: c.published, drafts: c.drafts, cocreation: c.cocreation, hosts: c.hosts },
-    guidelineAcceptances: c.guidelineAcceptances,
-    admins: c.admins,
-    pendingInvitations: c.pendingInvitations,
-  };
 }
 
 // --- Edition settings -----------------------------------------------------------------------
 
 export async function getEditionSettings(sql: Db, editionId: number): Promise<EditionSettings> {
   const [row] = await sql<EditionSettings[]>`
-    select to_char(starts_on, 'YYYY-MM-DD') as "startsOn", to_char(ends_on, 'YYYY-MM-DD') as "endsOn",
-           registration_open as "registrationOpen", calendar_open as "calendarOpen"
+    select registration_open as "registrationOpen", calendar_open as "calendarOpen"
     from public.editions where id = ${editionId}
   `;
   return row!;
@@ -119,9 +144,7 @@ export async function getEditionSettings(sql: Db, editionId: number): Promise<Ed
 
 export async function updateEditionSettings(sql: Db, editionId: number, v: EditionSettings) {
   await sql`
-    update public.editions set
-      starts_on = ${v.startsOn}, ends_on = ${v.endsOn},
-      registration_open = ${v.registrationOpen}, calendar_open = ${v.calendarOpen}
+    update public.editions set registration_open = ${v.registrationOpen}, calendar_open = ${v.calendarOpen}
     where id = ${editionId}
   `;
 }
@@ -325,21 +348,39 @@ export async function issueCompTicket(
     const tiers = await sql`select 1 from public.ticket_tiers where id = ${args.tierId} and edition_id = ${args.editionId}`;
     if (!tiers.length) return "bad-tier";
   }
-  const rows = await sql`
-    insert into public.tickets (profile_id, edition_id, tier_id, status)
-    values (${user.id}, ${args.editionId}, ${args.tierId}, 'comp')
-    on conflict (profile_id, edition_id) where status <> 'refunded' do nothing
-    returning id
-  `;
-  return rows.length ? "issued" : "has-ticket";
+  // A comp is an order of one, so it shows on the Orders page beside purchases.
+  return sql.begin(async (tx) => {
+    const held = await tx`
+      select 1 from public.tickets where profile_id = ${user.id} and edition_id = ${args.editionId} and status <> 'refunded'
+    `;
+    if (held.length) return "has-ticket" as const;
+    const [order] = await tx<{ id: string }[]>`
+      insert into public.orders (edition_id, buyer_id, tier_id, quantity, status, completed_at)
+      values (${args.editionId}, ${user.id}, ${args.tierId}, 1, 'comp', now())
+      returning id
+    `;
+    await tx`
+      insert into public.tickets (profile_id, edition_id, tier_id, status, order_id)
+      values (${user.id}, ${args.editionId}, ${args.tierId}, 'comp', ${order!.id})
+    `;
+    return "issued" as const;
+  }) as Promise<CompResult>;
 }
 
 /** Takes back a comp ticket. Paid tickets are refunded through Stripe instead (REG-8). */
 export async function removeCompTicket(sql: Db, editionId: number, ticketId: number) {
-  const rows = await sql`
+  const rows = await sql<{ orderId: string | null }[]>`
     delete from public.tickets where id = ${ticketId} and edition_id = ${editionId} and status = 'comp'
-    returning id
+    returning order_id as "orderId"
   `;
+  // Its order goes too, once no ticket is left on it.
+  const orderId = rows[0]?.orderId;
+  if (orderId) {
+    await sql`
+      delete from public.orders o where o.id = ${orderId} and o.status = 'comp'
+        and not exists (select 1 from public.tickets t where t.order_id = o.id)
+    `;
+  }
   return rows.length > 0;
 }
 

@@ -1,9 +1,12 @@
-import { data, Form, redirect, useNavigation } from "react-router";
+import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import { Badge, card, dangerButton, FieldError, formatWhen, inputClass, Notice, PageHeading, primaryButton, secondaryButton } from "~/components/admin-ui";
+import { RegistrationFields } from "~/components/registration-fields";
 import { servicesContext } from "~/context";
 import { checkEmailField, formatDollars } from "~/lib/admin-forms";
 import { issueCompTicket, listTickets, listTiers, removeCompTicket } from "~/lib/admin.server";
+import { blankRegistration } from "~/lib/registration-form";
+import { getRegistrationFields } from "~/lib/registration.server";
 import type { Route } from "./+types/tickets";
 
 export function meta({}: Route.MetaArgs) {
@@ -22,8 +25,12 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   const query = new URL(request.url).searchParams;
   const search = (query.get("q") ?? "").slice(0, 100);
   const db = services.db();
-  const [tickets, tiers] = await Promise.all([listTickets(db, edition.id, search), listTiers(db, edition.id)]);
-  return { year: edition.year, search, tickets, tiers: tiers.map(({ id, name }) => ({ id, name })), done: query.get("done") };
+  const [tickets, tiers, fields] = await Promise.all([
+    listTickets(db, edition.id, search),
+    listTiers(db, edition.id),
+    getRegistrationFields(db, edition.id),
+  ]);
+  return { year: edition.year, search, tickets, tiers: tiers.map(({ id, name }) => ({ id, name })), fields, done: query.get("done") };
 }
 
 const compProblems = {
@@ -62,6 +69,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 const doneMessages: Record<string, string> = {
   comp: "Comp ticket issued. They can open the Members area now.",
+  form: "Registration form saved. Registrants see the new form now.",
   removed: "Comp ticket removed.",
 };
 
@@ -72,7 +80,7 @@ const statusBadge = {
 } as const;
 
 export default function AdminTickets({ loaderData, actionData }: Route.ComponentProps) {
-  const { tickets, tiers, search, done, year } = loaderData;
+  const { tickets, tiers, fields, search, done, year } = loaderData;
   const busy = useNavigation().state !== "idle";
   return (
     <>
@@ -111,6 +119,21 @@ export default function AdminTickets({ loaderData, actionData }: Route.Component
         <p className="text-sm opacity-80">The person needs an account first: anyone can make one by signing in once.</p>
       </Form>
 
+      <section aria-labelledby="preview-heading" className="mb-10 max-w-3xl">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 id="preview-heading" className="text-lg font-semibold">What registrants see</h2>
+            <p className="text-sm opacity-80">The registration form on the tickets page, before choosing a ticket. This preview can't be filled in.</p>
+          </div>
+          <Link to="/admin/tickets/form" className={primaryButton}>Edit</Link>
+        </div>
+        <div className="mt-4 grid gap-6 rounded-lg border-2 border-dashed border-[#C9DADC] bg-[#F4F7F7] p-4 dark:border-[#24363B] dark:bg-[#0B1417]" aria-label="Preview of the registration form">
+          <p className="text-2xl font-semibold">Register for Limicon {year}</p>
+          <RegistrationFields fields={fields} input={blankRegistration(fields)} email={null} preview />
+        </div>
+      </section>
+
+      <h2 className="mb-3 text-lg font-semibold">Ticket holders</h2>
       <div className="mb-4 flex max-w-5xl flex-wrap items-end justify-between gap-3">
         <Form method="get" role="search" className="flex items-end gap-2">
           <div>

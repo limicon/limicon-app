@@ -15,6 +15,8 @@ export type RequestServices = {
   /** The viewer's access to the Members area, looked up once per request on first use. */
   membership: () => Promise<Membership>;
   settings: { googleSignInEnabled: boolean };
+  /** The bucket holding uploaded images and files, served at /media/<key>. */
+  media: R2Bucket;
 };
 
 export const servicesContext = createContext<RequestServices>();

@@ -7,6 +7,7 @@ import {
   addTier,
   deleteTier,
   getOverview,
+  getTierBreakdown,
   inviteAdmin,
   issueCompTicket,
   listAllSessions,
@@ -66,8 +67,10 @@ describe("comp tickets", () => {
       expect(await issueCompTicket(tx, { editionId, email: "nobody@example.org", tierId: null })).toBe("no-account");
 
       const overview = await getOverview(tx, editionId);
-      expect(overview.tickets).toEqual({ paid: 0, comp: 1, refunded: 0 });
-      expect(overview.byTier).toEqual([{ name: "Community", tickets: 1, revenueCents: 0 }]);
+      expect(overview.totals).toMatchObject({ ticketHolders: 1, paid: 0, comp: 1, revenueCents: 0 });
+      expect(overview.thisWeek).toMatchObject({ ticketHolders: 1, comp: 1 });
+      expect(overview.recentBuyers).toEqual([expect.objectContaining({ name: "Pat", tier: "Community", status: "comp", quantity: 1 })]);
+      expect(await getTierBreakdown(tx, editionId)).toEqual([{ name: "Community", tickets: 1, revenueCents: 0 }]);
       expect(overview.weekly).toHaveLength(12);
       expect(overview.weekly.at(-1)!.tickets).toBe(1);
 
@@ -78,6 +81,8 @@ describe("comp tickets", () => {
       // A tier with tickets stays.
       expect(await deleteTier(tx, editionId, tier!.id)).toBe(false);
       expect(await removeCompTicket(tx, editionId, ticket!.id)).toBe(true);
+      // The comp's order goes with it.
+      expect((await getOverview(tx, editionId)).recentBuyers).toEqual([]);
       expect(await deleteTier(tx, editionId, tier!.id)).toBe(true);
     });
   });

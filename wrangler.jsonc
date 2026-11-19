@@ -25,6 +25,14 @@
 			"localConnectionString": "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 		}
 	],
+	// Images and files admins upload, such as the event image and attachments in rich text. Served
+	// by the app at /media/<key>. Locally, Wrangler keeps the bucket on disk under .wrangler.
+	"r2_buckets": [
+		{
+			"binding": "MEDIA",
+			"bucket_name": "limicon-media"
+		}
+	],
 	// The hosted Supabase project, for sign-in. Both values are public. `.dev.vars` overrides
 	// them locally to point at the local Supabase.
 	"vars": {

@@ -30,6 +30,7 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
           <NavLink to={signedIn ? "/account" : "/sign-in"} className="font-medium">
             {signedIn ? "Your account" : "Sign in"}
           </NavLink>
+          {membership.isAdmin && <AdminButton />}
         </nav>
       </header>
       <div className="flex-1">
@@ -37,6 +38,18 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
       </div>
       <SiteFooter signedIn={signedIn} />
     </div>
+  );
+}
+
+/** The way into the admin console, last in the menu and rendered only for admins. */
+function AdminButton() {
+  return (
+    <Link
+      to="/admin"
+      className="rounded bg-[#2A1E14] px-3 py-1.5 text-sm font-semibold text-[#F3E6D7] hover:bg-[#3D2C1E] dark:bg-[#F3E6D7] dark:text-[#2A1E14]"
+    >
+      Admin
+    </Link>
   );
 }
 

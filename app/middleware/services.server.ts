@@ -40,6 +40,7 @@ export const servicesMiddleware: MiddlewareFunction<Response> = async (
     db,
     membership: () => (membership ??= getMembership(db(), viewer?.userId ?? null)),
     settings: { googleSignInEnabled: env.GOOGLE_SIGN_IN_ENABLED === "true" },
+    media: env.MEDIA,
   });
 
   try {

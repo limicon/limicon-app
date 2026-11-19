@@ -53,15 +53,20 @@ export default function MembersLayout({ loaderData }: Route.ComponentProps) {
                   </NavLink>
                 </li>
               ))}
+              {loaderData.isAdmin && (
+                <li className="md:mt-3">
+                  <Link
+                    to="/admin"
+                    className="block rounded border border-[#F3E6D7]/60 px-2 py-1.5 font-semibold hover:bg-white/10 md:px-3"
+                  >
+                    Admin
+                  </Link>
+                </li>
+              )}
             </ul>
           </nav>
           <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/15 pt-4 text-sm md:mt-8 md:flex-col md:items-start">
             {loaderData.email && <span className="opacity-80">{loaderData.email}</span>}
-            {loaderData.isAdmin && (
-              <Link to="/admin" className="underline">
-                Admin console
-              </Link>
-            )}
             <Link to="/" className="underline">
               Public website
             </Link>

@@ -134,7 +134,7 @@ During the event, admins add relevant Liminal Calendar events to the Limicon cal
   - a confirmation that they will add team@limicon.org to their contacts
   - a confirmation that they will check the website and FAQ before emailing questions
 
-  Agreements store a timestamp. Admins can edit these questions.
+  Agreements store a timestamp. Admins can reword, reorder and remove these questions, and add short answers, long answers, checkboxes, headlines and paragraph text. The name and email always come first.
 - **REG-3** Ticket tiers are fixed and all give the same access. 2026 tiers were Community $25, Standard $50, Abundant $100 and Benefactor $200. Admins set the tier names and prices for each edition.
 - **REG-4** The tier picker shows admin-editable text above the tiers. By default it says:
   - Limicon aims to be financially accessible.
@@ -356,12 +356,14 @@ The model separates an account (a person, permanent) from a ticket (a person's p
 | profiles | One row per person, linked to the auth account | name, photo, location, bio, extended bio, links, keywords, time zone, allow\_messages, show\_in\_directory, deactivated\_at |
 | admin\_permissions | Who holds which admin permission | profile, permission, granted\_by, granted\_at |
 | admin\_user\_notes | Private notes admins keep about a person | profile, author, body, created\_at |
-| editions | One row per Limicon year | year, start and end dates, registration\_open, calendar\_open |
+| editions | One row per Limicon year | year, name, teaser, start and end with their time zones, image, about (rich text), start and end dates, registration\_open, calendar\_open |
 | edition\_links | External links for members per edition (MEM-2) | edition, label, url, sort order |
 | ticket\_tiers | Tiers per edition | edition, name, price, sort order |
 | discount\_codes | Admin-created codes | code, type (percent or amount), value, expires\_at, max\_uses, tier restriction |
-| tickets | A person's registration for an edition | profile, edition, tier, amount\_paid, discount\_code, stripe\_session\_id, status, imported |
-| registration\_answers | Answers to registration questions, given before paying | profile, edition, question, answer, answered\_at (when agreed, for agreements) |
+| orders | A purchase of one or more tickets | edition, buyer, tier, quantity, status (pending, paid, comp or refunded), amount, stripe\_session\_id |
+| tickets | A person's registration for an edition | profile, edition, order, tier, amount\_paid, discount\_code, stripe\_session\_id, status, imported |
+| registration\_fields | The registration form's fields after the name, which admins edit | edition, key, kind (short, long, checkbox, headline or paragraph), label, help, required, link, sort order |
+| registration\_answers | Answers to registration questions, given before paying | profile, edition, question (a field's key), answer, answered\_at (when agreed, for agreements) |
 | contacts, contact\_tags | Migrated and mailing list contacts | email, name, source, tags |
 | sessions | A session or co-creation meeting | edition, title, description, intention, theme, format, online or in person, start, end, time zone, meeting\_link, max\_participants, waitlist\_enabled, privacy\_option, ai\_consent fields, is\_cocreation\_meeting, status |
 | session\_hosts | Host and co-host link | session, profile, role |
@@ -375,6 +377,7 @@ The model separates an account (a person, permanent) from a ticket (a person's p
 | reports | Moderation | reporter, target message or profile, reason, status |
 | stitchfest\_submissions | Stitchfest portal | profile, edition, project fields, status, presentation slot |
 | site\_pages | Editable site content | slug, title, body, menu position, published |
+| site\_documents | The policies, edited in the console | slug, title, body (rich text), updated\_by |
 | faq\_entries | The public FAQ, edited in the console | question, answer, published, sort order, updated\_by |
 | mailing\_list | Public sign-ups | email, source, subscribed\_at |
 

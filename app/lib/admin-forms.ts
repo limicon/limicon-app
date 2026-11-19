@@ -40,13 +40,6 @@ function isWebAddress(value: string) {
 }
 
 export type EditionSettings = {
-  startsOn: string | null;
-  endsOn: string | null;
-  registrationOpen: boolean;
-  calendarOpen: boolean;
-};
-
-export type EditionInput = Record<"startsOn" | "endsOn", string> & {
   registrationOpen: boolean;
   calendarOpen: boolean;
 };
@@ -55,31 +48,9 @@ export type Checked<V, I> =
   | { ok: true; values: V }
   | { ok: false; input: I; errors: Partial<Record<keyof I, string>> };
 
-/** The edition settings form: event dates, and the registration and calendar switches. */
-export function checkEditionForm(form: FormLike): Checked<EditionSettings, EditionInput> {
-  const input: EditionInput = {
-    startsOn: text(form, "startsOn"),
-    endsOn: text(form, "endsOn"),
-    registrationOpen: form.get("registrationOpen") === "on",
-    calendarOpen: form.get("calendarOpen") === "on",
-  };
-  const errors: Partial<Record<keyof EditionInput, string>> = {};
-  for (const name of ["startsOn", "endsOn"] as const) {
-    if (input[name] && !isRealDate(input[name])) errors[name] = "Enter a date.";
-  }
-  if (!errors.startsOn && !errors.endsOn && input.startsOn && input.endsOn && input.endsOn < input.startsOn) {
-    errors.endsOn = "The last day can't be before the first day.";
-  }
-  if (Object.keys(errors).length) return { ok: false, input, errors };
-  return {
-    ok: true,
-    values: {
-      startsOn: input.startsOn || null,
-      endsOn: input.endsOn || null,
-      registrationOpen: input.registrationOpen,
-      calendarOpen: input.calendarOpen,
-    },
-  };
+/** The registration and calendar switches (REG-10, CAL-9). An unticked box is off. */
+export function readSwitchesForm(form: FormLike): EditionSettings {
+  return { registrationOpen: form.get("registrationOpen") === "on", calendarOpen: form.get("calendarOpen") === "on" };
 }
 
 export const LINK_LABEL_MAX = 60;
@@ -112,6 +83,102 @@ export function checkLinksForm(form: { getAll(name: string): unknown[] }):
 }
 
 export const NOTE_MAX = 5000;
+
+export const EVENT_NAME_MAX = 120;
+export const TEASER_MAX = 300;
+
+export type EventInput = {
+  name: string;
+  teaser: string;
+  startDate: string;
+  startTime: string;
+  startTimeZone: string;
+  endDate: string;
+  endTime: string;
+  endTimeZone: string;
+  imageKey: string;
+  about: string;
+};
+
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/**
+ * The event form. Start and end are each a date, a time and a zone; either may be left wholly
+ * blank, but a half-filled one, or an end before the start, is an error. `toInstant` converts a
+ * zoned date and time (zonedToInstant), and `cleanAbout` the posted About document.
+ */
+export function checkEventForm<Doc>(
+  form: FormLike,
+  helpers: {
+    toInstant: (date: string, time: string, zone: string) => Date | "nonexistent";
+    isZone: (zone: string) => boolean;
+    isImageKey: (key: string) => boolean;
+    cleanAbout: (value: unknown) => Doc | null;
+  },
+):
+  | { ok: true; values: { name: string | null; teaser: string | null; startsAt: Date | null; endsAt: Date | null; startTimeZone: string | null; endTimeZone: string | null; imageKey: string | null; about: Doc | null } }
+  | { ok: false; input: EventInput; errors: Partial<Record<keyof EventInput, string>> } {
+  const input: EventInput = {
+    name: text(form, "name"),
+    teaser: text(form, "teaser"),
+    startDate: text(form, "startDate"),
+    startTime: text(form, "startTime"),
+    startTimeZone: text(form, "startTimeZone"),
+    endDate: text(form, "endDate"),
+    endTime: text(form, "endTime"),
+    endTimeZone: text(form, "endTimeZone"),
+    imageKey: text(form, "imageKey"),
+    about: typeof form.get("about") === "string" ? (form.get("about") as string) : "",
+  };
+  const errors: Partial<Record<keyof EventInput, string>> = {};
+  if (!input.name) errors.name = "Give the event a name.";
+  else if ([...input.name].length > EVENT_NAME_MAX) errors.name = `Keep the name to ${EVENT_NAME_MAX} characters.`;
+  if ([...input.teaser].length > TEASER_MAX) errors.teaser = `Keep the teaser to ${TEASER_MAX} characters.`;
+
+  const when = (which: "start" | "end") => {
+    const date = input[`${which}Date`];
+    const time = input[`${which}Time`];
+    const zone = input[`${which}TimeZone`];
+    if (!date && !time) return null;
+    if (!isRealDate(date)) {
+      errors[`${which}Date`] = "Enter a date.";
+      return null;
+    }
+    if (!TIME.test(time)) {
+      errors[`${which}Time`] = "Enter a time.";
+      return null;
+    }
+    if (!helpers.isZone(zone)) {
+      errors[`${which}TimeZone`] = "Choose a time zone.";
+      return null;
+    }
+    const instant = helpers.toInstant(date, time, zone);
+    if (instant === "nonexistent") {
+      errors[`${which}Time`] = "That time doesn't exist in this zone: the clocks skip it. Choose another.";
+      return null;
+    }
+    return instant;
+  };
+  const startsAt = when("start");
+  const endsAt = when("end");
+  if (startsAt && endsAt && endsAt <= startsAt) errors.endDate = "The end must be after the start.";
+  if (input.imageKey && !helpers.isImageKey(input.imageKey)) errors.imageKey = "Upload the image again.";
+
+  if (Object.keys(errors).length) return { ok: false, input, errors };
+  return {
+    ok: true,
+    values: {
+      name: input.name,
+      teaser: input.teaser || null,
+      startsAt,
+      endsAt,
+      startTimeZone: startsAt ? input.startTimeZone : null,
+      endTimeZone: endsAt ? input.endTimeZone : null,
+      imageKey: input.imageKey || null,
+      about: helpers.cleanAbout(input.about),
+    },
+  };
+}
 
 export const FAQ_QUESTION_MAX = 300;
 export const FAQ_ANSWER_MAX = 10000;

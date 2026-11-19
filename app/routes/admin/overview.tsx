@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { card, formatWhen, PageHeading } from "~/components/admin-ui";
 import { servicesContext } from "~/context";
 import { formatDollars } from "~/lib/admin-forms";
-import { getOverview, type Overview } from "~/lib/admin.server";
+import { getOverview, type Overview, type OverviewTotals, type RecentBuyer } from "~/lib/admin.server";
 import type { Route } from "./+types/overview";
 
 export function meta({}: Route.MetaArgs) {
@@ -27,37 +27,96 @@ export default function AdminOverview({ loaderData }: Route.ComponentProps) {
       </PageHeading>
     );
   }
-  const active = overview.tickets.paid + overview.tickets.comp;
+  const { totals, thisWeek, recentBuyers } = overview;
   return (
     <>
       <PageHeading title="Overview">
-        <p>How Limicon {year} is going. Ticket and session numbers count this edition only.</p>
+        <p>How Limicon {year} is going. Ticket numbers count this edition only.</p>
       </PageHeading>
 
-      <section aria-labelledby="registration-heading">
-        <h2 id="registration-heading" className="text-xl font-semibold">Registration</h2>
-        <dl className="mt-3 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat label="Ticket holders" value={active} detail={`${overview.tickets.paid} paid · ${overview.tickets.comp} comp`} to="/admin/tickets" />
-          <Stat label="Ticket revenue" value={formatDollars(overview.revenueCents)} detail={overview.tickets.refunded ? `${overview.tickets.refunded} refunded` : "Before Stripe fees"} />
-          <Stat label="Accounts" value={overview.accounts} detail={`${overview.newAccountsThisWeek} new in the last 7 days`} />
-          <Stat label="Admins" value={overview.admins} detail={overview.pendingInvitations ? `${overview.pendingInvitations} invited, not yet signed in` : "No invitations waiting"} to="/admin/team" />
-        </dl>
-        <div className="mt-4 grid max-w-5xl gap-4 lg:grid-cols-[3fr_2fr]">
-          <WeeklyChart weekly={overview.weekly} />
-          <TierBreakdown byTier={overview.byTier} />
-        </div>
+      <section aria-labelledby="totals-heading">
+        <h2 id="totals-heading" className="text-xl font-semibold">Totals</h2>
+        <TotalsRow totals={totals} pendingInvitations={overview.pendingInvitations} />
       </section>
+
+      <section aria-labelledby="week-heading" className="mt-6 max-w-5xl">
+        <details className="group">
+          <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-3 [&::-webkit-details-marker]:hidden">
+            <h2 id="week-heading" className="text-xl font-semibold">
+              <span aria-hidden="true" className="inline-block transition-transform group-open:rotate-90">▸</span> This week
+            </h2>
+            <span className="text-sm opacity-80">
+              The last 7 days · {recentBuyers.length} {recentBuyers.length === 1 ? "purchase" : "purchases"} · open to see who
+            </span>
+          </summary>
+          <BuyerList buyers={recentBuyers} />
+        </details>
+        <TotalsRow totals={thisWeek} />
+      </section>
+
+      <div className="mt-6 grid max-w-5xl gap-4">
+        <WeeklyChart weekly={overview.weekly} />
+      </div>
 
       <section aria-labelledby="sessions-heading" className="mt-10">
         <h2 id="sessions-heading" className="text-xl font-semibold">Sessions</h2>
         <dl className="mt-3 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat label="On the calendar" value={overview.sessions.published} to="/admin/sessions?show=published" />
+          <Stat label="Added to the calendar, all years" value={overview.sessions.allTime} detail="Past and present" />
+          <Stat label={`On the ${year} calendar`} value={overview.sessions.published} to="/admin/sessions?show=published" />
           <Stat label="Drafts" value={overview.sessions.drafts} to="/admin/sessions?show=drafts" />
-          <Stat label="Hosts" value={overview.sessions.hosts} detail={`${overview.guidelineAcceptances} accepted the guidelines`} />
-          <Stat label="Co-creation meetings" value={overview.sessions.cocreation} to="/admin/sessions?show=cocreation" />
+          <Stat label="Hosts" value={overview.sessions.hosts} />
         </dl>
       </section>
     </>
+  );
+}
+
+function TotalsRow({ totals, pendingInvitations }: { totals: OverviewTotals; pendingInvitations?: number }) {
+  return (
+    <dl className="mt-3 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <Stat label="Ticket holders" value={totals.ticketHolders} detail={`${totals.paid} paid · ${totals.comp} comp`} to="/admin/guests" />
+      <Stat label="Ticket revenue" value={formatDollars(totals.revenueCents)} detail="Before Stripe fees" to="/admin/orders" />
+      <Stat label="Accounts" value={totals.accounts} to="/admin/users" />
+      <Stat
+        label="Admins"
+        value={totals.admins}
+        detail={pendingInvitations === undefined ? undefined : pendingInvitations ? `${pendingInvitations} invited, not yet signed in` : "No invitations waiting"}
+        to="/admin/team"
+      />
+    </dl>
+  );
+}
+
+/** Who bought in the last 7 days, newest first, so an admin can reach out. */
+function BuyerList({ buyers }: { buyers: RecentBuyer[] }) {
+  if (buyers.length === 0) return <p className="mt-3 text-sm">Nobody has bought a ticket in the last 7 days.</p>;
+  return (
+    <div className="mt-3 mb-4 overflow-x-auto rounded-lg border border-[#C9DADC] bg-white dark:border-[#24363B] dark:bg-[#12201F]">
+      <table className="w-full text-left text-sm">
+        <thead className="bg-[#EEF3F3] dark:bg-[#16262A]">
+          <tr>
+            <th scope="col" className="px-3 py-2 font-semibold">Name</th>
+            <th scope="col" className="px-3 py-2 font-semibold">Email</th>
+            <th scope="col" className="px-3 py-2 font-semibold">Ticket</th>
+            <th scope="col" className="px-3 py-2 text-right font-semibold">Price</th>
+            <th scope="col" className="px-3 py-2 font-semibold">When</th>
+          </tr>
+        </thead>
+        <tbody>
+          {buyers.map((b) => (
+            <tr key={b.orderId} className="border-t border-[#E2E8E9] dark:border-[#24363B]">
+              <td className="px-3 py-2">
+                <Link to={`/admin/users/${b.profileId}`} className="font-semibold underline">{b.name ?? b.email ?? "Unknown"}</Link>
+              </td>
+              <td className="px-3 py-2 break-all">{b.email && <a href={`mailto:${b.email}`} className="underline">{b.email}</a>}</td>
+              <td className="px-3 py-2">{b.tier ?? "No tier"}{b.quantity > 1 ? ` × ${b.quantity}` : ""}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{b.status === "comp" ? "Comped" : formatDollars(b.amountCents)}</td>
+              <td className="px-3 py-2 whitespace-nowrap">{formatWhen(b.at, { dateStyle: "medium", timeStyle: "short" })} UTC</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -128,42 +187,6 @@ function WeeklyChart({ weekly }: { weekly: Overview["weekly"] }) {
           </tbody>
         </table>
       </details>
-    </figure>
-  );
-}
-
-function TierBreakdown({ byTier }: { byTier: Overview["byTier"] }) {
-  const max = Math.max(1, ...byTier.map((tier) => tier.tickets));
-  return (
-    <figure className={card}>
-      <figcaption className="font-semibold">Ticket holders by tier</figcaption>
-      {byTier.length === 0 ? (
-        <p className="mt-3 text-sm">No tickets yet.</p>
-      ) : (
-        <table className="mt-3 w-full text-left text-sm">
-          <thead className="sr-only">
-            <tr>
-              <th>Tier</th>
-              <th>Tickets</th>
-              <th>Revenue</th>
-            </tr>
-          </thead>
-          <tbody>
-            {byTier.map((tier) => (
-              <tr key={tier.name}>
-                <th scope="row" className="py-1.5 pr-3 font-medium whitespace-nowrap">{tier.name}</th>
-                <td className="w-full py-1.5">
-                  <div className="flex items-center gap-2">
-                    <div aria-hidden="true" className="h-3 rounded-r bg-[#2E6B78] dark:bg-[#8CC7D3]" style={{ width: `${(tier.tickets / max) * 100}%`, minWidth: "2px" }} />
-                    <span className="tabular-nums">{tier.tickets}</span>
-                  </div>
-                </td>
-                <td className="py-1.5 pl-3 text-right whitespace-nowrap tabular-nums opacity-80">{formatDollars(tier.revenueCents)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
     </figure>
   );
 }

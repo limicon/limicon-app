@@ -1,36 +1,73 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  checkEditionForm,
   checkEmailField,
+  checkEventForm,
   checkFaqForm,
   checkLinksForm,
   checkTierForm,
   csvCell,
   dollarsToCents,
   formatDollars,
+  readSwitchesForm,
   toCsv,
 } from "./admin-forms";
 
 const form = (entries: Record<string, string>) => new Map(Object.entries(entries));
 
-describe("checkEditionForm", () => {
-  test("empty dates clear them, and unticked switches are off", () => {
-    expect(checkEditionForm(form({}))).toEqual({
+test("readSwitchesForm reads ticked boxes as on", () => {
+  expect(readSwitchesForm(form({ registrationOpen: "on" }))).toEqual({ registrationOpen: true, calendarOpen: false });
+});
+
+describe("checkEventForm", () => {
+  const helpers = {
+    toInstant: (date: string, time: string, zone: string) =>
+      zone === "Skip/Zone" ? ("nonexistent" as const) : new Date(`${date}T${time}:00Z`),
+    isZone: (zone: string) => zone === "UTC" || zone === "Skip/Zone",
+    isImageKey: (key: string) => key === "ok.png",
+    cleanAbout: (value: unknown) => (value ? { doc: value } : null),
+  };
+  const filled = {
+    name: " Limicon 2027 ",
+    teaser: "A month of open space",
+    startDate: "2027-03-07",
+    startTime: "12:00",
+    startTimeZone: "UTC",
+    endDate: "2027-04-03",
+    endTime: "18:00",
+    endTimeZone: "UTC",
+    imageKey: "ok.png",
+    about: "x",
+  };
+
+  test("reads a name, teaser, zoned start and end, image and About", () => {
+    expect(checkEventForm(form(filled), helpers)).toEqual({
       ok: true,
-      values: { startsOn: null, endsOn: null, registrationOpen: false, calendarOpen: false },
+      values: {
+        name: "Limicon 2027",
+        teaser: "A month of open space",
+        startsAt: new Date("2027-03-07T12:00:00Z"),
+        endsAt: new Date("2027-04-03T18:00:00Z"),
+        startTimeZone: "UTC",
+        endTimeZone: "UTC",
+        imageKey: "ok.png",
+        about: { doc: "x" },
+      },
     });
   });
 
-  test("keeps dates and switches", () => {
-    const result = checkEditionForm(form({ startsOn: "2027-03-07", endsOn: "2027-04-03", registrationOpen: "on" }));
-    expect(result).toMatchObject({ ok: true, values: { startsOn: "2027-03-07", endsOn: "2027-04-03", registrationOpen: true } });
+  test("a blank start or end is left unset", () => {
+    const result = checkEventForm(form({ name: "Limicon" }), helpers);
+    expect(result).toMatchObject({ ok: true, values: { startsAt: null, endsAt: null, startTimeZone: null, imageKey: null, about: null } });
   });
 
-  test("refuses impossible dates, and a last day before the first", () => {
-    expect(checkEditionForm(form({ startsOn: "2027-02-30" }))).toMatchObject({ ok: false, errors: { startsOn: expect.any(String) } });
-    const backwards = checkEditionForm(form({ startsOn: "2027-04-03", endsOn: "2027-03-07" }));
-    expect(backwards).toMatchObject({ ok: false, errors: { endsOn: expect.any(String) } });
+  test("needs a name, a whole date-time-zone, and an end after the start", () => {
+    expect(checkEventForm(form({ ...filled, name: "" }), helpers)).toMatchObject({ ok: false, errors: { name: expect.any(String) } });
+    expect(checkEventForm(form({ ...filled, startTime: "" }), helpers)).toMatchObject({ ok: false, errors: { startTime: expect.any(String) } });
+    expect(checkEventForm(form({ ...filled, endTimeZone: "Mars/Base" }), helpers)).toMatchObject({ ok: false, errors: { endTimeZone: expect.any(String) } });
+    expect(checkEventForm(form({ ...filled, endDate: "2027-03-01" }), helpers)).toMatchObject({ ok: false, errors: { endDate: expect.any(String) } });
+    expect(checkEventForm(form({ ...filled, startTimeZone: "Skip/Zone" }), helpers)).toMatchObject({ ok: false, errors: { startTime: expect.any(String) } });
+    expect(checkEventForm(form({ ...filled, imageKey: "../evil" }), helpers)).toMatchObject({ ok: false, errors: { imageKey: expect.any(String) } });
   });
 });
 

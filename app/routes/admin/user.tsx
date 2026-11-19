@@ -5,7 +5,8 @@ import { servicesContext } from "~/context";
 import { ADMIN_PERMISSIONS, formatDollars, isAdminPermission, NOTE_MAX } from "~/lib/admin-forms";
 import { getAdminPermissions, isUuid, revokeAdminPermission } from "~/lib/admin.server";
 import { addUserNote, deleteUserNote, getUser, grantAdminPermission, setDeactivated, updateUserName } from "~/lib/admin-users.server";
-import { AGREEMENTS, NAME_MAX, TEXT_QUESTIONS } from "~/lib/registration-form";
+import { NAME_MAX } from "~/lib/registration-form";
+import { getRegistrationFields } from "~/lib/registration.server";
 import type { Route } from "./+types/user";
 
 export function meta({ loaderData }: Route.MetaArgs) {
@@ -23,7 +24,8 @@ async function load(context: Route.LoaderArgs["context"], userId: string) {
 }
 
 export async function loader({ context, params, request }: Route.LoaderArgs) {
-  const { edition, user, canManageRoles, viewerId } = await load(context, params.userId);
+  const { db, edition, user, canManageRoles, viewerId } = await load(context, params.userId);
+  const fields = (await getRegistrationFields(db, edition.id)).map(({ key, kind, label }) => ({ key, kind, label }));
   const name = [user.firstName, user.lastName].filter(Boolean).join(" ");
   return {
     user,
@@ -32,6 +34,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
     canManageRoles,
     isSelf: user.id === viewerId,
     viewerId,
+    fields,
     done: new URL(request.url).searchParams.get("done"),
   };
 }
@@ -114,20 +117,18 @@ const ticketBadge = {
   refunded: { tone: "gray", label: "Refunded" },
 } as const;
 
-const questionLabel = new Map<string, string>([
-  ...TEXT_QUESTIONS.map((q) => [q.key, q.label] as [string, string]),
-  ...AGREEMENTS.map((a) => [a.key, a.label] as [string, string]),
-]);
-const questionOrder = [...TEXT_QUESTIONS.map((q) => q.key as string), ...AGREEMENTS.map((a) => a.key as string)];
-
 /** One person: their account, tickets, roles, sessions and registration answers, and admins' notes. */
 export default function AdminUser({ loaderData, actionData }: Route.ComponentProps) {
-  const { user, year, displayName, canManageRoles, isSelf, viewerId, done } = loaderData;
+  const { user, year, displayName, canManageRoles, isSelf, viewerId, fields, done } = loaderData;
+  const questionLabel = new Map(fields.map((f) => [f.key, f.label]));
+  const questionOrder = fields.map((f) => f.key);
   const busy = useNavigation().state !== "idle";
   const held = new Set(user.permissions.map((p) => p.permission));
   const grantable = ADMIN_PERMISSIONS.filter((p) => !held.has(p.value));
-  const answers = [...user.answers].sort((a, b) => questionOrder.indexOf(a.question) - questionOrder.indexOf(b.question));
-  const agreementKeys = new Set<string>(AGREEMENTS.map((a) => a.key));
+  // Answers to fields since removed from the form come last, under their key.
+  const position = (key: string) => (questionOrder.includes(key) ? questionOrder.indexOf(key) : questionOrder.length);
+  const answers = [...user.answers].sort((a, b) => position(a.question) - position(b.question));
+  const agreementKeys = new Set(fields.filter((f) => f.kind === "checkbox").map((f) => f.key));
 
   return (
     <>

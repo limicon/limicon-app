@@ -14,11 +14,14 @@ export async function loader({ context }: Route.LoaderArgs) {
 
 const sections = [
   { to: "/admin", label: "Overview", end: true },
-  { to: "/admin/settings", label: "Settings" },
+  { to: "/admin/settings", label: "Edit" },
   { to: "/admin/users", label: "Users" },
+  { to: "/admin/orders", label: "Orders" },
+  { to: "/admin/guests", label: "Guests" },
   { to: "/admin/sessions", label: "Sessions" },
   { to: "/admin/tickets", label: "Tickets" },
   { to: "/admin/faq", label: "FAQ" },
+  { to: "/admin/policies", label: "Policies" },
   { to: "/admin/team", label: "Team" },
 ];
 

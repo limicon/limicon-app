@@ -1,21 +1,15 @@
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import { servicesContext } from "~/context";
+import { RegistrationFields } from "~/components/registration-fields";
 import {
-  AGREEMENTS,
   checkRegistrationForm,
-  LOCATION_KEYS,
-  LONG_MAX,
   readRegistrationForm,
-  REFLECTION_KEYS,
-  SHORT_MAX,
-  TEXT_QUESTIONS,
-  NAME_MAX,
   type RegistrationErrors,
+  type RegistrationField,
   type RegistrationInput,
-  type TextKey,
 } from "~/lib/registration-form";
-import { getRegistration, hasTicket, isRegistrationOpen, saveRegistration } from "~/lib/registration.server";
+import { getRegistration, getRegistrationFields, hasTicket, isRegistrationOpen, saveRegistration } from "~/lib/registration.server";
 import type { Route } from "./+types/tickets";
 
 export function meta({}: Route.MetaArgs) {
@@ -42,12 +36,15 @@ async function registrationState(context: Route.LoaderArgs["context"]) {
 
 export async function loader({ context, request }: Route.LoaderArgs) {
   const state = await registrationState(context);
-  if (state.stage !== "form") return { state, input: null, submitted: false, saved: false };
-  const { input, submitted } = await getRegistration(context.get(servicesContext).db(), state.userId, state.editionId);
+  if (state.stage !== "form") return { state, input: null, fields: [] as RegistrationField[], submitted: false, saved: false };
+  const db = context.get(servicesContext).db();
+  const fields = await getRegistrationFields(db, state.editionId);
+  const { input, submitted } = await getRegistration(db, state.userId, state.editionId, fields);
   const saved = new URL(request.url).searchParams.has("saved");
   return {
     state: { stage: state.stage, year: state.year, open: state.open, email: state.email },
     input,
+    fields,
     submitted,
     saved,
   };
@@ -56,10 +53,12 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   const state = await registrationState(context);
   if (state.stage !== "form") throw redirect("/tickets");
-  const input = readRegistrationForm(await request.formData());
-  const result = checkRegistrationForm(input);
+  const db = context.get(servicesContext).db();
+  const fields = await getRegistrationFields(db, state.editionId);
+  const input = readRegistrationForm(await request.formData(), fields);
+  const result = checkRegistrationForm(input, fields);
   if (!result.ok) return data({ input, errors: result.errors }, { status: 400 });
-  await saveRegistration(context.get(servicesContext).db(), state.userId, state.editionId, result.values);
+  await saveRegistration(db, state.userId, state.editionId, result.values, fields);
   throw redirect("/tickets?saved=1");
 }
 
@@ -109,6 +108,7 @@ export default function Tickets({ loaderData, actionData }: Route.ComponentProps
         </p>
       )}
       <RegistrationForm
+        fields={loaderData.fields}
         input={actionData?.input ?? input}
         errors={actionData?.errors ?? {}}
         email={state.email}
@@ -117,72 +117,13 @@ export default function Tickets({ loaderData, actionData }: Route.ComponentProps
   );
 }
 
-const field =
-  "w-full rounded border border-[#9DB5B9] bg-white px-3 py-2 dark:border-[#3A5359] dark:bg-[#0F1C1E] aria-[invalid=true]:border-[#B3261E]";
-
-function FieldError({ id, message }: { id: string; message?: string }) {
-  if (!message) return null;
-  return (
-    <p id={id} className="mt-1 text-sm font-medium text-[#B3261E] dark:text-[#F2B8B5]">
-      {message}
-    </p>
-  );
-}
-
-function Fieldset({ legend, children }: { legend: string; children: React.ReactNode }) {
-  return (
-    <fieldset className="grid gap-5 rounded-lg border border-[#C9DADC] bg-white p-5 dark:border-[#24363B] dark:bg-[#12201F]">
-      <legend className="px-1 text-lg font-semibold">{legend}</legend>
-      {children}
-    </fieldset>
-  );
-}
-
-function errorProps(name: keyof RegistrationInput, errors: RegistrationErrors) {
-  return errors[name] ? { "aria-invalid": true, "aria-describedby": `${name}-error` } : {};
-}
-
-const questions = new Map(TEXT_QUESTIONS.map((q) => [q.key, q]));
-
-function TextQuestion({ name, input, errors }: { name: TextKey; input: RegistrationInput; errors: RegistrationErrors }) {
-  const q = questions.get(name)!;
-  const help = "help" in q ? q.help : null;
-  const props = {
-    id: name,
-    name,
-    defaultValue: input[name],
-    required: q.required,
-    className: field,
-    ...errorProps(name, errors),
-  };
-  return (
-    <div>
-      <label htmlFor={name} className="block font-medium">
-        {q.label} {!q.required && <span className="font-normal">(optional)</span>}
-      </label>
-      {help && <p className="text-sm">{help}</p>}
-      {q.kind === "short" ? (
-        <input type="text" maxLength={SHORT_MAX} autoComplete={autoComplete[name]} {...props} />
-      ) : (
-        <textarea rows={name === "address" ? 3 : 2} maxLength={LONG_MAX} autoComplete={autoComplete[name]} {...props} />
-      )}
-      <FieldError id={`${name}-error`} message={errors[name]} />
-    </div>
-  );
-}
-
-const autoComplete: Partial<Record<TextKey, string>> = {
-  address: "street-address",
-  city: "address-level2",
-  region: "address-level1",
-  country: "country-name",
-};
-
 function RegistrationForm({
+  fields,
   input,
   errors,
   email,
 }: {
+  fields: RegistrationField[];
   input: RegistrationInput;
   errors: RegistrationErrors;
   email: string | null;
@@ -199,61 +140,7 @@ function RegistrationForm({
         </p>
       )}
 
-      <Fieldset legend="About you">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="firstName" className="block font-medium">First name</label>
-            <input id="firstName" name="firstName" type="text" autoComplete="given-name" maxLength={NAME_MAX} required defaultValue={input.firstName} className={field} {...errorProps("firstName", errors)} />
-            <FieldError id="firstName-error" message={errors.firstName} />
-          </div>
-          <div>
-            <label htmlFor="lastName" className="block font-medium">Last name</label>
-            <input id="lastName" name="lastName" type="text" autoComplete="family-name" maxLength={NAME_MAX} required defaultValue={input.lastName} className={field} {...errorProps("lastName", errors)} />
-            <FieldError id="lastName-error" message={errors.lastName} />
-          </div>
-        </div>
-        <div>
-          <p className="font-medium">Email</p>
-          <p>{email}</p>
-          <p className="text-sm">The email on your account. Limicon writes to you here.</p>
-        </div>
-        <TextQuestion name="address" input={input} errors={errors} />
-      </Fieldset>
-
-      <Fieldset legend="Location">
-        <p className="-mt-2 text-sm">Where you'll mostly be during Limicon.</p>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {LOCATION_KEYS.map((key) => (
-            <TextQuestion key={key} name={key} input={input} errors={errors} />
-          ))}
-        </div>
-      </Fieldset>
-
-      <Fieldset legend="What you hope for">
-        <p className="-mt-2 text-sm">Answer any that speak to you. They help hosts and other members find you.</p>
-        {REFLECTION_KEYS.map((key) => (
-          <TextQuestion key={key} name={key} input={input} errors={errors} />
-        ))}
-        <TextQuestion name="heard_about" input={input} errors={errors} />
-      </Fieldset>
-
-      <Fieldset legend="Agreements">
-        {AGREEMENTS.map((a) => (
-          <div key={a.key}>
-            <label className="flex gap-3">
-              <input type="checkbox" name={a.key} defaultChecked={input[a.key]} required className="mt-1 size-4 shrink-0" {...errorProps(a.key, errors)} />
-              <span>{a.label}</span>
-            </label>
-            {"read" in a && (
-              // A new tab, so the answers typed so far stay on this page.
-              <a href={a.read.to} target="_blank" rel="noopener" className="ml-7 text-sm underline">
-                {a.read.text} (opens in a new tab)
-              </a>
-            )}
-            <FieldError id={`${a.key}-error`} message={errors[a.key]} />
-          </div>
-        ))}
-      </Fieldset>
+      <RegistrationFields fields={fields} input={input} errors={errors} email={email} />
 
       <div>
         <button
