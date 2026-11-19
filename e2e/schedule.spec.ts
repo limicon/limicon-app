@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { giveTicket, newEmail, publishSession, setName, signIn } from "./support";
+import { createAccount, giveTicket, newEmail, publishSession, setName, signIn } from "./support";
 
 // A member in London, looking at sessions a Toronto host entered.
 test.use({ timezoneId: "Europe/London" });
@@ -82,32 +82,40 @@ test("members browse, search and open sessions in their own time zone, and see n
   await expect(page.getByRole("heading", { name: "Thursday, March 18" }).first()).toBeVisible();
 });
 
-test("members RSVP in one click and find those sessions on My Schedule", async ({ page, request }) => {
+test("members RSVP in one click and find those sessions, and their own, on My Schedule", async ({ page, request }) => {
   const run = crypto.randomUUID().slice(0, 8);
   const email = newEmail();
+  // Another member hosts the sessions this one RSVPs to: hosts are going without RSVPing.
+  const otherHost = newEmail();
+  await createAccount(otherHost);
   await signIn(page, request, email);
   await giveTicket(email);
-  const session = (title: string, startsAt: string) =>
-    publishSession({ hostEmail: email, title, theme: "Consciousness Exploration", startsAt, minutes: 60, timeZone: "UTC" });
+  const session = (title: string, startsAt: string, hostEmail = otherHost) =>
+    publishSession({ hostEmail, title, theme: "Consciousness Exploration", startsAt, minutes: 60, timeZone: "UTC" });
   const id = await session(`Going ${run}`, "2027-03-17T16:00:00Z");
   await session(`Not going ${run}`, "2027-03-18T16:00:00Z");
+  await session(`Hosting ${run}`, "2027-03-19T16:00:00Z", email);
 
   await page.goto(`/members/schedule?q=${run}`);
   const going = page.getByRole("article", { name: `Going ${run}` });
   await going.getByRole("button", { name: `RSVP for Going ${run}` }).click();
   await expect(going.getByText("Going", { exact: true })).toBeVisible();
+  const hosting = page.getByRole("article", { name: `Hosting ${run}` });
+  await expect(hosting.getByText("Going · You're hosting")).toBeVisible();
+  await expect(hosting.getByRole("button")).toHaveCount(0);
 
-  // My Schedule keeps the search, and shows only the session RSVPed to.
+  // My Schedule keeps the search, and shows the session RSVPed to and the one hosted.
   await page.getByRole("link", { name: "My Schedule" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "My Schedule" })).toBeVisible();
   await expect(page.getByRole("article", { name: `Going ${run}` })).toBeVisible();
+  await expect(page.getByRole("article", { name: `Hosting ${run}` })).toBeVisible();
   await expect(page.getByRole("article", { name: `Not going ${run}` })).toHaveCount(0);
 
-  // The session's page counts the RSVP, and cancelling takes it off My Schedule.
+  // The session's page counts the RSVP beside its host, and cancelling takes it off My Schedule.
   await page.goto(`/members/schedule/${id}`);
-  await expect(page.getByText("1 going")).toBeVisible();
+  await expect(page.getByText("1 going, plus the host")).toBeVisible();
   await page.getByRole("button", { name: `Cancel your RSVP to Going ${run}` }).click();
-  await expect(page.getByText("0 going")).toBeVisible();
+  await expect(page.getByText("0 going, plus the host")).toBeVisible();
   await page.goto(`/members/schedule?view=mine&q=${run}`);
   await expect(page.getByRole("heading", { level: 1, name: "My Schedule" })).toBeVisible();
   await expect(page.getByRole("article", { name: `Going ${run}` })).toHaveCount(0);

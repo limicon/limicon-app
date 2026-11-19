@@ -48,6 +48,14 @@ async function withDb<T>(work: (sql: postgres.Sql) => Promise<T>): Promise<T> {
   }
 }
 
+/** Makes an account for `email` that never signs in, such as another member hosting a session. */
+export async function createAccount(email: string) {
+  await withDb((sql) => sql`
+    insert into auth.users (id, email, aud, role)
+    values (gen_random_uuid(), ${email}, 'authenticated', 'authenticated')
+  `);
+}
+
 /** Gives the account for `email` a comp ticket for the current edition, in the local database. */
 export async function giveTicket(email: string) {
   await withDb((sql) => sql`
