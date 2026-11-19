@@ -8,7 +8,11 @@ import { saveSessionForm, type SessionPaths } from "~/lib/session-actions.server
 import { sessionToFormInput } from "~/lib/session-form";
 import { getEditableSession } from "~/lib/sessions.server";
 import { timeZoneNames } from "~/lib/zoned-time";
+import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/session-edit";
+
+/** Admins only (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("admin")];
 
 export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: `${loaderData?.title ?? "Session"} · Admin · Limicon` }];

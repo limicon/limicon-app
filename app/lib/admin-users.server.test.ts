@@ -5,7 +5,7 @@ import { afterAll, describe, expect, test } from "vitest";
 
 import { listMemberLinks, saveMemberLinks } from "./admin.server";
 import { readUserFilters } from "./admin-users";
-import { setUserRole } from "./admin-roles.server";
+import { setUserRoles } from "./admin-roles.server";
 import { addUserNote, deleteUserNote, getUser, listUsers, setDeactivated } from "./admin-users.server";
 import type { Db } from "./db.server";
 import { addFaq, listAllFaq, listPublishedFaq, moveFaq } from "./faq.server";
@@ -58,7 +58,7 @@ describe("listUsers", () => {
       const bo = await newAccount(tx, "Bo");
       const cy = await newAccount(tx, "Cy");
       await tx`insert into public.tickets (profile_id, edition_id, status) values (${ada}, ${editionId}, 'paid')`;
-      await setUserRole(tx, bo, "full", ada);
+      await setUserRoles(tx, bo, ["full"], ada);
       await setDeactivated(tx, cy, true);
 
       const names = async (query: Record<string, string>) =>
@@ -85,7 +85,7 @@ describe("one user", () => {
       const ada = await newAccount(tx, "Ada");
       const bo = await newAccount(tx, "Bo");
       await tx`insert into public.tickets (profile_id, edition_id, status) values (${ada}, ${editionId}, 'comp')`;
-      await setUserRole(tx, ada, "full", bo);
+      await setUserRoles(tx, ada, ["full"], bo);
       await addUserNote(tx, ada, bo, "Asked about a refund");
 
       const user = await getUser(tx, ada, editionId);
@@ -104,7 +104,7 @@ describe("one user", () => {
   test("a deactivated admin loses the Members area and the console", async () => {
     await inRolledBackTransaction(async (tx) => {
       const ada = await newAccount(tx, "Ada");
-      await setUserRole(tx, ada, "full", ada);
+      await setUserRoles(tx, ada, ["full"], ada);
       expect(await getMembership(tx, ada)).toMatchObject({ status: "member", isAdmin: true });
       await setDeactivated(tx, ada, true);
       expect(await getMembership(tx, ada)).toMatchObject({ status: "deactivated", isAdmin: false });

@@ -4,12 +4,13 @@ import { card, dangerButton, FieldError, formatWhen, inputClass, Notice, PageHea
 import { servicesContext } from "~/context";
 import { checkEmailField } from "~/lib/admin-forms";
 import { cancelInvitation, inviteAdmin, isUuid, listTeam } from "~/lib/admin.server";
-import { listRoles, setUserRole } from "~/lib/admin-roles.server";
+import { ADMIN_ROLE } from "~/lib/admin-roles";
+import { getUserRoles, listRoles, setUserRoles } from "~/lib/admin-roles.server";
 import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/team";
 
-/** Needs the `roles` privilege (app/lib/admin-roles.ts). */
-export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("roles")];
+/** Admins only (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("admin")];
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Team · Admin · Limicon" }];
@@ -50,9 +51,10 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (intent === "revoke") {
     const profileId = form.get("profileId");
-    if (!isUuid(profileId)) throw data("Not found", { status: 404 });
-    if (profileId === userId) return data({ input: "", error: "You can't remove your own access. Ask another admin." }, { status: 409 });
-    await setUserRole(db, profileId, null, userId);
+    if (!isUuid(profileId) || typeof permission !== "string") throw data("Not found", { status: 404 });
+    const current = await getUserRoles(db, profileId);
+    const result = await setUserRoles(db, profileId, current.filter((r) => r !== permission), userId);
+    if (!result.ok) return data({ input: "", error: result.problem }, { status: 409 });
     throw redirect("/admin/team?done=revoked");
   }
 
@@ -70,7 +72,7 @@ const doneMessages: Record<string, string> = {
   granted: "They have an account already, so they have that role now.",
   invited: "Invited. They get the role the first time they sign in with that address.",
   already: "They already have a role, or an invitation. Change an admin's role on the Users page.",
-  revoked: "Access removed.",
+  revoked: "Role removed.",
   cancelled: "Invitation cancelled.",
 };
 
@@ -114,11 +116,11 @@ export default function AdminTeam({ loaderData, actionData }: Route.ComponentPro
           </div>
           <FieldError id="email-error" message={actionData?.input ? actionData.error : undefined} />
           <p className="text-sm opacity-80">
-            No email is sent. If they don't have an account yet, they become an admin the first time they sign in with this address.
+            Admins can make anyone an admin, but can only remove admin status from themselves. No email is sent. If they don't have an account yet, they become an admin the first time they sign in with this address.
           </p>
         </Form>
       ) : (
-        <p className="mb-8 max-w-3xl">Only admins with full access can add or remove admins.</p>
+        <p className="mb-8 max-w-3xl">Only admins can add admins.</p>
       )}
 
       <h2 className="text-xl font-semibold">Admins</h2>
@@ -137,7 +139,7 @@ export default function AdminTeam({ loaderData, actionData }: Route.ComponentPro
                     <span className="font-medium">{permissionLabel(p.permission)}</span>
                     <span className="opacity-80"> · since {formatWhen(p.grantedAt)}{p.grantedBy ? `, added by ${p.grantedBy}` : ""}</span>
                   </span>
-                  {canManage && member.profileId !== userId && (
+                  {canManage && (p.permission !== ADMIN_ROLE || member.profileId === userId) && (
                     <Form method="post">
                       <input type="hidden" name="profileId" value={member.profileId} />
                       <input type="hidden" name="permission" value={p.permission} />

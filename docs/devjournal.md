@@ -6,9 +6,9 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
-## 2026-11-19 | Lauren (with Opus 5.5) | Admin access is a role with privileges
+## 2026-11-19 | Lauren (with Opus 5.5) | Access comes from roles, which add up
 
-Each admin holds one role from `admin_roles`; its privileges (`app/lib/admin-roles.ts`) decide which console pages they can open, checked by `requirePrivilege`. Full access is built in. Ticket settings moved into Settings, and the Tickets tab is gone.
+People hold roles from `admin_roles`, several at once; their privileges (`app/lib/admin-roles.ts`) add up and decide which console pages they open, checked by `requirePrivilege`. All admins hold the built-in Admin role, and can't remove it from anyone else. Bookkeeper sees orders and money.
 
 ---
 

@@ -7,7 +7,7 @@ import { listUsers } from "~/lib/admin-users.server";
 import { requireAdmin, requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/users-csv";
 
-export const middleware: Route.MiddlewareFunction[] = [requireAdmin, requirePrivilege("people")];
+export const middleware: Route.MiddlewareFunction[] = [requireAdmin, requirePrivilege("admin")];
 
 /** The Users page's matches, every page of them, as a spreadsheet (ADM-2). */
 export async function loader({ context, request }: Route.LoaderArgs) {

@@ -1,19 +1,20 @@
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import { Badge, card, dangerButton, FieldError, formatWhen, inputClass, Notice, PageHeading, primaryButton, secondaryButton } from "~/components/admin-ui";
-import { RoleSelect } from "~/components/role-select";
+import { RoleBadges, RolePicker } from "~/components/role-picker";
 import { servicesContext } from "~/context";
 import { formatDollars, NOTE_MAX } from "~/lib/admin-forms";
+import { ADMIN_ROLE } from "~/lib/admin-roles";
 import { isUuid, removeCompTicket } from "~/lib/admin.server";
-import { listRoles, setUserRole } from "~/lib/admin-roles.server";
+import { listRoles, setUserRoles } from "~/lib/admin-roles.server";
 import { addUserNote, deleteUserNote, getUser, setDeactivated, updateUserName } from "~/lib/admin-users.server";
 import { NAME_MAX } from "~/lib/registration-form";
 import { getRegistrationFields } from "~/lib/registration.server";
 import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/user";
 
-/** Needs the `people` privilege (app/lib/admin-roles.ts). */
-export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("people")];
+/** Admins only (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("admin")];
 
 export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: `${loaderData?.displayName ?? "User"} · Admin · Limicon` }];
@@ -32,7 +33,7 @@ async function load(context: Route.LoaderArgs["context"], userId: string) {
     edition,
     user,
     roles: roles.map(({ key, name }) => ({ key, name })),
-    canManageRoles: privileges.has("roles"),
+    canManageRoles: privileges.has("admin"),
     canComp: privileges.has("settings"),
     viewerId: services.viewer!.userId,
   };
@@ -78,12 +79,11 @@ export async function action({ context, params, request }: Route.ActionArgs) {
     throw back("name");
   }
 
-  if (form.get("role") !== null && form.get("profileId") !== null) {
-    if (!canManageRoles) throw data("Your admin role can't change roles.", { status: 403 });
-    if (user.id === viewerId) return data<ActionData>({ form: "problem", error: "You can't change your own role. Ask another admin." }, { status: 409 });
-    const role = String(form.get("role"));
-    if (role && !roles.some((r) => r.key === role)) return data<ActionData>({ form: "problem", error: "That role no longer exists." }, { status: 400 });
-    await setUserRole(db, user.id, role || null, viewerId);
+  if (intent === "set-roles") {
+    if (!canManageRoles) throw data("Only admins can change roles.", { status: 403 });
+    const chosen = form.getAll("role").filter((r): r is string => typeof r === "string" && roles.some((role) => role.key === r));
+    const result = await setUserRoles(db, user.id, chosen, viewerId);
+    if (!result.ok) return data<ActionData>({ form: "problem", error: result.problem }, { status: 409 });
     throw back("role");
   }
 
@@ -95,8 +95,8 @@ export async function action({ context, params, request }: Route.ActionArgs) {
 
   if (intent === "deactivate" || intent === "reactivate") {
     if (user.id === viewerId) return data<ActionData>({ form: "problem", error: "You can't deactivate your own account." }, { status: 409 });
-    if (user.permissions.length && !canManageRoles) {
-      return data<ActionData>({ form: "problem", error: "Only admins who manage roles can deactivate another admin." }, { status: 403 });
+    if (user.permissions.some((p) => p.permission === ADMIN_ROLE)) {
+      return data<ActionData>({ form: "problem", error: "Admins can't deactivate another admin." }, { status: 403 });
     }
     await setDeactivated(db, user.id, intent === "deactivate");
     throw back(intent === "deactivate" ? "deactivated" : "reactivated");
@@ -121,7 +121,7 @@ export async function action({ context, params, request }: Route.ActionArgs) {
 
 const doneMessages: Record<string, string> = {
   name: "Name saved.",
-  role: "Role changed.",
+  role: "Roles saved.",
   "comp-removed": "Comp ticket removed.",
   deactivated: "Account deactivated. They can't open the Members area or this console until it's reactivated.",
   reactivated: "Account reactivated.",
@@ -141,8 +141,7 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
   const questionLabel = new Map(fields.map((f) => [f.key, f.label]));
   const questionOrder = fields.map((f) => f.key);
   const busy = useNavigation().state !== "idle";
-  const role = user.permissions[0];
-  const roleName = role ? (roles.find((r) => r.key === role.permission)?.name ?? role.permission) : null;
+  const held = user.permissions.map((p) => p.permission);
   // Answers to fields since removed from the form come last, under their key.
   const position = (key: string) => (questionOrder.includes(key) ? questionOrder.indexOf(key) : questionOrder.length);
   const answers = [...user.answers].sort((a, b) => position(a.question) - position(b.question));
@@ -156,6 +155,7 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
       <div className="mt-4">
         <PageHeading title={displayName}>
           <p className="flex flex-wrap items-center gap-2">
+            <RoleBadges current={held} roles={roles} />
             {displayName !== user.email && <span className="break-all">{user.email}</span>}
             {user.deactivatedAt && <Badge tone="gray">Deactivated {formatWhen(user.deactivatedAt)}</Badge>}
             {isSelf && <span className="text-sm opacity-80">(you)</span>}
@@ -203,7 +203,7 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
         </section>
 
         <section aria-labelledby="roles-heading" className={card}>
-          <h2 id="roles-heading" className="text-lg font-semibold">Role</h2>
+          <h2 id="roles-heading" className="text-lg font-semibold">Roles</h2>
           <ul className="mt-3 grid gap-2 text-sm">
             <li>
               <span className="font-medium">Member</span>
@@ -217,17 +217,20 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
             )}
           </ul>
           <div className="mt-4 border-t border-[#E2E8E9] pt-4 text-sm dark:border-[#24363B]">
-            <p className="font-medium">Admin role</p>
-            {canManageRoles && !isSelf ? (
-              <div className="mt-1">
-                <RoleSelect profileId={user.id} current={role?.permission ?? ""} roles={roles} label={`Admin role for ${displayName}`} />
-              </div>
+            <p className="mb-2 font-medium">Roles <span className="font-normal opacity-80">· a person can hold several, and what each allows adds up</span></p>
+            {canManageRoles ? (
+              <RolePicker profileId={user.id} current={held} roles={roles} isSelf={isSelf} />
             ) : (
-              <p className="mt-1">{roleName ?? "None: a member, not an admin"}{isSelf && canManageRoles ? " (you can't change your own role)" : ""}</p>
+              <RoleBadges current={held} roles={roles} />
             )}
-            {role && (
-              <p className="mt-1 opacity-80">Since {formatWhen(role.grantedAt)}{role.grantedBy ? `, given by ${role.grantedBy}` : ""}</p>
-            )}
+            <ul className="mt-2 grid gap-0.5 opacity-80">
+              {user.permissions.map((p) => (
+                <li key={p.permission}>
+                  {roles.find((r) => r.key === p.permission)?.name ?? p.permission} since {formatWhen(p.grantedAt)}
+                  {p.grantedBy ? `, given by ${p.grantedBy}` : ""}
+                </li>
+              ))}
+            </ul>
             {canManageRoles && <Link to="/admin/roles" className="mt-2 inline-block underline">What each role can do</Link>}
           </div>
         </section>

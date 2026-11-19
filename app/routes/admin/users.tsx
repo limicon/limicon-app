@@ -1,9 +1,9 @@
 import { data, Form, Link, redirect, useSearchParams } from "react-router";
 
 import { Badge, formatWhen, inputClass, Notice, PageHeading, primaryButton, secondaryButton } from "~/components/admin-ui";
-import { RoleSelect } from "~/components/role-select";
+import { RoleBadges, RolePicker } from "~/components/role-picker";
 import { servicesContext } from "~/context";
-import { listRoles, setUserRole } from "~/lib/admin-roles.server";
+import { listRoles, setUserRoles } from "~/lib/admin-roles.server";
 import { ACCOUNT_FILTERS, readUserFilters, ROLE_FILTERS, TICKET_FILTERS, USER_SORTS, USERS_PER_PAGE } from "~/lib/admin-users";
 import { isUuid } from "~/lib/admin.server";
 import { listUsers } from "~/lib/admin-users.server";
@@ -11,8 +11,8 @@ import type { UserRow } from "~/lib/admin-users.server";
 import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/users";
 
-/** Needs the `people` privilege (app/lib/admin-roles.ts). */
-export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("people")];
+/** Admins only (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("admin")];
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Users · Admin · Limicon" }];
@@ -28,7 +28,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   const shared = {
     filters,
     roles: roles.map(({ key, name }) => ({ key, name })),
-    canManageRoles: privileges.has("roles"),
+    canManageRoles: privileges.has("admin"),
     viewerId: services.viewer!.userId,
     done: query.get("done"),
   };
@@ -37,18 +37,19 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   return { ...shared, year: edition.year, users, total };
 }
 
-/** Changes a person's role from the list. Needs the `roles` privilege; nobody changes their own. */
+/**
+ * Sets a person's roles from the list, for admins only. Admins can give anyone Admin but remove
+ * it only from themselves.
+ */
 export async function action({ context, request }: Route.ActionArgs) {
   const services = context.get(servicesContext);
-  if (!(await services.privileges()).has("roles")) throw data("Your admin role can't change roles.", { status: 403 });
+  if (!(await services.privileges()).has("admin")) throw data("Only admins can change roles.", { status: 403 });
   const form = await request.formData();
   const profileId = form.get("profileId");
-  const role = String(form.get("role") ?? "");
   if (!isUuid(profileId)) throw data("Not found", { status: 404 });
-  if (profileId === services.viewer!.userId) return data({ problem: "You can't change your own role. Ask another admin." }, { status: 409 });
-  const db = services.db();
-  if (role && !(await listRoles(db)).some((r) => r.key === role)) return data({ problem: "That role no longer exists." }, { status: 400 });
-  await setUserRole(db, profileId, role || null, services.viewer!.userId);
+  const roles = form.getAll("role").filter((r): r is string => typeof r === "string");
+  const result = await setUserRoles(services.db(), profileId, roles, services.viewer!.userId);
+  if (!result.ok) return data({ problem: result.problem }, { status: 409 });
   const back = new URL(request.url).searchParams;
   back.set("done", "role");
   throw redirect(`/admin/users?${back}`);
@@ -78,9 +79,9 @@ export default function AdminUsers({ loaderData, actionData }: Route.ComponentPr
     <>
       <PageHeading title="Users">
         <p>
-          Everyone with an account: when they joined, their Limicon {year ?? ""} ticket, and their role. Open someone to
+          Everyone with an account: when they joined, their Limicon {year ?? ""} ticket, and their roles. Open someone to
           change their name or account, or to keep notes.
-          {canManageRoles && " Change someone's role with the menu in the Role column."}
+          {canManageRoles && " Change someone's roles with Change in the Roles column; a person can hold several."}
         </p>
       </PageHeading>
       {canManageRoles && (
@@ -89,7 +90,7 @@ export default function AdminUsers({ loaderData, actionData }: Route.ComponentPr
           <Link to="/admin/roles" className={secondaryButton}>See and edit roles</Link>
         </div>
       )}
-      {done === "role" && !actionData && <Notice>Role changed. It applies the next time they open a page.</Notice>}
+      {done === "role" && !actionData && <Notice>Roles saved. They apply the next time the person opens a page.</Notice>}
       {actionData?.problem && <Notice tone="problem">{actionData.problem}</Notice>}
 
       <Form method="get" role="search" className="mb-5 flex max-w-5xl flex-wrap items-end gap-3" key={params.toString()}>
@@ -124,7 +125,7 @@ export default function AdminUsers({ loaderData, actionData }: Route.ComponentPr
               <tr>
                 <th scope="col" className="px-3 py-2 font-semibold">Person</th>
                 <th scope="col" className="px-3 py-2 font-semibold">Ticket</th>
-                <th scope="col" className="px-3 py-2 font-semibold">Role</th>
+                <th scope="col" className="px-3 py-2 font-semibold">Roles</th>
                 <th scope="col" className="px-3 py-2 font-semibold">Joined</th>
                 <th scope="col" className="px-3 py-2 font-semibold">Last sign-in</th>
               </tr>
@@ -150,10 +151,10 @@ export default function AdminUsers({ loaderData, actionData }: Route.ComponentPr
                     )}
                   </td>
                   <td className="px-3 py-2">
-                    {canManageRoles && user.id !== viewerId ? (
-                      <RoleSelect profileId={user.id} current={user.permissions[0] ?? ""} roles={roles} label={`Role for ${user.name ?? user.email ?? "this person"}`} />
+                    {canManageRoles ? (
+                      <RolePicker profileId={user.id} current={user.permissions} roles={roles} isSelf={user.id === viewerId} compact />
                     ) : (
-                      <RoleBadge user={user} roles={roles} isSelf={user.id === viewerId} />
+                      <RoleBadges current={user.permissions} roles={roles} />
                     )}
                     {user.hostedSessions > 0 && <span className="mt-1 block"><Badge tone="gray">Host ({user.hostedSessions})</Badge></span>}
                   </td>
@@ -173,16 +174,6 @@ export default function AdminUsers({ loaderData, actionData }: Route.ComponentPr
         </nav>
       )}
     </>
-  );
-}
-
-function RoleBadge({ user, roles, isSelf }: { user: UserRow; roles: { key: string; name: string }[]; isSelf: boolean }) {
-  const role = roles.find((r) => r.key === user.permissions[0]);
-  return (
-    <span>
-      {role ? <Badge tone="amber">{role.name}</Badge> : <span className="opacity-60">Member</span>}
-      {isSelf && <span className="ml-1 text-xs opacity-70">(you)</span>}
-    </span>
   );
 }
 

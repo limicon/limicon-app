@@ -2,22 +2,22 @@ import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import { dangerButton, FieldError, inputClass, Notice, PageHeading, primaryButton, secondaryButton } from "~/components/admin-ui";
 import { servicesContext } from "~/context";
-import { checkRoleForm, FULL_ROLE, PRIVILEGES, ROLE_NAME_MAX } from "~/lib/admin-roles";
+import { checkRoleForm, ADMIN_ROLE, PRIVILEGES, ROLE_NAME_MAX } from "~/lib/admin-roles";
 import { createRole, deleteRole, getRole, updateRole } from "~/lib/admin-roles.server";
 import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/role";
 
-/** Needs the `roles` privilege (app/lib/admin-roles.ts). */
-export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("roles")];
+/** Admins only (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("admin")];
 
 export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: `${loaderData?.name || "New role"} · Roles · Admin · Limicon` }];
 }
 
-/** A role to edit, or `new` for a blank one. Full access is built in and can't be edited. */
+/** A role to edit, or `new` for a blank one. Admin is built in and can't be edited. */
 export async function loader({ context, params }: Route.LoaderArgs) {
   if (params.key === "new") return { isNew: true, name: "", privileges: [] as string[], holders: 0 };
-  if (params.key === FULL_ROLE) throw redirect("/admin/roles");
+  if (params.key === ADMIN_ROLE) throw redirect("/admin/roles");
   const role = await getRole(context.get(servicesContext).db(), params.key);
   if (!role) throw data("Role not found", { status: 404 });
   return { isNew: false, name: role.name, privileges: role.privileges as string[], holders: role.holders };
@@ -58,7 +58,7 @@ export default function AdminRole({ loaderData, actionData }: Route.ComponentPro
       <div className="mt-4">
         <PageHeading title={isNew ? "Add a role" : `Edit “${loaderData.name}”`}>
           <p>
-            Name the role and tick what it may do. Anyone holding no role sees nothing in this console.
+            Name the role and tick what it may do. A person can hold several roles, and what they allow adds up. Admins can do everything already.
             {!isNew && ` ${holders} ${holders === 1 ? "person holds" : "people hold"} this role; changes apply to them straight away.`}
           </p>
         </PageHeading>

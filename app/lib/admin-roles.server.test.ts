@@ -4,7 +4,7 @@ import postgres from "postgres";
 import { afterAll, describe, expect, test } from "vitest";
 
 import { ALL_PRIVILEGES, checkRoleForm, roleKeyFromName } from "./admin-roles";
-import { createRole, deleteRole, getPrivileges, listRoles, setUserRole, updateRole } from "./admin-roles.server";
+import { createRole, deleteRole, getPrivileges, getRoleNames, getUserRoles, listRoles, setUserRoles, updateRole } from "./admin-roles.server";
 import type { Db } from "./db.server";
 import { getMembership } from "./membership.server";
 
@@ -36,41 +36,58 @@ async function account(tx: Db) {
 }
 
 describe("roles", () => {
-  test("a new role gives exactly its privileges, and one role replaces another", async () => {
+  test("a person can hold several roles, and their privileges add up", async () => {
     await inRolledBackTransaction(async (tx) => {
       const ada = await account(tx);
       const bo = await account(tx);
-      const created = await createRole(tx, "Site editor", ["website"]);
-      expect(created).toEqual({ key: "site_editor" });
-      expect(await createRole(tx, "site EDITOR", ["people"])).toBe("duplicate");
+      await setUserRoles(tx, ada, ["full"], ada);
+      expect(await createRole(tx, "Site editor", ["website"])).toEqual({ key: "site_editor" });
+      expect(await createRole(tx, "site EDITOR", ["orders"])).toBe("duplicate");
 
-      await setUserRole(tx, bo, "site_editor", ada);
-      expect([...(await getPrivileges(tx, bo))]).toEqual(["website"]);
+      expect(await setUserRoles(tx, bo, ["bookkeeper", "site_editor"], ada)).toEqual({ ok: true });
+      expect([...(await getPrivileges(tx, bo))].sort()).toEqual(["orders", "website"]);
+      expect(await getRoleNames(tx, bo)).toEqual(["Bookkeeper", "Site editor"]);
       expect(await getMembership(tx, bo)).toMatchObject({ isAdmin: true, status: "member" });
 
-      await setUserRole(tx, bo, "full", ada);
-      expect([...(await getPrivileges(tx, bo))].sort()).toEqual([...ALL_PRIVILEGES].sort());
-      await setUserRole(tx, bo, null, ada);
-      expect((await getPrivileges(tx, bo)).size).toBe(0);
+      expect(await setUserRoles(tx, bo, ["bookkeeper"], ada)).toEqual({ ok: true });
+      expect([...(await getPrivileges(tx, bo))]).toEqual(["orders"]);
+      expect(await setUserRoles(tx, bo, [], ada)).toEqual({ ok: true });
       expect((await getMembership(tx, bo)).isAdmin).toBe(false);
     });
   });
 
-  test("a role changes for everyone holding it, can't be deleted while held, and Full access is fixed", async () => {
+  test("admins make admins, but only remove admin status from themselves while another admin remains", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      await tx`delete from public.admin_permissions where permission = 'full'`;
+      const ada = await account(tx);
+      const bo = await account(tx);
+      await setUserRoles(tx, ada, ["full"], ada);
+      expect(await setUserRoles(tx, ada, [], ada)).toMatchObject({ ok: false });
+      expect(await setUserRoles(tx, bo, ["full", "bookkeeper"], ada)).toEqual({ ok: true });
+      expect([...(await getPrivileges(tx, bo))].sort()).toEqual([...ALL_PRIVILEGES].sort());
+
+      expect(await setUserRoles(tx, bo, ["bookkeeper"], ada)).toMatchObject({ ok: false, problem: expect.stringContaining("someone else") });
+      expect(await getUserRoles(tx, bo)).toContain("full");
+      expect(await setUserRoles(tx, ada, [], ada)).toEqual({ ok: true });
+      expect(await getUserRoles(tx, ada)).toEqual([]);
+    });
+  });
+
+  test("a role changes for everyone holding it, can't be deleted while held, and Admin is fixed", async () => {
     await inRolledBackTransaction(async (tx) => {
       const ada = await account(tx);
       await createRole(tx, "Registration team", ["settings", "orders"]);
-      await setUserRole(tx, ada, "registration_team", ada);
+      await setUserRoles(tx, ada, ["registration_team"], ada);
 
       expect(await updateRole(tx, "registration_team", "Registration desk", ["orders"])).toBe("saved");
       expect([...(await getPrivileges(tx, ada))]).toEqual(["orders"]);
       expect(await updateRole(tx, "full", "Everything", ["orders"])).toBe("built-in");
 
       expect(await deleteRole(tx, "registration_team")).toBe(false);
-      await setUserRole(tx, ada, null, ada);
+      await setUserRoles(tx, ada, [], ada);
       expect(await deleteRole(tx, "registration_team")).toBe(true);
       expect(await deleteRole(tx, "full")).toBe(false);
-      expect((await listRoles(tx)).map((r) => r.key)).toContain("full");
+      expect((await listRoles(tx)).map((r) => [r.key, r.name])).toContainEqual(["full", "Admin"]);
     });
   });
 });
@@ -80,7 +97,8 @@ test("checkRoleForm needs a name and at least one known privilege", () => {
     get: (n: string) => (Array.isArray(fields[n]) ? fields[n]![0] : (fields[n] ?? null)),
     getAll: (n: string) => (fields[n] === undefined ? [] : Array.isArray(fields[n]) ? fields[n] : [fields[n]]),
   });
-  expect(checkRoleForm(form({ name: " Greeters ", privilege: ["people", "made-up"] }))).toEqual({ ok: true, name: "Greeters", privileges: ["people"] });
+  expect(checkRoleForm(form({ name: " Greeters ", privilege: ["website", "admin", "made-up"] }))).toEqual({ ok: true, name: "Greeters", privileges: ["website"] });
+  expect(checkRoleForm(form({ name: "admin", privilege: ["orders"] }))).toMatchObject({ ok: false, errors: { name: expect.any(String) } });
   expect(checkRoleForm(form({ name: "", privilege: [] }))).toMatchObject({ ok: false, errors: { name: expect.any(String), privileges: expect.any(String) } });
 });
 

@@ -64,7 +64,8 @@ The team decides the foundation (database, hosting, data architecture) together.
 | Session Host | Registered member who created or co-hosts a session | Create, edit, unpublish and delete their own sessions. See their RSVP list. Email their registrants. Set privacy and recording options. |
 | Alumni | Account holder whose tickets are all for past editions | Their own account, messages and contacts, plus members and content tagged with the editions they attended. Nothing from editions they did not attend, including the current one. |
 | Volunteer | Member helping with a specific project, such as Stewardship | Permissions to be defined per project (see Open questions). |
-| Admin | Organizing Team (seven people today) | Full access by default. Narrower admin permissions, such as access to the team inbox, can be granted per person. |
+| Admin | Organizing Team (seven people today) | Everything. Admins can make anyone an admin but can only remove admin status from themselves. |
+| Other roles | People helping with one part of Limicon, such as a Bookkeeper | What their roles allow, added together: see orders and money, edit settings, view and reply to team@limicon.org emails, send emails from team@limicon.org, edit the website, or post updates to the website (add content but not remove it). Admins define these roles. |
 
 **Access rules**
 
@@ -119,7 +120,7 @@ During the event, admins add relevant Liminal Calendar events to the Limicon cal
 - **AUTH-2** Sessions persist for at least 30 days on a device so members stay signed in.
 - **AUTH-3** One account per person. Accounts persist across years and keep their history.
 - **AUTH-4** Members can reset access themselves and delete their account.
-- **AUTH-5** Each admin holds one role: a name and a set of privileges, which admins define in the console. Admins whose role includes managing roles can create and change roles and give or take them away.
+- **AUTH-5** Access beyond membership comes from roles: a name and a set of privileges, which admins define in the console. A person may hold several roles, and their privileges add up. All admins hold the built-in Admin role. Admins can give anyone any role, including Admin, but can only remove admin status from themselves. A person's roles show beside their name.
 
 ### Registration and ticketing
 
@@ -299,6 +300,7 @@ The session editor is shared for host create, host edit and admin edit. It adapt
 - **PRO-2** A members-only directory with search by name and keyword. Emails never appear in the directory.
 - **PRO-3** Each member controls whether they appear in the directory and whether others can message them. Both default to on.
 - **PRO-4** Current members see current members. Alumni see members tagged with the editions they attended. Profiles are never public.
+- **PRO-5** Members can view the whole Limicon group, the way a Facebook group lists its people: first everyone caring for Limicon (admins, caretakers and other roles), grouped by role, then a section with all members. Each person's roles show beside their name, on their profile and wherever their name appears.
 
 ### Messaging and discussion
 
@@ -355,7 +357,7 @@ The model separates an account (a person, permanent) from a ticket (a person's p
 | --- | --- | --- |
 | profiles | One row per person, linked to the auth account | name, photo, location, bio, extended bio, links, keywords, time zone, allow\_messages, show\_in\_directory, deactivated\_at |
 | admin\_roles | Named sets of admin privileges | key, name, privileges, built\_in |
-| admin\_permissions | Who holds which admin role (one each) | profile, role, granted\_by, granted\_at |
+| admin\_permissions | Who holds which roles (several each) | profile, role, granted\_by, granted\_at |
 | admin\_user\_notes | Private notes admins keep about a person | profile, author, body, created\_at |
 | editions | One row per Limicon year | year, name, teaser, start and end with their time zones, image, about (rich text), start and end dates, registration\_open, calendar\_open |
 | edition\_links | External links for members per edition (MEM-2) | edition, label, url, sort order |

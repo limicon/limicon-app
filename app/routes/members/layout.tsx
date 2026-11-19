@@ -1,6 +1,7 @@
 import { Form, Link, NavLink, Outlet } from "react-router";
 
 import { servicesContext } from "~/context";
+import { getRoleNames } from "~/lib/admin-roles.server";
 import { requireMembership } from "~/middleware/services.server";
 import type { Route } from "./+types/layout";
 
@@ -9,7 +10,9 @@ export const middleware: Route.MiddlewareFunction[] = [requireMembership];
 export async function loader({ context }: Route.LoaderArgs) {
   const services = context.get(servicesContext);
   const { edition, isAdmin } = await services.membership();
-  return { editionYear: edition?.year ?? null, email: services.viewer?.email ?? null, isAdmin };
+  // Members see their own roles beside their name, so everyone knows who holds which.
+  const roleNames = isAdmin && services.viewer ? await getRoleNames(services.db(), services.viewer.userId) : [];
+  return { editionYear: edition?.year ?? null, email: services.viewer?.email ?? null, isAdmin, roleNames };
 }
 
 const sections = [
@@ -66,7 +69,18 @@ export default function MembersLayout({ loaderData }: Route.ComponentProps) {
             </ul>
           </nav>
           <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/15 pt-4 text-sm md:mt-8 md:flex-col md:items-start">
-            {loaderData.email && <span className="opacity-80">{loaderData.email}</span>}
+            {loaderData.email && (
+              <span className="opacity-80">
+                {loaderData.email}
+                {loaderData.roleNames.length > 0 && (
+                  <span className="mt-1 flex flex-wrap gap-1">
+                    {loaderData.roleNames.map((name) => (
+                      <span key={name} className="rounded-full bg-[#F3E6D7] px-2 py-0.5 text-xs font-semibold text-[#15383F]">{name}</span>
+                    ))}
+                  </span>
+                )}
+              </span>
+            )}
             <Link to="/" className="underline">
               Public website
             </Link>

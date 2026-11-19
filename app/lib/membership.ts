@@ -1,6 +1,6 @@
 /**
  * Who may open the Members area. An account alone opens nothing: a ticket for the current
- * edition does, and so does any admin permission (admins have full access by default). An
+ * edition does, and so does holding any role (admins and helpers such as a Bookkeeper). An
  * account an admin has deactivated opens nothing, whatever it holds (MSG-4).
  */
 export type MembershipStatus = "member" | "needs-ticket" | "signed-out" | "deactivated";

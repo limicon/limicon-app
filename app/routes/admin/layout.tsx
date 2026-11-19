@@ -17,15 +17,15 @@ export async function loader({ context }: Route.LoaderArgs) {
 const sections: { to: string; label: string; end?: boolean; needs?: Privilege }[] = [
   { to: "/admin", label: "Overview", end: true },
   { to: "/admin/settings", label: "Settings", needs: "settings" },
-  { to: "/admin/users", label: "Users", needs: "people" },
+  { to: "/admin/users", label: "Users", needs: "admin" },
   { to: "/admin/orders", label: "Orders", needs: "orders" },
-  { to: "/admin/guests", label: "Guests", needs: "people" },
-  { to: "/admin/sessions", label: "Sessions", needs: "sessions" },
+  { to: "/admin/guests", label: "Guests", needs: "admin" },
+  { to: "/admin/sessions", label: "Sessions", needs: "admin" },
   { to: "/admin/website", label: "Website", needs: "website" },
   { to: "/admin/faq", label: "FAQ", needs: "website" },
   { to: "/admin/policies", label: "Policies", needs: "website" },
-  { to: "/admin/roles", label: "Roles", needs: "roles" },
-  { to: "/admin/team", label: "Team", needs: "roles" },
+  { to: "/admin/roles", label: "Roles", needs: "admin" },
+  { to: "/admin/team", label: "Team", needs: "admin" },
 ];
 
 /** The admin console's shell (ADM-1): its own menu, apart from the public site and Members area. */

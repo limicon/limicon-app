@@ -6,8 +6,8 @@ import { isUuid, listAllSessions, setCocreationMeeting, unpublishSession, type A
 import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/sessions";
 
-/** Needs the `sessions` privilege (app/lib/admin-roles.ts). */
-export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("sessions")];
+/** Admins only (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("admin")];
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Sessions · Admin · Limicon" }];

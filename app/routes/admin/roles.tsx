@@ -7,8 +7,8 @@ import { listRoles } from "~/lib/admin-roles.server";
 import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/roles";
 
-/** Needs the `roles` privilege (app/lib/admin-roles.ts). */
-export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("roles")];
+/** Admins only (app/lib/admin-roles.ts). */
+export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("admin")];
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Roles · Admin · Limicon" }];

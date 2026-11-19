@@ -7,7 +7,7 @@ import { listGuests, type GuestRow } from "~/lib/orders.server";
 import { requireAdmin, requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/guests-csv";
 
-export const middleware: Route.MiddlewareFunction[] = [requireAdmin, requirePrivilege("people")];
+export const middleware: Route.MiddlewareFunction[] = [requireAdmin, requirePrivilege("admin")];
 
 /** The guest list as a spreadsheet, with only the columns ticked (ADM-2). */
 export async function loader({ context, request }: Route.LoaderArgs) {
