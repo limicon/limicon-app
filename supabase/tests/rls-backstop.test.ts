@@ -118,6 +118,7 @@ describe("row-level security backstop", () => {
         insert into public.update_comment_edits (comment_id, previous_body, new_body)
         values (${comment!.id}, 'Hello', 'Hi')
       `;
+      await tx`insert into public.update_last_seen (profile_id) values (${user!.id})`;
 
       const tables = await tx<{ tablename: string }[]>`
         select tablename from pg_tables where schemaname = 'public'

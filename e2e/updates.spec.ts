@@ -42,6 +42,15 @@ test("a poster adds an update, and a member likes it and comments", async ({ bro
   await signIn(member, request, memberEmail);
   await setName(memberEmail, "Mo", "Member");
   await giveTicket(memberEmail);
+  // Members home flags posts the member hasn't seen, until they open Updates.
+  await member.goto("/members");
+  const updatesCard = member.getByRole("main").getByRole("link", { name: /^Updates/ });
+  await expect(updatesCard).toContainText(/\d+ New Updates?/);
+  await updatesCard.click();
+  await expect(member.getByRole("heading", { name: "Updates", level: 1 })).toBeVisible();
+  await expect(member.getByRole("navigation", { name: "Members" }).getByRole("link", { name: /^Updates/ })).not.toContainText("New Update");
+  await member.getByRole("link", { name: "Home" }).click();
+  await expect(updatesCard).not.toContainText("New Update");
   await member.goto("/members/updates");
   await expect(member.getByRole("link", { name: "+ Add new post" })).toHaveCount(0);
   const post = member.getByRole("article", { name: title });

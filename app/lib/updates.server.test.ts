@@ -7,7 +7,9 @@ import type { Db } from "./db.server";
 import { plainToRichText } from "./rich-text";
 import {
   addComment,
+  countUnseenPosts,
   createPost,
+  markUpdatesSeen,
   deleteComment,
   editComment,
   listPosts,
@@ -105,6 +107,25 @@ describe("updates", () => {
       expect(await deleteComment(tx, { commentId: one!.id, userId: member, moderator: false })).toBe(true);
       expect(await deleteComment(tx, { commentId: two!.id, userId: author, moderator: true })).toBe(true);
       expect((await listPosts(tx, member)).find((p) => p.id === postId)!.comments).toEqual([]);
+    });
+  });
+
+  test("counts others' posts since the member last opened Updates", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const author = await account(tx);
+      const member = await account(tx);
+      // Earlier tests' posts are rolled back, but posts already in the local database count too.
+      const before = await countUnseenPosts(tx, member);
+      await post(tx, author);
+      await post(tx, member);
+      expect(await countUnseenPosts(tx, member)).toBe(before + 1);
+
+      await markUpdatesSeen(tx, member);
+      expect(await countUnseenPosts(tx, member)).toBe(0);
+      // now() is fixed within a transaction, so the next post is dated after the visit by hand.
+      const later = await post(tx, author);
+      await tx`update public.update_posts set created_at = now() + interval '1 minute' where id = ${later}`;
+      expect(await countUnseenPosts(tx, member)).toBe(1);
     });
   });
 

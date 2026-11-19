@@ -1,6 +1,8 @@
-import { Link } from "react-router";
+import { Link, useRouteLoaderData } from "react-router";
 
+import { UnseenCount } from "~/components/unseen-count";
 import { servicesContext } from "~/context";
+import type { loader as layoutLoader } from "./layout";
 import type { Route } from "./+types/home";
 
 export function meta({}: Route.MetaArgs) {
@@ -21,6 +23,8 @@ const areas = [
 
 export default function MembersHome({ loaderData }: Route.ComponentProps) {
   const name = loaderData.editionYear ? `Limicon ${loaderData.editionYear}` : "Limicon";
+  // The Members layout counts the posts this member hasn't seen.
+  const unseenUpdates = useRouteLoaderData<typeof layoutLoader>("routes/members/layout")?.unseenUpdates ?? 0;
   return (
     <>
       <h1 className="text-3xl font-semibold">Welcome to {name}</h1>
@@ -32,7 +36,10 @@ export default function MembersHome({ loaderData }: Route.ComponentProps) {
               to={area.to}
               className="block h-full rounded-lg border border-[#C9DADC] bg-white p-5 hover:border-[#15383F] dark:border-[#24363B] dark:bg-[#12201F] dark:hover:border-[#8CC7D3]"
             >
-              <span className="block text-lg font-semibold">{area.title}</span>
+              <span className="block text-lg font-semibold">
+                {area.title}
+                {area.to === "/members/updates" && <UnseenCount count={unseenUpdates} />}
+              </span>
               <span className="mt-1 block">{area.text}</span>
             </Link>
           </li>

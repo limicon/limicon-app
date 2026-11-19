@@ -139,6 +139,28 @@ export async function deleteComment(sql: Db, args: { commentId: string; userId: 
   return rows.length > 0;
 }
 
+/**
+ * How many posts the member hasn't seen: those others posted since they last opened Updates, or
+ * every post by others if they never have.
+ */
+export async function countUnseenPosts(sql: Db, userId: string): Promise<number> {
+  const [row] = await sql<{ count: number }[]>`
+    select count(*)::int as count
+    from public.update_posts p
+    where p.author_id is distinct from ${userId}
+      and p.created_at > coalesce((select seen_at from public.update_last_seen where profile_id = ${userId}), '-infinity')
+  `;
+  return row!.count;
+}
+
+/** Records that the member has just opened Updates. */
+export async function markUpdatesSeen(sql: Db, userId: string) {
+  await sql`
+    insert into public.update_last_seen (profile_id, seen_at) values (${userId}, now())
+    on conflict (profile_id) do update set seen_at = excluded.seen_at
+  `;
+}
+
 export type CommentEdit = {
   id: number;
   commentId: string;

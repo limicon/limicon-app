@@ -16,6 +16,10 @@ Posters can't delete posts, matching the privilege's "add content but not remove
 
 People who can post see **+ Add new post** at the top of the page. A post has a title and a body written in the same rich text editor as the website's pages: formatting, headings, lists, links, images and files. **Start from** offers a blank post or a template; choosing one replaces what's written, after asking. Templates live in `POST_TEMPLATES` in `app/lib/updates.ts`. Newsletter is a placeholder until its layout is written.
 
+## New updates
+
+Until a member opens Updates, the Updates card on the Members home page and the Updates link in the Members menu say, in red, how many posts others have added since their last visit, such as "3 New Updates". `update_last_seen` keeps when each member last opened the page; the Members layout records the visit and counts.
+
 ## Likes and comments
 
 Each post has a Like button with its count, and a small comment box underneath: type and press Enter or **Comment**. Comments stay folded away behind **View comments (n)**, which is hidden while a post has none. Comments are plain text, up to 2,000 characters.

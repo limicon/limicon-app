@@ -1,20 +1,32 @@
-import { Form, Link, NavLink, Outlet } from "react-router";
+import { Form, Link, NavLink, Outlet, type ShouldRevalidateFunctionArgs } from "react-router";
 
+import { UnseenCount } from "~/components/unseen-count";
 import { servicesContext } from "~/context";
 import { getRoleNames } from "~/lib/admin-roles.server";
+import { countUnseenPosts, markUpdatesSeen } from "~/lib/updates.server";
 import { requireMembership } from "~/middleware/services.server";
 import type { Route } from "./+types/layout";
 
 export const middleware: Route.MiddlewareFunction[] = [requireMembership];
 
-export async function loader({ context }: Route.LoaderArgs) {
+const onUpdates = (url: string | URL) => /^\/members\/updates(\.data)?\/?$/.test(new URL(url).pathname);
+
+export async function loader({ request, context }: Route.LoaderArgs) {
   const services = context.get(servicesContext);
   const { edition, isAdmin } = await services.membership();
+  const db = services.db();
+  const userId = services.viewer!.userId;
+  // Opening Updates counts as seeing every post on it; elsewhere the menu counts posts since then.
+  const unseen = onUpdates(request.url) ? markUpdatesSeen(db, userId).then(() => 0) : countUnseenPosts(db, userId);
   // Members see their own roles beside their name, so everyone knows who holds which.
-  const roleNames = isAdmin && services.viewer ? await getRoleNames(services.db(), services.viewer.userId) : [];
-  return { editionYear: edition?.year ?? null, email: services.viewer?.email ?? null, isAdmin, roleNames };
+  const [roleNames, unseenUpdates] = await Promise.all([isAdmin ? getRoleNames(db, userId) : Promise.resolve([]), unseen]);
+  return { editionYear: edition?.year ?? null, email: services.viewer?.email ?? null, isAdmin, roleNames, unseenUpdates };
 }
 
+/** Recounts unseen updates on the way into and out of Updates, besides the usual reloads. */
+export function shouldRevalidate({ currentUrl, nextUrl, defaultShouldRevalidate }: ShouldRevalidateFunctionArgs) {
+  return defaultShouldRevalidate || (currentUrl.pathname !== nextUrl.pathname && (onUpdates(currentUrl) || onUpdates(nextUrl)));
+}
 const sections = [
   { to: "/members", label: "Home", end: true },
   { to: "/members/updates", label: "Updates" },
@@ -53,6 +65,7 @@ export default function MembersLayout({ loaderData }: Route.ComponentProps) {
                     }
                   >
                     {section.label}
+                    {section.to === "/members/updates" && <UnseenCount count={loaderData.unseenUpdates} />}
                   </NavLink>
                 </li>
               ))}
