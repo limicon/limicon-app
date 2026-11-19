@@ -33,8 +33,8 @@ export const REFLECTION_KEYS = [
 
 /** Checkboxes a person must tick to register. Each is stored with the time they ticked it. */
 export const AGREEMENTS = [
-  { key: "agree_code_of_conduct", label: "I agree to the Limicon Code of Conduct." },
-  { key: "agree_privacy_policy", label: "I agree to the Limicon Privacy Policy." },
+  { key: "agree_code_of_conduct", label: "I agree to the Limicon Code of Conduct.", read: { to: "/conduct", text: "Read the Code of Conduct" } },
+  { key: "agree_privacy_policy", label: "I agree to the Limicon Privacy Policy.", read: { to: "/privacy", text: "Read the Privacy Policy" } },
   { key: "confirm_contacts", label: "I'll add team@limicon.org to my contacts so Limicon emails reach me." },
   { key: "confirm_faq", label: "I'll check the website and FAQ before emailing questions." },
 ] as const;

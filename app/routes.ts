@@ -9,6 +9,8 @@ export default [
     route("tickets", "routes/public/tickets.tsx"),
     route("members-only", "routes/public/members-only.tsx"),
     route("faq", "routes/public/faq.tsx"),
+    route("privacy", "routes/public/privacy.tsx"),
+    route("conduct", "routes/public/conduct.tsx"),
   ]),
 
   // The Members area: a site of its own, open only to ticket holders and admins.

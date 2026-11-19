@@ -244,6 +244,12 @@ function RegistrationForm({
               <input type="checkbox" name={a.key} defaultChecked={input[a.key]} required className="mt-1 size-4 shrink-0" {...errorProps(a.key, errors)} />
               <span>{a.label}</span>
             </label>
+            {"read" in a && (
+              // A new tab, so the answers typed so far stay on this page.
+              <a href={a.read.to} target="_blank" rel="noopener" className="ml-7 text-sm underline">
+                {a.read.text} (opens in a new tab)
+              </a>
+            )}
             <FieldError id={`${a.key}-error`} message={errors[a.key]} />
           </div>
         ))}

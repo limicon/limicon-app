@@ -440,4 +440,4 @@ Phase 1 collects each host's AI consent choices and stores them with the session
 | 8 | Can contact and purchase records be shared with AI tools during the migration? | Organizing Team |
 | 9 | Do recordings move into Limicon storage, and at what cost per month? | Lead builder, James |
 | 10 | Magic link or password for email sign-in? | Team, Phase 0 |
-| 11 | Which laws does the Privacy Policy name, and how long are recordings, transcripts, messages and the contribution log kept? | Organizing Team |
+| 11 | Which laws does the Privacy Policy name, and how long are recordings, transcripts, messages and the contribution log kept? The app shows the February 2026 Privacy Policy and Code of Conduct until both are revised for 2027. | Organizing Team |

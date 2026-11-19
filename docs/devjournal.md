@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-18 | Lauren (with Opus 5.5) | The Privacy Policy and Code of Conduct are public pages
+
+`/privacy` and `/conduct` carry the 5 February 2026 texts, linked from a site map at the foot of every public page and from the registration checkboxes. They stand in until the Organizing Team revises both for 2027; the text lives in `app/content/policies.tsx`.
+
+---
+
 ## 2026-11-18 | Lauren (with Opus 5.5) | Admins manage users, sessions and the FAQ
 
 The console adds Users (search, filters, roles, deactivation, private notes, CSV), editing any session in place, an FAQ that admins write for the public `/faq` page, and Settings (renamed from Edition) with any number of member links. Deactivated accounts lose the Members area and console.

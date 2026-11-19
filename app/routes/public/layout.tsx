@@ -14,7 +14,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 export default function PublicLayout({ loaderData }: Route.ComponentProps) {
   const { signedIn, membership } = loaderData;
   return (
-    <>
+    <div className="flex min-h-screen flex-col">
       <header className="border-b border-gray-200 dark:border-gray-800">
         <nav
           aria-label="Main"
@@ -32,8 +32,41 @@ export default function PublicLayout({ loaderData }: Route.ComponentProps) {
           </NavLink>
         </nav>
       </header>
-      <Outlet />
-    </>
+      <div className="flex-1">
+        <Outlet />
+      </div>
+      <SiteFooter signedIn={signedIn} />
+    </div>
+  );
+}
+
+/** The site map at the foot of every public page. It is the only place the policies are linked. */
+function SiteFooter({ signedIn }: { signedIn: boolean }) {
+  const links = [
+    { to: "/", label: "Home" },
+    { to: "/faq", label: "FAQ" },
+    { to: "/members", label: "Members" },
+    signedIn ? { to: "/account", label: "Your account" } : { to: "/sign-in", label: "Sign in" },
+    { to: "/privacy", label: "Privacy Policy" },
+    { to: "/conduct", label: "Code of Conduct" },
+  ];
+  return (
+    <footer className="mt-12 border-t border-gray-200 text-sm dark:border-gray-800">
+      <nav aria-label="Site map" className="mx-auto max-w-5xl px-4 py-6">
+        <ul className="flex flex-wrap gap-x-6 gap-y-2">
+          {links.map((l) => (
+            <li key={l.to}>
+              <Link to={l.to} className="hover:underline">
+                {l.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 opacity-70">
+          Questions? <a href="mailto:team@limicon.org" className="underline">team@limicon.org</a>
+        </p>
+      </nav>
+    </footer>
   );
 }
 
