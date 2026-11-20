@@ -68,7 +68,7 @@ const form: SessionFormInput = {
   sessionTypes: ["dialog", "fun"], experience: ["kid_friendly"], date: "2027-03-17", start: "12:00",
   lengthMinutes: "60", timeZone: "America/Toronto", meetingLink: "https://zoom.us/j/1", city: "", venueNote: "",
   maxParticipants: "", waitlist: false, recorded: "no", recordingAudience: "", aiAllowed: "yes",
-  aiPermissions: ["transcription"], coHosts: [], repeat: "", repeatUntil: "", extraDates: [], extraStarts: [],
+  aiPermissions: ["transcription"], coHosts: [], repeat: "", repeatUntil: "", extraDates: [], extraStarts: [], sameDetails: true, repeatTitles: [], repeatDescriptions: [],
 };
 
 function values(input: Partial<SessionFormInput> = {}): SessionValues {
@@ -191,6 +191,29 @@ describe("sessions", () => {
       // A session that doesn't repeat has no other dates.
       const single = await createSession(tx, { userId: other, editionId, values: values(), publish: true });
       expect(await listOtherDates(tx, single, false)).toEqual([]);
+    });
+  });
+
+  test("a series in parts saves each date's own title and description", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const { host, editionId } = await setUp(tx);
+      const parts = checkSessionForm(
+        { ...form, repeat: "weekly", repeatUntil: "2027-03-31", sameDetails: false, repeatTitles: ["Part 2", ""], repeatDescriptions: ["", "The last part"] },
+        { publish: true },
+      );
+      if (!parts.ok) throw new Error(JSON.stringify(parts.errors));
+      await createSession(tx, { userId: host, editionId, values: parts.values, publish: true });
+      const rows = await tx<{ title: string; description: string | null; doc: unknown }[]>`
+        select s.title, s.description, s.description_doc as doc from public.sessions s
+        join public.session_hosts h on h.session_id = s.id and h.profile_id = ${host}
+        order by s.starts_at
+      `;
+      expect(rows.map((r) => [r.title, r.description])).toEqual([
+        [form.title, null],
+        ["Part 2", null],
+        [form.title, "The last part"],
+      ]);
+      expect(rows[2]!.doc).toMatchObject({ type: "doc" });
     });
   });
 

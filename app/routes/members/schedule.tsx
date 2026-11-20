@@ -4,6 +4,7 @@ import { Form, Link, useSearchParams, useSubmit } from "react-router";
 import { RichText } from "~/components/rich-text";
 import { RsvpButton } from "~/components/rsvp-button";
 import { SessionPhoto } from "~/components/session-photo";
+import { SeriesBadge } from "~/components/series-badge";
 import { useBrowserZone, useScheduleRefresh } from "~/components/schedule-refresh";
 import { ThemeLabel } from "~/components/theme-label";
 import { MonthView, ThreeDayView } from "~/components/schedule-calendar";
@@ -188,8 +189,9 @@ function SessionCard({ session, zone, canRsvp, hosting }: { session: ScheduledSe
               {session.title}
             </Link>
           </h3>
-          <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          <p className="flex flex-wrap gap-x-4 gap-y-1 items-center text-sm">
             <ThemeLabel theme={session.theme} />
+            <SeriesBadge recurring={session.recurring} />
             <span>{session.sessionTypes.map(typeLabel).join(", ")}</span>
             {session.city && <span>In person, {session.city}</span>}
           </p>

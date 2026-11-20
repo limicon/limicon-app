@@ -216,3 +216,27 @@ describe("session photos", () => {
     });
   });
 });
+
+describe("repeating series", () => {
+  test("mark each published date that has another on the calendar, and not single sessions", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const { editionId, host, ids } = await setUp(tx);
+      const series = crypto.randomUUID();
+      await tx`update public.sessions set series_id = ${series} where id in (${ids.happening}, ${ids.sooner}, ${ids.later}, ${ids.draft})`;
+      const sessions = await listScheduledSessions(tx, editionId, upcoming);
+      // The unpublished draft doesn't count.
+      expect(sessions.map((s) => [s.title, s.recurring])).toEqual([
+        ["Happening now", true],
+        ["Sooner", true],
+        ["Later", true],
+      ]);
+      expect(await getSessionDetails(tx, ids.later, editionId, host)).toMatchObject({ recurring: true });
+      expect(await getSessionDetails(tx, ids.finished, editionId, host)).toMatchObject({ recurring: false });
+
+      // A date whose only other date is a draft isn't marked.
+      const pair = crypto.randomUUID();
+      await tx`update public.sessions set series_id = ${pair} where id in (${ids.finished}, ${ids.draft})`;
+      expect(await getSessionDetails(tx, ids.finished, editionId, host)).toMatchObject({ recurring: false });
+    });
+  });
+});

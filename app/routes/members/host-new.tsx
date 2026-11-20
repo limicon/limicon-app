@@ -26,7 +26,7 @@ const blank: SessionFormInput = {
   title: "", description: "", intention: "", imageKey: "", theme: "", sessionTypes: [], experience: [],
   date: "", start: "", lengthMinutes: "60", timeZone: "America/Toronto", meetingLink: "",
   city: "", venueNote: "", maxParticipants: "", waitlist: false, recorded: "",
-  recordingAudience: "", aiAllowed: "", aiPermissions: [], coHosts: [], repeat: "", repeatUntil: "", extraDates: [], extraStarts: [],
+  recordingAudience: "", aiAllowed: "", aiPermissions: [], coHosts: [], repeat: "", repeatUntil: "", extraDates: [], extraStarts: [], sameDetails: true, repeatTitles: [], repeatDescriptions: [],
 };
 
 export async function loader({ context }: Route.LoaderArgs) {

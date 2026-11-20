@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { checkSessionForm, readSessionForm, sessionToFormInput, type SessionFormInput } from "./session-form";
+import { checkSessionForm, readSessionForm, repeatRows, sessionToFormInput, type SessionFormInput } from "./session-form";
 
 const complete: SessionFormInput = {
   title: "Thresholds and transitions",
@@ -26,7 +26,7 @@ const complete: SessionFormInput = {
   repeat: "",
   repeatUntil: "",
   extraDates: [],
-  extraStarts: [],
+  extraStarts: [], sameDetails: true, repeatTitles: [], repeatDescriptions: [],
 };
 
 const draft = (input: Partial<SessionFormInput>) =>
@@ -37,7 +37,7 @@ function emptyForm(): SessionFormInput {
     title: "", description: "", intention: "", imageKey: "", theme: "", sessionTypes: [], experience: [],
     date: "", start: "", lengthMinutes: "", timeZone: "America/Toronto", meetingLink: "",
     city: "", venueNote: "", maxParticipants: "", waitlist: false, recorded: "",
-    recordingAudience: "", aiAllowed: "", aiPermissions: [], coHosts: [], repeat: "", repeatUntil: "", extraDates: [], extraStarts: [],
+    recordingAudience: "", aiAllowed: "", aiPermissions: [], coHosts: [], repeat: "", repeatUntil: "", extraDates: [], extraStarts: [], sameDetails: true, repeatTitles: [], repeatDescriptions: [],
   };
 }
 
@@ -210,6 +210,47 @@ describe("repeating sessions", () => {
 
   test("a session that doesn't repeat has no repeats", () => {
     expect(starts(check({}))).toEqual([]);
+  });
+
+  test("lists the dates the form shows a title and description box for, in order", () => {
+    const base = { date: "2027-03-10", start: "12:00", repeatUntil: "", extraDates: [], extraStarts: [] };
+    expect(repeatRows({ ...base, repeat: "weekly" }, "2027-03-31")).toEqual([
+      { date: "2027-03-17", start: "12:00" },
+      { date: "2027-03-24", start: "12:00" },
+      { date: "2027-03-31", start: "12:00" },
+    ]);
+    expect(repeatRows({ ...base, repeat: "biweekly", repeatUntil: "2027-03-24" }, null)).toEqual([{ date: "2027-03-24", start: "12:00" }]);
+    expect(repeatRows({ ...base, repeat: "custom", extraDates: ["2027-03-20", ""], extraStarts: ["09:30", ""] }, null)).toEqual([
+      { date: "2027-03-20", start: "09:30" },
+    ]);
+    expect(repeatRows({ ...base, date: "", repeat: "weekly" }, "2027-03-31")).toEqual([]);
+  });
+
+  test("gives each date its own title and description when the host asks, and the first's otherwise", () => {
+    const parts = { repeat: "weekly", repeatTitles: ["Part 2: Roots", "", "Part 4: Seeds"], repeatDescriptions: ["", "Bring a notebook", ""] };
+    const own = check({ ...parts, sameDetails: false });
+    if (!own.ok) throw new Error(JSON.stringify(own.errors));
+    expect(own.values.repeats.map((r) => r.title)).toEqual(["Part 2: Roots", undefined, "Part 4: Seeds"]);
+    expect(own.values.repeats.map((r) => r.description)).toEqual([undefined, "Bring a notebook", undefined]);
+    expect(own.values.repeats[1]!.descriptionDoc).toMatchObject({ type: "doc" });
+
+    const same = check({ ...parts, sameDetails: true });
+    if (!same.ok) throw new Error(JSON.stringify(same.errors));
+    expect(same.values.repeats.every((r) => r.title === undefined && r.descriptionDoc === undefined)).toBe(true);
+
+    expect(check({ repeat: "weekly", sameDetails: false, repeatTitles: ["x".repeat(61)] })).toMatchObject({
+      ok: false,
+      errors: { repeatTitles: expect.stringContaining("session 2") },
+    });
+  });
+
+  test("reads the per-date boxes and the same-details checkbox from the form", () => {
+    const form = new FormData();
+    form.append("repeatTitles", " Part 2 ");
+    form.append("repeatDescriptions", "");
+    expect(readSessionForm(form)).toMatchObject({ sameDetails: false, repeatTitles: ["Part 2"], repeatDescriptions: [""] });
+    form.append("sameDetails", "on");
+    expect(readSessionForm(form).sameDetails).toBe(true);
   });
 });
 

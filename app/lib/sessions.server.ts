@@ -1,5 +1,5 @@
 import type { Db } from "~/lib/db.server";
-import type { Person, SessionValues } from "~/lib/session-form";
+import type { Person, RepeatDate, SessionValues } from "~/lib/session-form";
 
 /** A session as its hosts see it in the editor. */
 export type EditableSession = Omit<SessionValues, "repeats"> & {
@@ -106,17 +106,25 @@ export async function createSession(
   const { userId, editionId, values: v, publish } = args;
   // A repeating session is one session per date, linked by a series id (docs/feature-sessions.md).
   const seriesId = v.repeats.length ? crypto.randomUUID() : null;
-  const dates = [{ startsAt: v.startsAt, endsAt: v.endsAt }, ...v.repeats];
+  const dates: (Omit<RepeatDate, "startsAt" | "endsAt"> & { startsAt: Date | null; endsAt: Date | null })[] = [
+    { startsAt: v.startsAt, endsAt: v.endsAt },
+    ...v.repeats,
+  ];
   return sql.begin(async (tx) => {
     const ids: string[] = [];
-    for (const { startsAt, endsAt } of dates) {
+    for (const date of dates) {
+      const { startsAt, endsAt } = date;
+      // A date the host gave its own title or description; the rest share the first one's.
+      const title = date.title ?? v.title;
+      const description = date.descriptionDoc !== undefined ? (date.description ?? null) : v.description;
+      const doc = date.descriptionDoc !== undefined ? (date.descriptionDoc ? sql.json(date.descriptionDoc as never) : null) : descriptionJson(sql, v);
       const [row] = await tx<{ id: string }[]>`
         insert into public.sessions (
           edition_id, created_by, published, title, description, description_doc, intention, image_key, theme, session_types,
           experience, starts_at, ends_at, time_zone, meeting_link, city, venue_note,
           max_participants, waitlist_enabled, privacy, ai_assistant_allowed, ai_permissions, series_id
         ) values (
-          ${editionId}, ${userId}, ${publish}, ${v.title}, ${v.description}, ${descriptionJson(sql, v)}, ${v.intention}, ${v.imageKey}, ${v.theme},
+          ${editionId}, ${userId}, ${publish}, ${title}, ${description}, ${doc}, ${v.intention}, ${v.imageKey}, ${v.theme},
           ${v.sessionTypes}::text[], ${v.experience}::text[], ${startsAt}, ${endsAt},
           ${v.timeZone}, ${v.meetingLink}, ${v.city}, ${v.venueNote}, ${v.maxParticipants},
           ${v.waitlistEnabled}, ${v.privacy}, ${v.aiAssistantAllowed}, ${v.aiPermissions}::text[], ${seriesId}

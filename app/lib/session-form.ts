@@ -102,6 +102,11 @@ export type SessionFormInput = {
   /** Custom repeats: the other dates and their start times, in the session's time zone. */
   extraDates: string[];
   extraStarts: string[];
+  /** Whether every date of a repeating session shares the first one's title and description. */
+  sameDetails: boolean;
+  /** When they don't: each further date's title and description, in `repeatRows` order. */
+  repeatTitles: string[];
+  repeatDescriptions: string[];
 };
 
 /** A member as the co-host field shows them. */
@@ -132,8 +137,19 @@ export type SessionValues = {
   aiPermissions: string[];
   /** Co-hosts' profile ids, besides the host who created the session. */
   coHostIds: string[];
-  /** Further dates for a repeating session, each saved as a session of its own. */
-  repeats: { startsAt: Date; endsAt: Date }[];
+  /**
+   * Further dates for a repeating session, each saved as a session of its own. A date with its own
+   * title or description carries it; otherwise it takes the first session's.
+   */
+  repeats: RepeatDate[];
+};
+
+export type RepeatDate = {
+  startsAt: Date;
+  endsAt: Date;
+  title?: string;
+  description?: string | null;
+  descriptionDoc?: RichDoc | null;
 };
 
 export type FieldErrors = Partial<Record<keyof SessionFormInput, string>>;
@@ -174,6 +190,9 @@ export function readSessionForm(form: { get(name: string): unknown; getAll(name:
     repeatUntil: text("repeatUntil"),
     extraDates: list("extraDates").map((v) => v.trim()),
     extraStarts: list("extraStarts").map((v) => v.trim()),
+    sameDetails: text("sameDetails") === "on",
+    repeatTitles: list("repeatTitles").map((v) => v.trim()),
+    repeatDescriptions: list("repeatDescriptions").map((v) => v.trim()),
     coHosts: list("coHosts").flatMap((value) => {
       try {
         const person = JSON.parse(value) as Partial<Person>;
@@ -339,6 +358,27 @@ function addDays(date: string, days: number): string {
 }
 
 /**
+ * The further dates and start times a repeating session's form asks for, in the order the form
+ * lists them: the host's own rows, or every week or two from the first date until `repeatUntil`
+ * (or the event's last day). The editor shows a title and description box for each; the server
+ * reads them back in this same order. Stops one past the most allowed, so callers can tell.
+ */
+export function repeatRows(input: Pick<SessionFormInput, "repeat" | "date" | "start" | "repeatUntil" | "extraDates" | "extraStarts">, lastDay: string | null): { date: string; start: string }[] {
+  if (input.repeat === "custom") {
+    return input.extraDates.map((date, i) => ({ date, start: input.extraStarts[i] ?? "" })).filter((row) => row.date || row.start);
+  }
+  if (input.repeat !== "weekly" && input.repeat !== "biweekly") return [];
+  const until = input.repeatUntil || lastDay || "";
+  if (!DATE.test(until) || !DATE.test(input.date)) return [];
+  const step = input.repeat === "weekly" ? 7 : 14;
+  const rows: { date: string; start: string }[] = [];
+  for (let date = addDays(input.date, step); date <= until && rows.length <= REPEATS_MAX; date = addDays(date, step)) {
+    rows.push({ date, start: input.start });
+  }
+  return rows;
+}
+
+/**
  * The further dates a repeating session falls on, at the same clock time in its time zone, so a
  * weekly noon session stays at noon across a daylight-saving change. Adds any problems to `errors`.
  */
@@ -361,7 +401,7 @@ function checkRepeats(
 
   const dates: { date: string; start: string }[] = [];
   if (input.repeat === "custom") {
-    const rows = input.extraDates.map((date, i) => ({ date, start: input.extraStarts[i] ?? "" })).filter((row) => row.date || row.start);
+    const rows = repeatRows(input, window?.last ?? null);
     if (rows.length === 0) errors.extraDates = "Add at least one more date, or choose not to repeat.";
     else if (rows.some((row) => !DATE.test(row.date) || !TIME.test(row.start))) errors.extraDates = "Give each extra date a start time.";
     else if (rows.some((row) => outside(row.date))) errors.extraDates = "Choose dates within the event.";
@@ -372,9 +412,7 @@ function checkRepeats(
     if (!DATE.test(until)) errors.repeatUntil = "Choose the last date it can repeat on.";
     else if (window?.last && until > window.last) errors.repeatUntil = "Choose a date within the event.";
     else {
-      for (let date = addDays(input.date, step); date <= until && dates.length <= REPEATS_MAX; date = addDays(date, step)) {
-        dates.push({ date, start: input.start });
-      }
+      dates.push(...repeatRows(input, window?.last ?? null));
       if (dates.length === 0) errors.repeatUntil = `Choose a date at least ${step === 7 ? "a week" : "two weeks"} after the first one.`;
     }
   }
@@ -385,8 +423,8 @@ function checkRepeats(
 
   const length = first.endsAt.getTime() - first.startsAt.getTime();
   const seen = new Set([first.startsAt.getTime()]);
-  const repeats: { startsAt: Date; endsAt: Date }[] = [];
-  for (const { date, start } of dates) {
+  const repeats: RepeatDate[] = [];
+  for (const [index, { date, start }] of dates.entries()) {
     const instant = zonedToInstant(date, start, input.timeZone);
     if (instant === "nonexistent") {
       errors[input.repeat === "custom" ? "extraDates" : "repeatUntil"] = `${start} doesn't exist on ${date} in this time zone, because the clocks change. Choose another time.`;
@@ -394,9 +432,28 @@ function checkRepeats(
     }
     if (seen.has(instant.getTime())) continue;
     seen.add(instant.getTime());
-    repeats.push({ startsAt: instant, endsAt: new Date(instant.getTime() + length) });
+    repeats.push({ startsAt: instant, endsAt: new Date(instant.getTime() + length), ...ownDetails(input, index, errors) });
   }
   return repeats.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
+}
+
+/**
+ * A further date's own title and description, when the host gave them; empty boxes take the first
+ * session's. Adds any problems to `errors`.
+ */
+function ownDetails(input: SessionFormInput, index: number, errors: FieldErrors): Partial<RepeatDate> {
+  if (input.sameDetails) return {};
+  const details: Partial<RepeatDate> = {};
+  const title = input.repeatTitles[index] ?? "";
+  if ([...title].length > TITLE_MAX) errors.repeatTitles = `Keep session ${index + 2}'s title to ${TITLE_MAX} characters.`;
+  else if (title) details.title = title;
+  const description = input.repeatDescriptions[index] ?? "";
+  if (description.length > DESCRIPTION_MAX) errors.repeatDescriptions = `Keep session ${index + 2}'s description to ${DESCRIPTION_MAX.toLocaleString("en-US")} characters.`;
+  else if (description) {
+    details.descriptionDoc = cleanRichText(plainToRichText(description));
+    details.description = richTextToPlain(details.descriptionDoc) || null;
+  }
+  return details;
 }
 
 /** Fills the form from a saved session, showing its times in the zone the host chose. */
@@ -432,6 +489,9 @@ export function sessionToFormInput(session: Omit<SessionValues, "repeats"> & { c
     repeatUntil: "",
     extraDates: [],
     extraStarts: [],
+    sameDetails: true,
+    repeatTitles: [],
+    repeatDescriptions: [],
   };
 }
 

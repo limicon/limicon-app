@@ -6,6 +6,10 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-20 | Lauren (with Opus 5.5) | Repeating sessions can have their own titles, and show as recurring
+
+Unchecking "All sessions have the same title and description" gives each further date its own title and description boxes, for a series in parts. Schedule cards and session pages mark repeating sessions "Recurring session", without part numbers, so nobody thinks they must have attended earlier dates. A saved session's Save button grays out until something changes.
+
 ## 2026-11-20 | Lauren (with Opus 5.5) | Members place their photo in a square before it uploads
 
 Session photos and profile pictures open a cropper first: zoom, drag or arrow keys inside a dotted square (a circle for profile pictures), or Fit the whole photo on Limicon's teal. The browser uploads an 800 × 800 JPEG, so photos of any size or shape work. Forms wait to save until an upload finishes.

@@ -22,6 +22,11 @@ test("a session shows the logo, then its host's picture, then its own photo", as
     minutes: 60,
     timeZone: "America/Toronto",
   });
+  const choose = async (button: string, file: { name: string; mimeType: string; buffer: Buffer }) => {
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: button }).click();
+    await (await chooser).setFiles(file);
+  };
   const card = () => page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });
 
   // No photo and no profile picture: the logo.
@@ -34,14 +39,14 @@ test("a session shows the logo, then its host's picture, then its own photo", as
   expect(refused.status()).toBe(400);
   expect(await refused.json()).toMatchObject({ error: expect.stringContaining("isn't the image its name says") });
   await page.goto("/account");
-  await page.locator('input[type="file"]').setInputFiles(fake);
+  await choose("Upload a picture", fake);
   const cropper = page.getByRole("dialog", { name: "Place your photo" });
   await expect(cropper.getByRole("alert")).toContainText("can't open that photo");
   await cropper.getByRole("button", { name: "Cancel" }).click();
   await expect(cropper).toBeHidden();
 
   // The host's profile picture stands in: the whole wide photo, fitted.
-  await page.locator('input[type="file"]').setInputFiles(wide);
+  await choose("Upload a picture", wide);
   await cropper.getByRole("checkbox", { name: /Fit the whole photo/ }).check();
   await expect(cropper.getByLabel("Zoom")).toBeDisabled();
   await cropper.getByRole("button", { name: "Use this photo" }).click();
@@ -53,7 +58,10 @@ test("a session shows the logo, then its host's picture, then its own photo", as
 
   // The session's own photo wins: zoomed in and moved.
   await page.goto(`/members/host/${id}`);
-  await page.locator('input[type="file"]').setInputFiles(wide);
+  // A saved session's button stays grayed until something changes.
+  await expect(page.getByRole("button", { name: "Saved" })).toBeDisabled();
+  await page.getByLabel(/Intention/).fill("Leave with a new habit.");
+  await choose("Upload a photo", wide);
   await cropper.getByLabel("Zoom").fill("2");
   await cropper.getByRole("group", { name: "Photo position" }).press("ArrowLeft");
   // A slow upload: saving before it finishes waits, rather than saving without the photo.

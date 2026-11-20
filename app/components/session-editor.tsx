@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Form, useNavigation } from "react-router";
 
 import { CoHostField } from "~/components/co-host-field";
@@ -11,15 +11,59 @@ import {
   LENGTH_MIN,
   RECORDING_AUDIENCES,
   REPEATS,
+  REPEATS_MAX,
+  repeatRows,
   SESSION_TYPES,
   THEMES,
   TITLE_MAX,
   type FieldErrors,
   type SessionFormInput,
 } from "~/lib/session-form";
+import { dayHeading } from "~/lib/format-time";
 import { plainToRichText, type RichDoc } from "~/lib/rich-text";
 
 export type EditorStatus = "new" | "draft" | "published";
+
+/** The form's answers as one string, for telling whether anything changed since it opened. */
+function snapshot(form: HTMLFormElement) {
+  return JSON.stringify([...new FormData(form)].filter(([name]) => name !== "intent").map(([name, value]) => [name, String(value)]));
+}
+
+/**
+ * Whether the member has changed the form since it opened. It compares the answers with how they
+ * were, so undoing a change counts as unchanged. Hidden fields that the description, co-host and
+ * photo fields fill in change without input events, so a MutationObserver watches them too.
+ * Until the member first touches the form, whatever the fields settle to as they load becomes the
+ * starting point, so an editor rewriting its value on load doesn't count as a change.
+ */
+function useChanged(form: React.RefObject<HTMLFormElement | null>, startChanged: boolean) {
+  const [changed, setChanged] = useState(startChanged);
+  useEffect(() => {
+    const el = form.current;
+    if (!el || startChanged) return;
+    let original = snapshot(el);
+    let touched = false;
+    const check = () => {
+      if (touched) setChanged(snapshot(el) !== original);
+      // Until then, take what the fields settle to as they load as the starting point.
+      else original = snapshot(el);
+    };
+    const touch = () => {
+      touched = true;
+      // After the field has handled the event.
+      setTimeout(check);
+    };
+    const events = ["input", "change", "pointerdown", "keydown"] as const;
+    for (const name of events) el.addEventListener(name, touch);
+    const observer = new MutationObserver(check);
+    observer.observe(el, { subtree: true, childList: true, attributes: true, attributeFilter: ["value"] });
+    return () => {
+      for (const name of events) el.removeEventListener(name, touch);
+      observer.disconnect();
+    };
+  }, [form, startChanged]);
+  return changed;
+}
 
 const input =
   "w-full rounded border border-[#9DB5B9] bg-white px-3 py-2 dark:border-[#3A5359] dark:bg-[#0F1C1E] aria-[invalid=true]:border-[#B3261E]";
@@ -70,12 +114,17 @@ export function SessionEditor({
   lastDay?: string | null;
 }) {
   const busy = useNavigation().state !== "idle";
+  const formRef = useRef<HTMLFormElement>(null);
+  // A saved draft or session starts unchanged; a new one, or one sent back with errors, doesn't.
+  const changed = useChanged(formRef, status === "new" || Object.keys(errors).length > 0);
   const [title, setTitle] = useState(initial.title);
   const [types, setTypes] = useState(initial.sessionTypes);
   const [recorded, setRecorded] = useState(initial.recorded);
   const [aiAllowed, setAiAllowed] = useState(initial.aiAllowed);
   const [maxParticipants, setMaxParticipants] = useState(initial.maxParticipants);
   const [timeZone, setTimeZone] = useState(initial.timeZone);
+  const [date, setDate] = useState(initial.date);
+  const [start, setStart] = useState(initial.start);
 
   // A new session starts in the host's own time zone, which only the browser knows.
   useEffect(() => {
@@ -91,7 +140,7 @@ export function SessionEditor({
   const titleLength = [...title].length;
 
   return (
-    <Form method="post" className="grid max-w-3xl gap-6" noValidate>
+    <Form ref={formRef} method="post" className="grid max-w-3xl gap-6" noValidate>
       <Fieldset legend="About the session">
         <div>
           <label htmlFor="title" className="block font-medium">Session title</label>
@@ -193,12 +242,12 @@ export function SessionEditor({
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <label htmlFor="date" className="block font-medium">Date</label>
-            <input id="date" name="date" type="date" defaultValue={initial.date} className={`mt-1 ${input}`} {...errorProps("date", errors)} />
+            <input id="date" name="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`mt-1 ${input}`} {...errorProps("date", errors)} />
             <FieldError id="date-error" message={errors.date} />
           </div>
           <div>
             <label htmlFor="start" className="block font-medium">Start time</label>
-            <input id="start" name="start" type="time" step={300} defaultValue={initial.start} className={`mt-1 ${input}`} {...errorProps("start", errors)} />
+            <input id="start" name="start" type="time" step={300} value={start} onChange={(e) => setStart(e.target.value)} className={`mt-1 ${input}`} {...errorProps("start", errors)} />
             <FieldError id="start-error" message={errors.start} />
           </div>
           <div>
@@ -224,7 +273,7 @@ export function SessionEditor({
           </select>
           <FieldError id="timeZone-error" message={errors.timeZone} />
         </div>
-        {status === "new" && <RepeatFields initial={initial} errors={errors} lastDay={lastDay} />}
+        {status === "new" && <RepeatFields initial={initial} errors={errors} lastDay={lastDay} first={{ title, date, start }} />}
       </Fieldset>
 
       <Fieldset legend="Where">
@@ -335,8 +384,11 @@ export function SessionEditor({
       <div className="flex flex-wrap items-center gap-3">
         {status === "published" ? (
           <>
-            <button type="submit" name="intent" value="publish" disabled={busy} className="rounded bg-[#15383F] px-5 py-2.5 font-semibold text-[#F3E6D7] disabled:opacity-60 dark:bg-[#F3E6D7] dark:text-[#15383F]">
-              Save changes
+            <button
+              type="submit" name="intent" value="publish" disabled={busy || !changed}
+              className="rounded bg-[#15383F] px-5 py-2.5 font-semibold text-[#F3E6D7] disabled:cursor-not-allowed disabled:bg-[#9DB5B9] disabled:text-[#F4F7F7] dark:bg-[#F3E6D7] dark:text-[#15383F] dark:disabled:bg-[#3A5359] dark:disabled:text-[#9DB5B9]"
+            >
+              {changed ? "Save changes" : <><span aria-hidden="true">✓ </span>Saved</>}
             </button>
             <button
               type="submit" name="intent" value="draft" disabled={busy} aria-describedby="take-off-note"
@@ -354,8 +406,11 @@ export function SessionEditor({
             <button type="submit" name="intent" value="publish" disabled={busy} className="rounded bg-[#15383F] px-5 py-2.5 font-semibold text-[#F3E6D7] disabled:opacity-60 dark:bg-[#F3E6D7] dark:text-[#15383F]">
               Publish to the calendar
             </button>
-            <button type="submit" name="intent" value="draft" disabled={busy} className="rounded border border-[#15383F] px-5 py-2.5 font-semibold disabled:opacity-60 dark:border-[#8CC7D3]">
-              Save draft
+            <button
+              type="submit" name="intent" value="draft" disabled={busy || !changed}
+              className="rounded border border-[#15383F] px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:border-[#C9DADC] disabled:bg-[#EEF3F3] disabled:text-[#5E7377] dark:border-[#8CC7D3] dark:disabled:border-[#24363B] dark:disabled:bg-[#0F1C1E] dark:disabled:text-[#7F9599]"
+            >
+              {status === "draft" && !changed ? <><span aria-hidden="true">✓ </span>Draft saved</> : "Save draft"}
             </button>
           </>
         )}
@@ -384,8 +439,21 @@ function editorStart(value: string): RichDoc | null {
  * lists. Each date becomes its own session with the same details, which the host can then edit
  * or cancel one at a time.
  */
-function RepeatFields({ initial, errors, lastDay }: { initial: SessionFormInput; errors: FieldErrors; lastDay: string | null }) {
+function RepeatFields({
+  initial,
+  errors,
+  lastDay,
+  first,
+}: {
+  initial: SessionFormInput;
+  errors: FieldErrors;
+  lastDay: string | null;
+  /** The first session's title, date and start, which the other dates follow. */
+  first: { title: string; date: string; start: string };
+}) {
   const [repeat, setRepeat] = useState(initial.repeat);
+  const [until, setUntil] = useState(initial.repeatUntil || lastDay || "");
+  const [same, setSame] = useState(initial.sameDetails);
   const [rows, setRows] = useState(() => {
     const saved = initial.extraDates.map((date, i) => ({ key: i, date, start: initial.extraStarts[i] ?? "" }));
     return saved.length ? saved : [{ key: 0, date: "", start: "" }];
@@ -393,6 +461,11 @@ function RepeatFields({ initial, errors, lastDay }: { initial: SessionFormInput;
   const nextKey = Math.max(...rows.map((row) => row.key)) + 1;
   const setRow = (key: number, field: "date" | "start", value: string) =>
     setRows(rows.map((row) => (row.key === key ? { ...row, [field]: value } : row)));
+  // The same list, in the same order, that the server reads the boxes below against.
+  const planned = repeatRows(
+    { repeat, date: first.date, start: first.start, repeatUntil: until, extraDates: rows.map((r) => r.date), extraStarts: rows.map((r) => r.start) },
+    lastDay,
+  ).slice(0, REPEATS_MAX);
 
   return (
     <fieldset {...errorProps("repeat", errors)} className="grid gap-4">
@@ -420,7 +493,7 @@ function RepeatFields({ initial, errors, lastDay }: { initial: SessionFormInput;
             {repeat === "weekly" ? "Every week" : "Every two weeks"} on the same day and at the same time, up to and including this date.
           </p>
           <input
-            id="repeatUntil" name="repeatUntil" type="date" defaultValue={initial.repeatUntil || lastDay || ""} max={lastDay ?? undefined}
+            id="repeatUntil" name="repeatUntil" type="date" value={until} onChange={(e) => setUntil(e.target.value)} max={lastDay ?? undefined}
             className={`mt-1 sm:max-w-60 ${input}`}
             aria-describedby={errors.repeatUntil ? "repeatUntil-help repeatUntil-error" : "repeatUntil-help"}
             aria-invalid={errors.repeatUntil ? true : undefined}
@@ -469,6 +542,49 @@ function RepeatFields({ initial, errors, lastDay }: { initial: SessionFormInput;
           </button>
           <FieldError id="extraDates-error" message={errors.extraDates} />
         </fieldset>
+      )}
+
+      {repeat && (
+        <div className="grid gap-3">
+          <label className="flex items-start gap-3">
+            <input type="checkbox" name="sameDetails" checked={same} onChange={(e) => setSame(e.target.checked)} className="mt-1 size-4 shrink-0" />
+            <span>
+              <span className="block font-medium">All sessions have the same title and description</span>
+              <span className="block text-sm">Uncheck it to give each date its own, such as for a series in parts.</span>
+            </span>
+          </label>
+          {!same &&
+            (planned.length === 0 ? (
+              <p className="text-sm">Choose the dates above, and a title and description box for each one appears here.</p>
+            ) : (
+              <ol className="grid gap-4" aria-label="Each session's title and description">
+                {planned.map((row, i) => (
+                  <li key={i} className="grid gap-2 rounded border border-[#DCE6E7] p-3 dark:border-[#24363B]">
+                    <p className="font-medium">
+                      Session {i + 2}
+                      {/^\d{4}-\d{2}-\d{2}$/.test(row.date) && <span className="font-normal">: {dayHeading(row.date)}</span>}
+                    </p>
+                    <div>
+                      <label htmlFor={`repeatTitle-${i}`} className="block text-sm font-medium">Title</label>
+                      <input
+                        id={`repeatTitle-${i}`} name="repeatTitles" maxLength={TITLE_MAX} defaultValue={initial.repeatTitles[i] ?? ""}
+                        placeholder={first.title || "Same as the first session"} className={`mt-1 ${input}`}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor={`repeatDescription-${i}`} className="block text-sm font-medium">Description</label>
+                      <textarea
+                        id={`repeatDescription-${i}`} name="repeatDescriptions" rows={3} defaultValue={initial.repeatDescriptions[i] ?? ""}
+                        placeholder="Leave empty to use the first session's description." className={`mt-1 ${input}`}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            ))}
+          <FieldError id="repeatTitles-error" message={errors.repeatTitles} />
+          <FieldError id="repeatDescriptions-error" message={errors.repeatDescriptions} />
+        </div>
       )}
     </fieldset>
   );

@@ -12,6 +12,15 @@ const CREATOR_JOIN = `left join lateral (
   where p.id = coalesce(s.created_by, (select h.profile_id from public.session_hosts h where h.session_id = s.id and h.role = 'host' limit 1))
 ) creator on true`;
 
+/**
+ * Whether a session repeats: it has another published date in its series. No part numbers, so
+ * nobody reads a later date as needing the earlier ones.
+ */
+const SERIES_COLUMNS = `exists (
+  select 1 from public.sessions o
+  where s.series_id is not null and o.series_id = s.series_id and o.id <> s.id and o.published
+) as "recurring"`;
+
 /** A published session as members see it on the calendar. */
 export type ScheduledSession = {
   id: string;
@@ -28,6 +37,8 @@ export type ScheduledSession = {
   imageKey: string | null;
   hostAvatarKey: string | null;
   hostName: string | null;
+  /** Whether it's one date of a repeating session, with others on the calendar. */
+  recurring: boolean;
   /** About this session: plain text for the card's preview, and the formatted document. */
   description: string | null;
   descriptionDoc: RichDoc | null;
@@ -79,7 +90,7 @@ export async function listScheduledSessions(
 ): Promise<ScheduledSession[]> {
   const pattern = filters.keyword ? `%${filters.keyword.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : null;
   return sql<ScheduledSession[]>`
-    select s.id, s.title, s.theme, s.session_types as "sessionTypes", ${sql.unsafe(PHOTO_COLUMNS)},
+    select s.id, s.title, s.theme, s.session_types as "sessionTypes", ${sql.unsafe(PHOTO_COLUMNS)}, ${sql.unsafe(SERIES_COLUMNS)},
            s.starts_at as "startsAt", s.ends_at as "endsAt", s.time_zone as "timeZone", s.city,
            coalesce((
              select array_agg(
@@ -130,7 +141,7 @@ export async function getSessionDetails(
 ): Promise<SessionDetails | null> {
   if (!/^[0-9a-f-]{36}$/i.test(sessionId)) return null;
   const [row] = await sql<SessionDetails[]>`
-    select s.id, s.title, s.theme, s.session_types as "sessionTypes", ${sql.unsafe(PHOTO_COLUMNS)},
+    select s.id, s.title, s.theme, s.session_types as "sessionTypes", ${sql.unsafe(PHOTO_COLUMNS)}, ${sql.unsafe(SERIES_COLUMNS)},
            s.starts_at as "startsAt", s.ends_at as "endsAt", s.time_zone as "timeZone", s.city,
            coalesce((
              select array_agg(

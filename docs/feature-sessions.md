@@ -25,7 +25,7 @@ Between 14 and 28 March, Toronto is 4 hours behind London instead of 5. A weekly
 
 ## Lifecycle
 
-A session is either unpublished or published. "Save draft" in the editor saves it unpublished, and "Take off the calendar" turns a published session back into a draft, keeping every field.
+A session is either unpublished or published. "Save draft" in the editor saves it unpublished, and "Take off the calendar" turns a published session back into a draft, keeping every field. Once saved, "Save draft" (or "Save changes", for a published session) grays out as "Draft saved" (or "Saved") until the host changes something, and again if they undo it, so they can see it's saved. The editor compares the form's answers with how they were when it opened (`useChanged` in `app/components/session-editor.tsx`).
 
 | Status | Calendar page | Members' own calendars |
 |---|---|---|
@@ -41,7 +41,8 @@ A session is either unpublished or published. "Save draft" in the editor saves i
 A new session's form asks whether it repeats: no, weekly, every two weeks, or on other dates the host lists, each with its own start time. Weekly and two-weekly repeats run until a date the host picks, which defaults to the event's last day. Saving creates one full session per date in one transaction (`createSession`), all sharing a `sessions.series_id`. No recurrence rules are stored.
 
 - **Clock time.** Each date keeps the first one's clock time in the session's zone, so a weekly noon session stays at noon across a daylight-saving change (`checkRepeats` in `app/lib/session-form.ts`). Adding days to the first start would shift later dates by an hour.
-- **Each date is a full session,** with its own RSVPs, capacity, waitlist, meeting link, status and calendar event. Hosts edit, unpublish or delete each date on its own; the edit page lists the series' other dates, and the session page shows members the published ones under "Also on".
+- **Titles and descriptions.** "All sessions have the same title and description" starts checked, and every date takes the first one's. Unchecked, the form shows a title and description box for each further date, such as for a series in parts; an empty box takes the first session's. `repeatRows` in `app/lib/session-form.ts` lists the dates in the same order for the form and the server, which reads the boxes against it.
+- **Each date is a full session,** with its own RSVPs, capacity, waitlist, meeting link, status and calendar event. Hosts edit, unpublish or delete each date on its own; the edit page lists the series' other dates, and the session page shows members the published ones under "Also on". Schedule cards and session pages mark each published date that has another on the calendar "Recurring session" (`SeriesBadge`). They don't number the parts, so members don't read a later date as needing the earlier ones.
 - **Nothing works across the series,** such as RSVPing to every date or editing "this and later sessions". Each date is an ordinary session to everything else, including RSVPs, reminders, feeds, invites, harvest forms and content, so calendar events need no `RRULE` or time-zone blocks.
 - **Limits.** Up to 30 extra dates, all within the event.
 - **Duplicate (not built).** A Duplicate action on any session the host can edit would open the editor filled in from the original, co-hosts included, with the date left empty.
