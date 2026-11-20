@@ -282,7 +282,7 @@ The session editor is shared for host create, host edit and admin edit. It adapt
 | AI Assistant consent | Select and checkboxes | Yes | See AI and privacy |
 | Co-hosts | Member search | No | Registered members only |
 | Pre-reading | Links and file uploads | No | PDF, DOC, DOCX, TXT; 10 MB maximum per file |
-| Cover image | Image upload | No | JPEG, PNG or WebP; compressed on upload |
+| Cover image | Image upload | No | Any photo the browser opens; the host zooms and places it in a square, or fits it whole, and it's saved as an 800 × 800 JPEG. Without one, the schedule shows the host's profile picture, then Limicon's logo |
 | Co-creation meeting (admin only) | Checkbox | n/a | Marks an Organizing Team meeting |
 | Status (admin only) | Select | n/a | Unpublished or published |
 
