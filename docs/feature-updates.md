@@ -24,6 +24,8 @@ Until a member opens Updates, the Updates card on the Members home page and the 
 
 Each post has a Like button with its count, and a small comment box underneath: type and press Enter or **Comment**. Comments stay folded away behind **View comments (n)**, which is hidden while a post has none. Comments are plain text, up to 2,000 characters.
 
+Every comment has **Reply**. Replies sit under the comment they answer, one level deep, and the reply box starts with "@Name" of the person answered, who is notified. A comment notifies the post's author; a reply notifies only the person answered, not the post's author, as on Facebook. Comments take @mentions with name suggestions, and admins may tag @everyone, as in Community (docs/feature-community.md, which also covers the bell). People who hold the Admin role show "(admin)" beside their name on comments. A notification about an Updates comment opens Updates with that post's comments showing.
+
 ## Edited comments
 
 Members can edit their own comments, which then show "edited". Each edit is kept in `update_comment_edits` with the text before and after. Everyone who can post sees a notice at the top of Updates listing unreviewed edits, until one of them presses **Mark as seen**. Email notices can follow once the app sends email (`selection-email.md`).

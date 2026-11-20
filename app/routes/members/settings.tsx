@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { data, Form, Link, useNavigation } from "react-router";
 
 import { card, primaryButton } from "~/components/admin-ui";
 import { servicesContext } from "~/context";
+import { EMAIL_CHOICES, readEmailChoices } from "~/lib/email-choices";
 import { getOwnSettings, saveOwnSettings } from "~/lib/profiles.server";
 import type { Route } from "./+types/settings";
 
@@ -19,11 +21,18 @@ export async function loader({ context }: Route.LoaderArgs) {
 /** Saves the signed-in member's own settings, and only theirs. */
 export async function action({ request, context }: Route.ActionArgs) {
   const services = context.get(servicesContext);
+  const db = services.db();
+  const userId = services.viewer!.userId;
   const form = await request.formData();
-  await saveOwnSettings(services.db(), services.viewer!.userId, {
+  const emailNotifications = form.get("emailNotifications") === "on";
+  // With email turned off the choices are greyed out and don't post, so keep the ones saved before.
+  const emailNotify = emailNotifications ? readEmailChoices(form.getAll("emailNotify")) : ((await getOwnSettings(db, userId))?.emailNotify ?? []);
+  await saveOwnSettings(db, userId, {
     showEmail: form.get("showEmail") === "on",
     allowMessages: form.get("allowMessages") === "on",
     showInDirectory: form.get("showInDirectory") === "on",
+    emailNotifications,
+    emailNotify,
   });
   return { saved: true };
 }
@@ -35,6 +44,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   const { settings, email } = loaderData;
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
+  const [wantsEmail, setWantsEmail] = useState(settings.emailNotifications);
 
   return (
     <div className="max-w-2xl">
@@ -48,7 +58,8 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
         </p>
       </section>
 
-      <Form method="post" className={`${card} mt-6 grid gap-4`} aria-labelledby="privacy-heading">
+      <Form method="post" className="mt-6 grid gap-6">
+      <section className={`${card} grid gap-4`} aria-labelledby="privacy-heading">
         <h2 id="privacy-heading" className="text-xl font-semibold">Privacy</h2>
         <label className="flex items-start gap-3">
           <input type="checkbox" name="showEmail" defaultChecked={settings.showEmail} className="mt-1 size-4" />
@@ -71,6 +82,31 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
             <span className={help}>When this is off, members can still open your profile from your name, such as beside a post.</span>
           </span>
         </label>
+      </section>
+
+      <section className={`${card} grid gap-4`} aria-labelledby="email-heading">
+        <h2 id="email-heading" className="text-xl font-semibold">Email notifications</h2>
+        <label className="flex items-start gap-3">
+          <input type="checkbox" name="emailNotifications" checked={wantsEmail} onChange={(event) => setWantsEmail(event.target.checked)} className="mt-1 size-4" />
+          <span>
+            <span className={label}>Email me notifications</span>
+            <span className={help}>Sent to {email ?? "your email address"}. The bell on every Members page shows them all either way.</span>
+          </span>
+        </label>
+        <fieldset disabled={!wantsEmail} className="ml-7 grid gap-3 disabled:opacity-50">
+          <legend className="mb-2 font-medium">Email me when:</legend>
+          {EMAIL_CHOICES.map((choice) => (
+            <label key={choice.key} className="flex items-start gap-3">
+              <input type="checkbox" name="emailNotify" value={choice.key} defaultChecked={settings.emailNotify.includes(choice.key)} className="mt-1 size-4" />
+              <span>
+                <span className={label}>{choice.label}</span>
+                {choice.help && <span className={help}>{choice.help}</span>}
+              </span>
+            </label>
+          ))}
+        </fieldset>
+      </section>
+
         <div className="flex flex-wrap items-center gap-3">
           <button type="submit" disabled={busy} className={primaryButton}>{busy ? "Saving…" : "Save settings"}</button>
           {actionData?.saved && !busy && <p role="status">Saved.</p>}

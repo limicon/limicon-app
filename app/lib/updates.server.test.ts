@@ -3,7 +3,9 @@
 import postgres from "postgres";
 import { afterAll, describe, expect, test } from "vitest";
 
+import { listNotifications } from "./community.server";
 import type { Db } from "./db.server";
+import { getOwnSettings } from "./profiles.server";
 import { plainToRichText } from "./rich-text";
 import {
   addComment,
@@ -133,6 +135,47 @@ describe("updates", () => {
     await inRolledBackTransaction(async (tx) => {
       const member = await account(tx);
       expect(await addComment(tx, { postId: crypto.randomUUID(), userId: member, body: "Hi" })).toBe(false);
+    });
+  });
+
+  test("replies join a thread, start by naming the person answered, and tell them", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const author = await account(tx, "Lauren");
+      const member = await account(tx, "Grace");
+      await tx`insert into public.admin_permissions (profile_id, permission) values (${author}, 'full')`;
+      const postId = await post(tx, author);
+      await addComment(tx, { postId, userId: member, body: "Lovely news" });
+      const [first] = (await listPosts(tx, author)).find((p) => p.id === postId)!.comments;
+      expect(first).toMatchObject({ parentId: null, authorIsAdmin: false });
+
+      await addComment(tx, { postId, userId: author, body: "@Grace thank you", parentId: first!.id, mentions: [{ id: member, name: "Grace" }] });
+      const reply = (await listPosts(tx, author)).find((p) => p.id === postId)!.comments.find((c) => c.body === "@Grace thank you")!;
+      expect(reply).toMatchObject({ parentId: first!.id, authorIsAdmin: true, mentions: [{ id: member, name: "Grace" }] });
+      // Replying to a reply stays in the same thread and tells that reply's author.
+      await addComment(tx, { postId, userId: member, body: "Of course", parentId: reply.id });
+      const last = (await listPosts(tx, author)).find((p) => p.id === postId)!.comments.find((c) => c.body === "Of course")!;
+      expect(last.parentId).toBe(first!.id);
+
+      // Lauren: Grace commented on her post, then answered Lauren's reply. Grace: named in Lauren's reply (a mention beats a reply).
+      expect((await listNotifications(tx, member)).map((n) => [n.kind, n.place])).toEqual([["mention", "updates"]]);
+      expect((await listNotifications(tx, author)).map((n) => [n.kind, n.place, n.postId]).sort()).toEqual([
+        ["comment", "updates", postId],
+        ["reply", "updates", postId],
+      ]);
+      // A third member replying to Grace tells Grace, not the post's author.
+      const alan = await account(tx, "Alan");
+      await addComment(tx, { postId, userId: alan, body: "Same question", parentId: first!.id });
+      expect((await listNotifications(tx, author)).length).toBe(2);
+      expect((await listNotifications(tx, member)).map((n) => n.kind).sort()).toEqual(["mention", "reply"]);
+      expect(await addComment(tx, { postId, userId: member, body: "x", parentId: crypto.randomUUID() })).toBe(false);
+    });
+  });
+
+  test("new members get email for new Updates posts only, until they choose more", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const member = await account(tx);
+      expect(await getOwnSettings(tx, member)).toMatchObject({ emailNotifications: true, emailNotify: ["update_post"] });
+      await expect(tx`update public.profiles set email_notify = '{nonsense}' where id = ${member}`).rejects.toThrow();
     });
   });
 });

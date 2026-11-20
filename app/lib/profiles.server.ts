@@ -1,4 +1,5 @@
 import type { Db } from "~/lib/db.server";
+import type { EmailChoice } from "~/lib/email-choices";
 import { IMAGE_KEY } from "~/lib/media";
 import type { ProfileEdit, ProfileLink, ProfileProject } from "~/lib/profile-form";
 
@@ -140,12 +141,21 @@ export async function saveProfile(sql: Db, userId: string, edit: ProfileEdit): P
 }
 
 /** Privacy choices on the Settings page. Show my email is also in the profile editor. */
-export type MemberSettings = { showEmail: boolean; allowMessages: boolean; showInDirectory: boolean };
+export type MemberSettings = {
+  showEmail: boolean;
+  allowMessages: boolean;
+  showInDirectory: boolean;
+  /** Whether they want notifications by email at all. */
+  emailNotifications: boolean;
+  /** Which ones (app/lib/email-choices.ts). */
+  emailNotify: EmailChoice[];
+};
 
-/** The member's own privacy settings. Callers pass the signed-in member's id. */
+/** The member's own settings. Callers pass the signed-in member's id. */
 export async function getOwnSettings(sql: Db, userId: string): Promise<MemberSettings | null> {
   const [row] = await sql<MemberSettings[]>`
-    select show_email as "showEmail", allow_messages as "allowMessages", show_in_directory as "showInDirectory"
+    select show_email as "showEmail", allow_messages as "allowMessages", show_in_directory as "showInDirectory",
+           email_notifications as "emailNotifications", email_notify as "emailNotify"
     from public.profiles where id = ${userId}
   `;
   return row ?? null;
@@ -155,7 +165,7 @@ export async function saveOwnSettings(sql: Db, userId: string, settings: MemberS
   await sql`
     update public.profiles
     set show_email = ${settings.showEmail}, allow_messages = ${settings.allowMessages}, show_in_directory = ${settings.showInDirectory},
-        updated_at = now()
+        email_notifications = ${settings.emailNotifications}, email_notify = ${settings.emailNotify}, updated_at = now()
     where id = ${userId}
   `;
 }

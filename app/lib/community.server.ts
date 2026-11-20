@@ -14,6 +14,8 @@ export type CommunityComment = {
   authorId: string;
   authorName: string;
   authorAvatarKey: string | null;
+  /** Holds the Admin role, so the comment says "(admin)" beside the name. */
+  authorIsAdmin: boolean;
   body: string;
   mentions: Mention[];
   createdAt: Date;
@@ -43,9 +45,9 @@ export type CommunityPost = {
 const personName = (alias: string) =>
   `coalesce(nullif(trim(concat_ws(' ', ${alias}.first_name, ${alias}.last_name)), ''), 'A member')`;
 
-type RawComment = Omit<CommunityComment, "createdAt" | "editedAt"> & { createdAt: string; editedAt: string | null };
+export type RawComment = Omit<CommunityComment, "createdAt" | "editedAt"> & { createdAt: string; editedAt: string | null };
 
-function threads(raw: RawComment[]): CommentThread[] {
+export function threads(raw: RawComment[]): CommentThread[] {
   const comments = raw.map((c) => ({ ...c, createdAt: new Date(c.createdAt), editedAt: c.editedAt ? new Date(c.editedAt) : null }));
   const top = comments.filter((c) => !c.parentId).map((c) => ({ ...c, replies: [] as CommunityComment[] }));
   const byId = new Map(top.map((c) => [c.id, c]));
@@ -73,7 +75,7 @@ export async function listCommunityPosts(
            coalesce((
              select json_agg(json_build_object(
                'id', c.id, 'parentId', c.parent_id, 'authorId', c.author_id, 'authorName', ${sql.unsafe(personName("ca"))},
-               'authorAvatarKey', ca.avatar_key, 'body', c.body, 'mentions', c.mentions,
+               'authorAvatarKey', ca.avatar_key, 'authorIsAdmin', ${sql.unsafe(holdsAdminRole("ca"))}, 'body', c.body, 'mentions', c.mentions,
                'createdAt', c.created_at, 'editedAt', c.edited_at
              ) order by c.created_at)
              from public.community_comments c join public.profiles ca on ca.id = c.author_id
@@ -126,17 +128,42 @@ export async function resolveMentions(sql: Db, body: string, ids: string[], allo
   return allowEveryone && mentionsEveryone(body) ? [{ id: EVERYONE, name: EVERYONE }, ...found] : found;
 }
 
+/** The text's mentions, or why it can't be saved: only admins may write @everyone. */
+export async function checkMentions(sql: Db, body: string, ids: string[], isAdmin: boolean): Promise<Mention[] | string> {
+  if (!isAdmin && mentionsEveryone(body)) return "Only admins can tag @everyone. Remove it, or mention people by name.";
+  return resolveMentions(sql, body, ids, isAdmin);
+}
+
+/** Whether the person in `alias` holds the Admin role, so their comments say "(admin)". */
+export const holdsAdminRole = (alias: string) =>
+  `exists (select 1 from public.admin_permissions ap where ap.profile_id = ${alias}.id and ap.permission = 'full')`;
+
 type Kind = "mention" | "everyone" | "comment" | "reply";
 const RANK: Record<Kind, number> = { mention: 4, reply: 3, comment: 2, everyone: 1 };
 
 /**
  * Tells each person once about a post or comment, with the most specific reason: named them,
- * replied to them, commented on their post, then @everyone. Never tells the actor.
+ * replied to them, commented on their post, then @everyone. Never tells the actor. `place` says
+ * whether the post is in Community or on Updates.
  */
-async function notify(
+export async function notify(
   sql: Db,
-  event: { actorId: string; postId: string; commentId: string | null; mentions: Mention[]; also?: { recipientId: string | null; kind: Kind }[] },
+  event: {
+    actorId: string;
+    place?: "community" | "updates";
+    postId: string;
+    commentId: string | null;
+    mentions: Mention[];
+    also?: { recipientId: string | null; kind: Kind }[];
+  },
 ) {
+  const updates = event.place === "updates";
+  const target = {
+    post_id: updates ? null : event.postId,
+    comment_id: updates ? null : event.commentId,
+    update_post_id: updates ? event.postId : null,
+    update_comment_id: updates ? event.commentId : null,
+  };
   const kinds = new Map<string, Kind>();
   const offer = (recipientId: string | null, kind: Kind) => {
     if (!recipientId || recipientId === event.actorId) return;
@@ -149,15 +176,15 @@ async function notify(
   if (kinds.size) {
     await sql`
       insert into public.notifications ${sql(
-        [...kinds].map(([recipient_id, kind]) => ({ recipient_id, actor_id: event.actorId, kind, post_id: event.postId, comment_id: event.commentId })),
+        [...kinds].map(([recipient_id, kind]) => ({ recipient_id, actor_id: event.actorId, kind, ...target })),
       )}
     `;
   }
   if (event.mentions.some((m) => m.id === EVERYONE)) {
     const told = [...kinds.keys(), event.actorId];
     await sql`
-      insert into public.notifications (recipient_id, actor_id, kind, post_id, comment_id)
-      select p.id, ${event.actorId}, 'everyone', ${event.postId}, ${event.commentId}
+      insert into public.notifications (recipient_id, actor_id, kind, post_id, comment_id, update_post_id, update_comment_id)
+      select p.id, ${event.actorId}, 'everyone', ${target.post_id}, ${target.comment_id}, ${target.update_post_id}, ${target.update_comment_id}
       from public.profiles p
       where ${sql.unsafe(isCurrentMember("p"))} and p.id not in ${sql(told)}
     `;
@@ -220,7 +247,7 @@ export async function setCommunityLike(sql: Db, args: { postId: string; userId: 
 
 /**
  * Adds the member's comment, or with `parentId` a reply. A reply to a reply joins the same
- * thread, one level deep. Tells the post's author, the replied-to member and anyone named.
+ * thread, one level deep. A comment tells the post's author, a reply only the member answered, and both anyone named.
  * Returns the new comment's id, or null when the post or comment isn't there.
  */
 export async function addCommunityComment(
@@ -249,10 +276,8 @@ export async function addCommunityComment(
       postId: args.postId,
       commentId: row!.id,
       mentions,
-      also: [
-        { recipientId: post.authorId, kind: "comment" },
-        { recipientId: parent?.authorId ?? null, kind: "reply" },
-      ],
+      // As on Facebook: a comment tells the post's author; a reply tells only the person answered.
+      also: [parent ? { recipientId: parent.authorId, kind: "reply" } : { recipientId: post.authorId, kind: "comment" }],
     });
     return row!.id;
   }) as Promise<string | null>;
@@ -284,6 +309,8 @@ export async function deleteCommunityComment(sql: Db, args: { commentId: string;
 export type Notification = {
   id: number;
   kind: Kind;
+  /** Community, the members' group, or Updates, the Organizing Team's news. */
+  place: "community" | "updates";
   actorId: string | null;
   actorName: string;
   actorAvatarKey: string | null;
@@ -298,13 +325,17 @@ export type Notification = {
 /** The member's latest notifications, newest first. */
 export async function listNotifications(sql: Db, userId: string, limit = 50): Promise<Notification[]> {
   return sql<Notification[]>`
-    select n.id::int as id, n.kind, n.actor_id as "actorId", ${sql.unsafe(personName("a"))} as "actorName", a.avatar_key as "actorAvatarKey",
-           n.post_id as "postId", n.comment_id as "commentId",
-           left(coalesce(c.body, p.body, ''), 140) as excerpt, n.created_at as "createdAt", n.read_at is not null as read
+    select n.id::int as id, n.kind,
+           case when n.update_post_id is not null then 'updates' else 'community' end as place,
+           n.actor_id as "actorId", ${sql.unsafe(personName("a"))} as "actorName", a.avatar_key as "actorAvatarKey",
+           coalesce(n.post_id, n.update_post_id) as "postId", coalesce(n.comment_id, n.update_comment_id) as "commentId",
+           left(coalesce(c.body, uc.body, p.body, up.title, ''), 140) as excerpt, n.created_at as "createdAt", n.read_at is not null as read
     from public.notifications n
     left join public.profiles a on a.id = n.actor_id
     left join public.community_posts p on p.id = n.post_id
     left join public.community_comments c on c.id = n.comment_id
+    left join public.update_posts up on up.id = n.update_post_id
+    left join public.update_comments uc on uc.id = n.update_comment_id
     where n.recipient_id = ${userId}
     order by n.created_at desc
     limit ${limit}

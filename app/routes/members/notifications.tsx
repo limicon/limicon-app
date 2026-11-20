@@ -28,8 +28,15 @@ const what: Record<Notification["kind"], string> = {
 };
 
 function where(n: Notification) {
-  if (n.kind === "comment" || n.kind === "reply") return "";
-  return n.commentId ? " in a comment" : " in a post";
+  const place = n.place === "updates" ? " on Updates" : "";
+  if (n.kind === "comment" || n.kind === "reply") return place;
+  return (n.commentId ? " in a comment" : " in a post") + place;
+}
+
+/** Community notifications open the post alone; Updates ones open the Updates page at the comment. */
+function href(n: Notification) {
+  const anchor = n.commentId ? `#comment-${n.commentId}` : "";
+  return n.place === "updates" ? `/members/updates${anchor || `#post-${n.postId}`}` : `/members/community?post=${n.postId}${anchor}`;
 }
 
 export default function Notifications({ loaderData }: Route.ComponentProps) {
@@ -40,7 +47,7 @@ export default function Notifications({ loaderData }: Route.ComponentProps) {
   return (
     <div className="max-w-3xl">
       <h1 className="text-3xl font-semibold">Notifications</h1>
-      <p className="mt-2">When someone mentions you, replies to your comment or comments on your post in Community.</p>
+      <p className="mt-2">When someone comments on your post, replies to your comment or mentions you, in Community or on Updates.</p>
       {notifications.length === 0 ? (
         <p className="mt-8">Nothing yet.</p>
       ) : (
@@ -48,7 +55,7 @@ export default function Notifications({ loaderData }: Route.ComponentProps) {
           {notifications.map((n) => (
             <li key={n.id}>
               <Link
-                to={`/members/community?post=${n.postId}${n.commentId ? `#comment-${n.commentId}` : ""}`}
+                to={href(n)}
                 className={`flex gap-3 rounded-lg border p-4 hover:border-[#15383F] dark:hover:border-[#8CC7D3] ${
                   n.read
                     ? "border-[#C9DADC] bg-white dark:border-[#24363B] dark:bg-[#12201F]"

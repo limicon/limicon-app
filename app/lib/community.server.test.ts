@@ -120,11 +120,11 @@ describe("community", () => {
       expect(loaded!.comments[0]!.replies.map((r) => r.body)).toEqual(["@Grace me too", "Great"]);
 
       const kinds = async (who: string) => (await listNotifications(tx, who)).map((n) => n.kind).sort();
-      // Ada: Grace's and Alan's comments on her post. Grace: Alan named her (a mention beats a reply). Alan: Ada replied to him.
-      expect(await kinds(ada)).toEqual(["comment", "comment"]);
+      // Ada: only Grace's comment on her post, not Alan's reply to Grace. Grace: Alan named her (a mention beats a reply). Alan: Ada replied to him.
+      expect(await kinds(ada)).toEqual(["comment"]);
       expect(await kinds(grace)).toEqual(["mention"]);
       expect(await kinds(alan)).toEqual(["reply"]);
-      expect(await countUnreadNotifications(tx, ada)).toBe(2);
+      expect(await countUnreadNotifications(tx, ada)).toBe(1);
       await markNotificationsRead(tx, ada);
       expect(await countUnreadNotifications(tx, ada)).toBe(0);
       expect(await addCommunityComment(tx, { postId, userId: ada, body: "x", parentId: crypto.randomUUID() })).toBeNull();

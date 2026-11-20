@@ -6,6 +6,10 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-20 | Lauren (with Opus 5.5) | Updates comments get replies, "(admin)", and members choose email notifications
+
+As on Facebook, a comment notifies the post's author and a reply only the person answered, in Updates and Community; Updates replies start with "@Name". Admin role holders show "(admin)" on comments. Settings asks whether to email notifications and which: new Updates posts on by default, the rest off. Sending waits on an email service.
+
 ## 2026-11-20 | Lauren (with Opus 5.5) | Community has @mentions, replies and a notifications bell
 
 Members @mention each other in Community posts and comments, with name suggestions, and reply to comments one level deep, starting with "@Name". Only admins may tag @everyone. A bell beside the picture menu counts notifications for mentions, replies and comments on one's posts; `notifications` holds them.

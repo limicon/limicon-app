@@ -3,14 +3,21 @@
  * (the `updates` privilege) or moderate (`admin`); functions that act on a member's own likes and
  * comments take that member's id and touch only their rows.
  */
+import { holdsAdminRole, notify } from "~/lib/community.server";
 import type { Db } from "~/lib/db.server";
+import type { Mention } from "~/lib/mentions";
 import type { RichDoc } from "~/lib/rich-text";
 
 export type UpdateComment = {
   id: string;
+  /** The top-level comment a reply answers, or null for a top-level comment. */
+  parentId: string | null;
   authorId: string;
   authorName: string;
+  /** Holds the Admin role, so the comment says "(admin)" beside the name. */
+  authorIsAdmin: boolean;
   body: string;
+  mentions: Mention[];
   createdAt: Date;
   editedAt: Date | null;
 };
@@ -40,7 +47,8 @@ export async function listPosts(sql: Db, viewerId: string): Promise<UpdatePost[]
            exists (select 1 from public.update_post_likes l where l.post_id = p.id and l.profile_id = ${viewerId}) as "likedByViewer",
            coalesce((
              select json_agg(json_build_object(
-               'id', c.id, 'authorId', c.author_id, 'authorName', ${sql.unsafe(personName("ca", "A member"))},
+               'id', c.id, 'parentId', c.parent_id, 'authorId', c.author_id, 'authorName', ${sql.unsafe(personName("ca", "A member"))},
+               'authorIsAdmin', ${sql.unsafe(holdsAdminRole("ca"))}, 'mentions', c.mentions,
                'body', c.body, 'createdAt', c.created_at, 'editedAt', c.edited_at
              ) order by c.created_at)
              from public.update_comments c left join public.profiles ca on ca.id = c.author_id
@@ -99,32 +107,69 @@ export async function setLike(sql: Db, args: { postId: string; userId: string; l
   }
 }
 
-/** Adds the member's comment to a post. Returns false when there's no such post. */
-export async function addComment(sql: Db, args: { postId: string; userId: string; body: string }): Promise<boolean> {
-  const rows = await sql`
-    insert into public.update_comments (post_id, author_id, body)
-    select id, ${args.userId}, ${args.body} from public.update_posts where id = ${args.postId}
-    returning id
-  `;
-  return rows.length > 0;
+/**
+ * Adds the member's comment to a post, or with `parentId` a reply, which joins that comment's
+ * thread one level deep. A comment tells the post's author, a reply only the member answered. Returns false when there's
+ * no such post or comment.
+ */
+export async function addComment(
+  sql: Db,
+  args: { postId: string; userId: string; body: string; parentId?: string | null; mentions?: Mention[] },
+): Promise<boolean> {
+  const mentions = args.mentions ?? [];
+  return sql.begin(async (tx) => {
+    const db = tx as unknown as Db;
+    let parent: { id: string; authorId: string } | undefined;
+    if (args.parentId) {
+      [parent] = await tx<{ id: string; authorId: string }[]>`
+        select coalesce(parent_id, id) as id, author_id as "authorId"
+        from public.update_comments where id = ${args.parentId} and post_id = ${args.postId}
+      `;
+      if (!parent) return false;
+    }
+    const [row] = await tx<{ id: string; postAuthorId: string | null }[]>`
+      insert into public.update_comments (post_id, author_id, body, parent_id, mentions)
+      select id, ${args.userId}, ${args.body}, ${parent?.id ?? null}, ${tx.json(mentions)} from public.update_posts where id = ${args.postId}
+      returning id, (select author_id from public.update_posts where id = ${args.postId}) as "postAuthorId"
+    `;
+    if (!row) return false;
+    await notify(db, {
+      actorId: args.userId,
+      place: "updates",
+      postId: args.postId,
+      commentId: row.id,
+      mentions,
+      // As on Facebook: a comment tells the post's author; a reply tells only the person answered.
+      also: [parent ? { recipientId: parent.authorId, kind: "reply" } : { recipientId: row.postAuthorId, kind: "comment" }],
+    });
+    return true;
+  }) as Promise<boolean>;
 }
 
 /**
  * Changes the member's own comment, recording the text before and after so the team is told.
  * Returns "not-found" for a comment that isn't theirs.
  */
-export async function editComment(sql: Db, args: { commentId: string; userId: string; body: string }): Promise<"saved" | "unchanged" | "not-found"> {
+export async function editComment(
+  sql: Db,
+  args: { commentId: string; userId: string; body: string; mentions?: Mention[] },
+): Promise<"saved" | "unchanged" | "not-found"> {
+  const mentions = args.mentions ?? [];
   return sql.begin(async (tx) => {
-    const [current] = await tx<{ body: string }[]>`
-      select body from public.update_comments where id = ${args.commentId} and author_id = ${args.userId} for update
+    const [current] = await tx<{ body: string; mentions: Mention[]; postId: string }[]>`
+      select body, mentions, post_id as "postId" from public.update_comments
+      where id = ${args.commentId} and author_id = ${args.userId} for update
     `;
     if (!current) return "not-found" as const;
     if (current.body === args.body) return "unchanged" as const;
-    await tx`update public.update_comments set body = ${args.body}, edited_at = now() where id = ${args.commentId}`;
+    await tx`update public.update_comments set body = ${args.body}, mentions = ${tx.json(mentions)}, edited_at = now() where id = ${args.commentId}`;
     await tx`
       insert into public.update_comment_edits (comment_id, previous_body, new_body)
       values (${args.commentId}, ${current.body}, ${args.body})
     `;
+    // Only people newly named hear about an edit.
+    const added = mentions.filter((m) => !current.mentions.some((p) => p.id === m.id));
+    await notify(tx as unknown as Db, { actorId: args.userId, place: "updates", postId: current.postId, commentId: args.commentId, mentions: added });
     return "saved" as const;
   }) as Promise<"saved" | "unchanged" | "not-found">;
 }

@@ -29,6 +29,10 @@ From the top:
 
 Settings holds all three choices: "Show my email address on my profile" (off by default, and also in the editor, where members fill in their profile), "Let members send me private messages" and "List me under All members" (both on by default, PRD PRO-3). Members who aren't listed still have a profile that opens from their name, for example beside a post. All members never shows emails (PRO-2).
 
+## Email notifications
+
+Settings asks "Email me notifications" (on by default), and under it which ones: a new post on Updates (on by default; not comments on posts), someone mentions me, someone replies to my comment, someone comments on my post, and an admin tags @everyone (all off by default). `profiles.email_notifications` and `email_notify` hold the choices; `app/lib/email-choices.ts` lists them. Turning email off greys out the list and keeps the saved choices for later. The app doesn't send these emails yet: that waits on choosing an email service (docs/selection-email.md).
+
 ## Data
 
 New `profiles` columns: `headline`, `location`, `business_name`, `titles` and `show_email`. `profile_links`, `profile_keywords` and `profile_projects` hold the lists, each in the member's order. Saving the editor replaces the member's whole profile in one transaction, leaving Settings' choices alone. `app/lib/profiles.server.ts` reads and writes them, and `app/lib/profile-form.ts` checks the editor's form.

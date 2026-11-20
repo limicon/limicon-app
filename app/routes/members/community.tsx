@@ -4,7 +4,7 @@ import { data, Form, Link, useFetcher } from "react-router";
 import { inputClass, primaryButton, secondaryButton } from "~/components/admin-ui";
 import { ImageUploadField } from "~/components/image-upload-field";
 import { MentionText, MentionTextarea } from "~/components/mention-textarea";
-import { Avatar } from "~/components/profile-ui";
+import { AdminTag, Avatar } from "~/components/profile-ui";
 import { servicesContext } from "~/context";
 import { isUuid } from "~/lib/admin.server";
 import { COMMUNITY_POST_MAX, FEED_PAGE } from "~/lib/community";
@@ -434,6 +434,7 @@ function Comment({ comment, viewer, onReply }: { comment: CommunityComment; view
         <div className="rounded bg-[#F4F7F7] px-3 py-2 dark:bg-[#0F1C1E]">
           <p className="text-sm">
             <Link to={`/members/people/${comment.authorId}`} className="font-semibold hover:underline">{comment.authorName}</Link>
+            {comment.authorIsAdmin && <AdminTag />}
             <span className="opacity-75"> · {when(comment.createdAt, viewer.zone)}{comment.editedAt && " · edited"}</span>
           </p>
           {editing ? (

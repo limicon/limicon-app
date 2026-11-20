@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from "react";
-import { data, Link, useFetcher } from "react-router";
+import { useEffect, useState } from "react";
+import { data, Link, useFetcher, useLocation } from "react-router";
 
+import { MentionText, MentionTextarea } from "~/components/mention-textarea";
+import { AdminTag } from "~/components/profile-ui";
 import { RichText } from "~/components/rich-text";
 import { servicesContext } from "~/context";
 import { isUuid } from "~/lib/admin.server";
+import { checkMentions } from "~/lib/community.server";
 import { checkComment, COMMENT_MAX } from "~/lib/updates";
 import {
   addComment,
@@ -67,13 +70,19 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Ou
     case "comment": {
       const checked = checkComment(form.get("body"));
       if (!checked.ok) return { ok: false, intent, problem: checked.problem };
-      if (!(await addComment(db, { postId: id, userId, body: checked.body }))) throw data("Not found", { status: 404 });
+      const mentions = await checkMentions(db, checked.body, form.getAll("mention").map(String), (await services.privileges()).has("admin"));
+      if (typeof mentions === "string") return { ok: false, intent, problem: mentions };
+      const parent = form.get("parentId");
+      const parentId = isUuid(parent) ? parent : null;
+      if (!(await addComment(db, { postId: id, userId, body: checked.body, parentId, mentions }))) throw data("Not found", { status: 404 });
       return { ok: true, intent };
     }
     case "edit-comment": {
       const checked = checkComment(form.get("body"));
       if (!checked.ok) return { ok: false, intent, problem: checked.problem };
-      if ((await editComment(db, { commentId: id, userId, body: checked.body })) === "not-found") throw data("Not found", { status: 404 });
+      const mentions = await checkMentions(db, checked.body, form.getAll("mention").map(String), (await services.privileges()).has("admin"));
+      if (typeof mentions === "string") return { ok: false, intent, problem: mentions };
+      if ((await editComment(db, { commentId: id, userId, body: checked.body, mentions })) === "not-found") throw data("Not found", { status: 404 });
       return { ok: true, intent };
     }
     case "delete-comment": {
@@ -138,6 +147,14 @@ export default function Updates({ loaderData }: Route.ComponentProps) {
 
 function Post({ post, zone, userId, canEdit, isAdmin }: { post: UpdatePost; zone: string; userId: string; canEdit: boolean; isAdmin: boolean }) {
   const [open, setOpen] = useState(false);
+  // A notification links to #comment-<id>: open that post's comments and bring the comment into view.
+  const location = useLocation();
+  useEffect(() => {
+    const target = location.hash.replace(/^#comment-/, "");
+    if (!target || !post.comments.some((c) => c.id === target)) return;
+    setOpen(true);
+    requestAnimationFrame(() => document.getElementById(`comment-${target}`)?.scrollIntoView({ block: "center" }));
+  }, [location.hash, post.comments]);
   const remove = useFetcher<Outcome>();
   const count = post.comments.length;
   const listId = `comments-${post.id}`;
@@ -182,14 +199,56 @@ function Post({ post, zone, userId, canEdit, isAdmin }: { post: UpdatePost; zone
 
       {open && count > 0 && (
         <ul id={listId} className="mt-3 grid gap-3">
-          {post.comments.map((comment) => (
-            <Comment key={comment.id} comment={comment} zone={zone} mine={comment.authorId === userId} isAdmin={isAdmin} />
+          {post.comments.filter((c) => !c.parentId).map((thread) => (
+            <Thread
+              key={thread.id}
+              postId={post.id}
+              thread={thread}
+              replies={post.comments.filter((c) => c.parentId === thread.id)}
+              zone={zone}
+              userId={userId}
+              isAdmin={isAdmin}
+            />
           ))}
         </ul>
       )}
 
-      <CommentBox postId={post.id} title={post.title} onPosted={() => setOpen(true)} />
+      <CommentBox postId={post.id} label={`Comment on ${post.title}`} isAdmin={isAdmin} onPosted={() => setOpen(true)} />
     </article>
+  );
+}
+
+/** A top-level comment, its replies, and a reply box once someone presses Reply. */
+function Thread({ postId, thread, replies, zone, userId, isAdmin }: {
+  postId: string; thread: UpdateComment; replies: UpdateComment[]; zone: string; userId: string; isAdmin: boolean;
+}) {
+  const [replyTo, setReplyTo] = useState<{ to: UpdateComment; round: number } | null>(null);
+  const reply = (to: UpdateComment) => setReplyTo((current) => ({ to, round: (current?.round ?? 0) + 1 }));
+  const tagged = replyTo && replyTo.to.authorId !== userId ? { id: replyTo.to.authorId, name: replyTo.to.authorName } : null;
+  return (
+    <li>
+      <Comment comment={thread} zone={zone} mine={thread.authorId === userId} isAdmin={isAdmin} onReply={() => reply(thread)} />
+      {(replies.length > 0 || replyTo) && (
+        <ul className="mt-2 ml-8 grid gap-2" aria-label={`Replies to ${thread.authorName}`}>
+          {replies.map((r) => (
+            <li key={r.id}><Comment comment={r} zone={zone} mine={r.authorId === userId} isAdmin={isAdmin} onReply={() => reply(r)} /></li>
+          ))}
+          {replyTo && (
+            <li>
+              <CommentBox
+                key={replyTo.round}
+                postId={postId}
+                parentId={thread.id}
+                label={`Reply to ${replyTo.to.authorName}`}
+                isAdmin={isAdmin}
+                tagged={tagged}
+                onPosted={() => setReplyTo(null)}
+              />
+            </li>
+          )}
+        </ul>
+      )}
+    </li>
   );
 }
 
@@ -218,14 +277,23 @@ function LikeButton({ post }: { post: UpdatePost }) {
   );
 }
 
-/** The small box under each post, so commenting takes one step. */
-function CommentBox({ postId, title, onPosted }: { postId: string; title: string; onPosted: () => void }) {
+/**
+ * The small box under each post, so commenting takes one step; with `parentId`, a reply that
+ * starts by mentioning `tagged`, the person answered. Enter posts; Shift+Enter starts a new line.
+ */
+function CommentBox({ postId, parentId, label, isAdmin, tagged, onPosted }: {
+  postId: string;
+  parentId?: string;
+  label: string;
+  isAdmin: boolean;
+  tagged?: { id: string; name: string } | null;
+  onPosted: () => void;
+}) {
   const fetcher = useFetcher<Outcome>();
-  const form = useRef<HTMLFormElement>(null);
-  const [text, setText] = useState("");
+  const [round, setRound] = useState(0);
   useEffect(() => {
     if (fetcher.state === "idle" && fetcher.data?.ok && fetcher.data.intent === "comment") {
-      setText("");
+      setRound((r) => r + 1);
       onPosted();
     }
     // Runs once each time a comment finishes posting.
@@ -234,28 +302,27 @@ function CommentBox({ postId, title, onPosted }: { postId: string; title: string
   const problem = fetcher.data && !fetcher.data.ok ? fetcher.data.problem : null;
   const busy = fetcher.state !== "idle";
   return (
-    <fetcher.Form ref={form} method="post" className="mt-4">
+    <fetcher.Form key={round} method="post" className={parentId ? "mt-1" : "mt-4"}>
+      <input type="hidden" name="intent" value="comment" />
       <input type="hidden" name="id" value={postId} />
+      {parentId && <input type="hidden" name="parentId" value={parentId} />}
       <div className="flex items-start gap-2">
-        <textarea
+        <MentionTextarea
           name="body"
+          id={parentId ? `reply-${parentId}` : `comment-${postId}`}
+          label={label}
           rows={1}
           maxLength={COMMENT_MAX}
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          onKeyDown={(event) => {
-            // Enter posts, as in most comment boxes; Shift+Enter starts a new line.
-            if (event.key === "Enter" && !event.shiftKey && text.trim()) {
-              event.preventDefault();
-              form.current?.requestSubmit();
-            }
-          }}
-          placeholder="Write a comment…"
-          aria-label={`Comment on ${title}`}
+          submitOnEnter
+          defaultValue={tagged ? `@${tagged.name} ` : ""}
+          initialMentions={tagged ? [tagged] : []}
+          autoFocus={Boolean(parentId)}
+          canMentionEveryone={isAdmin}
+          placeholder={parentId ? "Write a reply…" : "Write a comment…"}
           className={`${field} min-h-10 resize-y`}
         />
-        <button type="submit" name="intent" value="comment" disabled={busy || !text.trim()} className={`${primary} py-2 whitespace-nowrap`}>
-          {busy ? "Posting…" : "Comment"}
+        <button type="submit" disabled={busy} className={`${primary} py-2 whitespace-nowrap`}>
+          {busy ? "Posting…" : parentId ? "Reply" : "Comment"}
         </button>
       </div>
       {problem && <p className="mt-1 text-sm font-medium text-[#B3261E] dark:text-[#F2B8B5]">{problem}</p>}
@@ -263,7 +330,9 @@ function CommentBox({ postId, title, onPosted }: { postId: string; title: string
   );
 }
 
-function Comment({ comment, zone, mine, isAdmin }: { comment: UpdateComment; zone: string; mine: boolean; isAdmin: boolean }) {
+function Comment({ comment, zone, mine, isAdmin, onReply }: {
+  comment: UpdateComment; zone: string; mine: boolean; isAdmin: boolean; onReply: () => void;
+}) {
   const [editing, setEditing] = useState(false);
   const fetcher = useFetcher<Outcome>();
   const remove = useFetcher<Outcome>();
@@ -273,15 +342,17 @@ function Comment({ comment, zone, mine, isAdmin }: { comment: UpdateComment; zon
   if (remove.state !== "idle") return null;
   const problem = fetcher.data && !fetcher.data.ok ? fetcher.data.problem : null;
   return (
-    <li className="rounded bg-[#F4F7F7] px-3 py-2 dark:bg-[#0F1C1E]">
+    <div id={`comment-${comment.id}`} className="rounded bg-[#F4F7F7] px-3 py-2 dark:bg-[#0F1C1E]">
       <p className="text-sm">
         <Link to={`/members/people/${comment.authorId}`} className="font-semibold hover:underline">{comment.authorName}</Link>
+        {comment.authorIsAdmin && <AdminTag />}
         <span className="opacity-80"> · {when(comment.createdAt, zone)}{comment.editedAt && " · edited"}</span>
       </p>
       {editing ? (
         <fetcher.Form method="post" className="mt-2 grid gap-2">
           <input type="hidden" name="id" value={comment.id} />
-          <textarea name="body" rows={3} maxLength={COMMENT_MAX} defaultValue={comment.body} aria-label="Edit your comment" className={field} autoFocus />
+          <MentionTextarea name="body" id={`edit-comment-${comment.id}`} label="Edit your comment" rows={3} maxLength={COMMENT_MAX}
+            defaultValue={comment.body} initialMentions={comment.mentions} canMentionEveryone={isAdmin} className={field} autoFocus />
           <p className="text-sm opacity-80">The Organizing Team is told when a comment is edited.</p>
           {problem && <p className="text-sm font-medium text-[#B3261E] dark:text-[#F2B8B5]">{problem}</p>}
           <div className="flex gap-2">
@@ -290,23 +361,26 @@ function Comment({ comment, zone, mine, isAdmin }: { comment: UpdateComment; zon
           </div>
         </fetcher.Form>
       ) : (
-        <p className="mt-1 whitespace-pre-wrap">{comment.body}</p>
+        <MentionText body={comment.body} mentions={comment.mentions} className="mt-1 whitespace-pre-wrap" />
       )}
-      {!editing && (mine || isAdmin) && (
+      {!editing && (
         <div className="mt-1 flex gap-1">
+          <button type="button" className={small} onClick={onReply}>Reply</button>
           {mine && <button type="button" className={small} onClick={() => setEditing(true)}>Edit</button>}
-          <remove.Form
-            method="post"
-            onSubmit={(event) => {
-              if (!confirm(mine ? "Delete your comment?" : `Delete ${comment.authorName}'s comment?`)) event.preventDefault();
-            }}
-          >
-            <input type="hidden" name="id" value={comment.id} />
-            <button type="submit" name="intent" value="delete-comment" className={`${small} text-[#B3261E] dark:text-[#F2B8B5]`}>Delete</button>
-          </remove.Form>
+          {(mine || isAdmin) && (
+            <remove.Form
+              method="post"
+              onSubmit={(event) => {
+                if (!confirm(mine ? "Delete your comment?" : `Delete ${comment.authorName}'s comment?`)) event.preventDefault();
+              }}
+            >
+              <input type="hidden" name="id" value={comment.id} />
+              <button type="submit" name="intent" value="delete-comment" className={`${small} text-[#B3261E] dark:text-[#F2B8B5]`}>Delete</button>
+            </remove.Form>
+          )}
         </div>
       )}
-    </li>
+    </div>
   );
 }
 

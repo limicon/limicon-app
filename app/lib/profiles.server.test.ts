@@ -90,7 +90,7 @@ describe("profiles", () => {
       await saveProfile(tx, ada.id, edit());
       await saveProfile(tx, grace.id, edit({ firstName: "Grace", lastName: "Hopper", skills: ["maths"], interests: [], projects: [] }));
       await saveProfile(tx, hidden.id, edit({ firstName: "Hidden" }));
-      await saveOwnSettings(tx, hidden.id, { showEmail: false, allowMessages: true, showInDirectory: false });
+      await saveOwnSettings(tx, hidden.id, { showEmail: false, allowMessages: true, showInDirectory: false, emailNotifications: true, emailNotify: ["update_post"] });
 
       const ids = (entries: { id: string }[]) => entries.map((e) => e.id).filter((id) => [ada.id, grace.id, hidden.id].includes(id));
       expect(ids(await listDirectory(tx, { keyword: "MATHS" }))).toEqual([ada.id, grace.id]);

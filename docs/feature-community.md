@@ -17,7 +17,7 @@ Posts are plain text up to 5,000 characters, with line breaks kept, and an optio
 
 ## Replies
 
-Every comment has **Reply**. Replies sit under the comment they answer, one level deep as on Facebook: replying to a reply joins the same thread. The reply box starts with "@Name" of the person being answered, so they're mentioned.
+Every comment has **Reply**. Replies sit under the comment they answer, one level deep as on Facebook: replying to a reply joins the same thread. The reply box starts with "@Name" of the person being answered, so they're mentioned. People who hold the Admin role show "(admin)" beside their name on comments and replies.
 
 ## @mentions
 
@@ -27,11 +27,11 @@ Admins also get **@everyone**, which tags every current member. When anyone else
 
 ## Notifications
 
-A bell beside the member's picture, top right of every Members page, shows "(n)" for notifications they haven't seen, and opens `/members/notifications`. Members are told when someone:
+A bell beside the member's picture, top right of every Members page, shows "(n)" for notifications they haven't seen, and opens `/members/notifications`. It covers Community and Updates comments alike: `notifications` points at a Community post and comment, or at an Updates post and comment. Members are told when someone:
 
 - mentions them in a post or comment,
 - tags @everyone,
-- comments on their post (the post's author is notified automatically, without being typed in), or
+- comments on their post, in Community or on Updates (the post's author is notified automatically, without being typed in; replies to other people's comments don't notify them, as on Facebook), or
 - replies to their comment.
 
 Each person gets one notification per post or comment, for the most specific reason (a mention, then a reply, then a comment on their post, then @everyone), and never for their own. Editing a post or comment notifies only people newly mentioned. Opening the Notifications page marks them all read; new ones stay highlighted that once. Each links to its post, scrolled to the comment. Deleting a post or comment removes its notifications.

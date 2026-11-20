@@ -26,6 +26,11 @@ export function Avatar({ name, avatarKey, className }: { name: string; avatarKey
   );
 }
 
+/** "(admin)" beside the name of someone who holds the Admin role, on their comments. */
+export function AdminTag() {
+  return <span className="ml-1 text-sm font-semibold text-[#1F6F86] dark:text-[#8CC7D3]">(admin)</span>;
+}
+
 /** A keyword chip that opens the directory filtered to everyone sharing it. */
 export function KeywordChip({ keyword }: { keyword: string }) {
   return (
