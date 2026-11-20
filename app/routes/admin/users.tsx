@@ -39,7 +39,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 
 /**
  * Sets a person's roles from the list, for admins only. Admins can give anyone Admin but remove
- * it only from themselves.
+ * it only from themselves, and removing any role needs a reason.
  */
 export async function action({ context, request }: Route.ActionArgs) {
   const services = context.get(servicesContext);
@@ -48,7 +48,8 @@ export async function action({ context, request }: Route.ActionArgs) {
   const profileId = form.get("profileId");
   if (!isUuid(profileId)) throw data("Not found", { status: 404 });
   const roles = form.getAll("role").filter((r): r is string => typeof r === "string");
-  const result = await setUserRoles(services.db(), profileId, roles, services.viewer!.userId);
+  const reason = form.get("reason");
+  const result = await setUserRoles(services.db(), profileId, roles, services.viewer!.userId, typeof reason === "string" ? reason : undefined);
   if (!result.ok) return data({ problem: result.problem }, { status: 409 });
   const back = new URL(request.url).searchParams;
   back.set("done", "role");
@@ -152,7 +153,7 @@ export default function AdminUsers({ loaderData, actionData }: Route.ComponentPr
                   </td>
                   <td className="px-3 py-2">
                     {canManageRoles ? (
-                      <RolePicker profileId={user.id} current={user.permissions} roles={roles} isSelf={user.id === viewerId} compact />
+                      <RolePicker profileId={user.id} person={user.name ?? user.email ?? "this person"} current={user.permissions} roles={roles} isSelf={user.id === viewerId} compact />
                     ) : (
                       <RoleBadges current={user.permissions} roles={roles} />
                     )}

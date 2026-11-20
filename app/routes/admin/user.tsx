@@ -6,7 +6,7 @@ import { servicesContext } from "~/context";
 import { formatDollars, NOTE_MAX } from "~/lib/admin-forms";
 import { ADMIN_ROLE } from "~/lib/admin-roles";
 import { isUuid, removeCompTicket } from "~/lib/admin.server";
-import { listRoles, setUserRoles } from "~/lib/admin-roles.server";
+import { listRoleRemovals, listRoles, setUserRoles } from "~/lib/admin-roles.server";
 import { addUserNote, deleteUserNote, getUser, setDeactivated, updateUserName } from "~/lib/admin-users.server";
 import { NAME_MAX } from "~/lib/registration-form";
 import { getRegistrationFields } from "~/lib/registration.server";
@@ -41,13 +41,18 @@ async function load(context: Route.LoaderArgs["context"], userId: string) {
 
 export async function loader({ context, params, request }: Route.LoaderArgs) {
   const { db, edition, user, roles, canManageRoles, canComp, viewerId } = await load(context, params.userId);
-  const fields = (await getRegistrationFields(db, edition.id)).map(({ key, kind, label }) => ({ key, kind, label }));
+  const [registrationFields, roleHistory] = await Promise.all([
+    getRegistrationFields(db, edition.id),
+    canManageRoles ? listRoleRemovals(db, { profileId: user.id }) : [],
+  ]);
+  const fields = registrationFields.map(({ key, kind, label }) => ({ key, kind, label }));
   const name = [user.firstName, user.lastName].filter(Boolean).join(" ");
   return {
     user,
     year: edition.year,
     displayName: name || user.email || "Unknown",
     roles,
+    roleHistory,
     canManageRoles,
     canComp,
     isSelf: user.id === viewerId,
@@ -82,7 +87,7 @@ export async function action({ context, params, request }: Route.ActionArgs) {
   if (intent === "set-roles") {
     if (!canManageRoles) throw data("Only admins can change roles.", { status: 403 });
     const chosen = form.getAll("role").filter((r): r is string => typeof r === "string" && roles.some((role) => role.key === r));
-    const result = await setUserRoles(db, user.id, chosen, viewerId);
+    const result = await setUserRoles(db, user.id, chosen, viewerId, text("reason"));
     if (!result.ok) return data<ActionData>({ form: "problem", error: result.problem }, { status: 409 });
     throw back("role");
   }
@@ -137,7 +142,7 @@ const ticketBadge = {
 
 /** One person: their account, tickets, roles, sessions and registration answers, and admins' notes. */
 export default function AdminUser({ loaderData, actionData }: Route.ComponentProps) {
-  const { user, year, displayName, roles, canManageRoles, canComp, isSelf, viewerId, fields, done } = loaderData;
+  const { user, year, displayName, roles, roleHistory, canManageRoles, canComp, isSelf, viewerId, fields, done } = loaderData;
   const questionLabel = new Map(fields.map((f) => [f.key, f.label]));
   const questionOrder = fields.map((f) => f.key);
   const busy = useNavigation().state !== "idle";
@@ -219,7 +224,7 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
           <div className="mt-4 border-t border-[#E2E8E9] pt-4 text-sm dark:border-[#24363B]">
             <p className="mb-2 font-medium">Roles <span className="font-normal opacity-80">· a person can hold several, and what each allows adds up</span></p>
             {canManageRoles ? (
-              <RolePicker profileId={user.id} current={held} roles={roles} isSelf={isSelf} />
+              <RolePicker profileId={user.id} person={displayName} current={held} roles={roles} isSelf={isSelf} />
             ) : (
               <RoleBadges current={held} roles={roles} />
             )}
@@ -233,6 +238,20 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
             </ul>
             {canManageRoles && <Link to="/admin/team" className="mt-2 inline-block underline">What each role can do</Link>}
           </div>
+          {roleHistory.length > 0 && (
+            <div className="mt-4 border-t border-[#E2E8E9] pt-4 text-sm dark:border-[#24363B]">
+              <h3 className="font-medium">Role history</h3>
+              <ul className="mt-2 grid gap-2">
+                {roleHistory.map((r) => (
+                  <li key={r.id}>
+                    Removed from {r.roleName} {formatWhen(r.removedAt)}
+                    {r.removedBy ? ` by ${r.removedBy}` : ""}
+                    <span className="block opacity-80">“{r.reason}”</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
 
         <section aria-labelledby="tickets-heading" className={card}>

@@ -6,6 +6,12 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-20 | Lauren (with Opus 5.5) | Removing someone from a role needs a reason
+
+Taking a role away, from the role checkboxes or the Team page's Remove, opens a dialog that asks why; the server refuses a removal without one. Each removal is kept in `admin_role_removals` and shown to admins as Role history on the person's page and Recent removals on the Team page.
+
+---
+
 ## 2026-11-19 | Lauren (with Opus 5.5) | Members read, like and comment on Updates
 
 The Updates page is a blog: roles with `updates` add posts (from scratch or a template), every member likes and comments, and comment edits are kept with before and after text, shown to posters until marked seen. Only admins delete posts. `docs/feature-updates.md` covers it.

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Form, useLocation, useNavigation } from "react-router";
 
 import { Badge, primaryButton } from "~/components/admin-ui";
+import { RemoveRoleDialog } from "~/components/remove-role-dialog";
 import { ADMIN_ROLE } from "~/lib/admin-roles";
 
 type RoleOption = { key: string; name: string };
@@ -22,16 +23,20 @@ export function RoleBadges({ current, roles }: { current: string[]; roles: RoleO
 /**
  * A checkbox per role, for an admin to set what a person holds; their privileges add up. Admin
  * can be given to anyone but only removed by the person themselves, so for anyone else it stays
- * ticked. `compact` folds the boxes under the person's badges, for a table row.
+ * ticked. Saving with a role unticked first asks why (`RemoveRoleDialog`). `compact` folds the
+ * boxes under the person's badges, for a table row.
  */
 export function RolePicker({
   profileId,
+  person,
   current,
   roles,
   isSelf,
   compact = false,
 }: {
   profileId: string;
+  /** The person's name or email, for the removal dialog. */
+  person: string;
   current: string[];
   roles: RoleOption[];
   isSelf: boolean;
@@ -42,10 +47,32 @@ export function RolePicker({
   // and closes the row's box. A refused save returns no new page, so the box stays open beside the problem.
   const pageKey = useLocation().key;
   const [changed, setChanged] = useState(false);
-  useEffect(() => setChanged(false), [pageKey]);
+  const [removing, setRemoving] = useState<string[]>([]);
+  useEffect(() => {
+    setChanged(false);
+    setRemoving([]);
+  }, [pageKey]);
   const lockedAdmin = current.includes(ADMIN_ROLE) && !isSelf;
   const form = (
-    <Form method="post" className="grid gap-2" key={`${current.join(",")} ${pageKey}`} onChange={() => setChanged(true)}>
+    <Form
+      method="post"
+      className="grid gap-2"
+      key={`${current.join(",")} ${pageKey}`}
+      onChange={() => setChanged(true)}
+      onSubmit={(event) => {
+        // Removing a role needs a reason: Save opens the dialog, and its Remove sends the form.
+        if (removing.length) {
+          setRemoving([]);
+          return;
+        }
+        const ticked = new FormData(event.currentTarget).getAll("role");
+        const unticked = current.filter((k) => !ticked.includes(k));
+        if (unticked.length) {
+          event.preventDefault();
+          setRemoving(unticked.map((k) => roles.find((r) => r.key === k)?.name ?? k));
+        }
+      }}
+    >
       <input type="hidden" name="intent" value="set-roles" />
       <input type="hidden" name="profileId" value={profileId} />
       {/* A disabled box doesn't post, so a locked Admin role posts here instead. */}
@@ -66,6 +93,7 @@ export function RolePicker({
       <div>
         <button type="submit" disabled={busy || !changed} className={`${primaryButton} px-3 py-1 text-sm`}>Save roles</button>
       </div>
+      <RemoveRoleDialog open={removing.length > 0} onClose={() => setRemoving([])} person={person} roleNames={removing} busy={busy} />
     </Form>
   );
   if (!compact) return form;

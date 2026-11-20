@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { data, Form, Link, redirect, useLocation, useNavigation } from "react-router";
 
+import { RemoveRoleDialog } from "~/components/remove-role-dialog";
 import { Badge, card, dangerButton, FieldError, formatWhen, inputClass, Notice, PageHeading, primaryButton, secondaryButton } from "~/components/admin-ui";
 import { servicesContext } from "~/context";
 import { checkEmailField } from "~/lib/admin-forms";
 import { cancelInvitation, inviteAdmin, isUuid, listTeam } from "~/lib/admin.server";
 import { ADMIN_ROLE, PRIVILEGES, type Role } from "~/lib/admin-roles";
-import { getUserRoles, listRoles, setUserRoles } from "~/lib/admin-roles.server";
+import { getUserRoles, listRoleRemovals, listRoles, setUserRoles } from "~/lib/admin-roles.server";
 import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/team";
 
@@ -20,8 +21,8 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ context, request }: Route.LoaderArgs) {
   const services = context.get(servicesContext);
   const db = services.db();
-  const [team, roles] = await Promise.all([listTeam(db), listRoles(db)]);
-  return { ...team, roles, userId: services.viewer!.userId, done: new URL(request.url).searchParams.get("done") };
+  const [team, roles, removals] = await Promise.all([listTeam(db), listRoles(db), listRoleRemovals(db, { limit: 20 })]);
+  return { ...team, roles, removals, userId: services.viewer!.userId, done: new URL(request.url).searchParams.get("done") };
 }
 
 type ActionData = { permission: string; input: string; error: string };
@@ -47,7 +48,8 @@ export async function action({ request, context }: Route.ActionArgs) {
     const profileId = form.get("profileId");
     if (!isUuid(profileId) || !permission) throw data("Not found", { status: 404 });
     const current = await getUserRoles(db, profileId);
-    const result = await setUserRoles(db, profileId, current.filter((r) => r !== permission), userId);
+    const reason = form.get("reason");
+    const result = await setUserRoles(db, profileId, current.filter((r) => r !== permission), userId, typeof reason === "string" ? reason : undefined);
     if (!result.ok) return data<ActionData>({ permission, input: "", error: result.problem }, { status: 409 });
     throw redirect("/admin/team?done=revoked");
   }
@@ -77,7 +79,7 @@ type LoaderData = Route.ComponentProps["loaderData"];
 
 /** Each role in turn, Admin first: what it may do, who holds it, and a way to add someone. */
 export default function AdminTeam({ loaderData, actionData }: Route.ComponentProps) {
-  const { roles, done } = loaderData;
+  const { roles, removals, done } = loaderData;
   return (
     <>
       <PageHeading title="Team">
@@ -97,6 +99,26 @@ export default function AdminTeam({ loaderData, actionData }: Route.ComponentPro
       <p className="mt-10">
         <Link to="/admin/roles/new" className={primaryButton}>+ Add new role</Link>
       </p>
+
+      <section aria-labelledby="removals-heading" className="mt-10 max-w-4xl">
+        <h2 id="removals-heading" className="text-2xl font-semibold">Recent removals</h2>
+        <p className="mt-1">Who was removed from a role, by whom and why, newest first. Each person's page shows their whole history.</p>
+        <div className={`${card} mt-3 p-0`}>
+          {removals.length === 0 ? (
+            <p className="p-4 text-sm opacity-80">No one has been removed from a role yet.</p>
+          ) : (
+            <ul className="divide-y divide-[#E2E8E9] dark:divide-[#24363B]">
+              {removals.map((r) => (
+                <li key={r.id} className="p-4 text-sm">
+                  <Link to={`/admin/users/${r.profileId}`} className="font-semibold underline">{r.person ?? "Unknown"}</Link> removed from {r.roleName}
+                  <span className="opacity-80"> · {formatWhen(r.removedAt)}{r.removedBy ? ` by ${r.removedBy}` : ""}</span>
+                  <span className="block">“{r.reason}”</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
     </>
   );
 }
@@ -189,11 +211,7 @@ function RoleSection({ role, loaderData, actionData }: { role: Role; loaderData:
                   </span>
                 </span>
                 {(!isAdmin || member.profileId === userId) && (
-                  <Form method="post">
-                    <input type="hidden" name="profileId" value={member.profileId} />
-                    <input type="hidden" name="permission" value={role.key} />
-                    <button type="submit" name="intent" value="revoke" disabled={busy} className={dangerButton}>Remove</button>
-                  </Form>
+                  <RemoveButton profileId={member.profileId} person={member.name ?? member.email ?? "this person"} role={role} busy={busy} />
                 )}
               </li>
             ))}
@@ -217,5 +235,28 @@ function RoleSection({ role, loaderData, actionData }: { role: Role; loaderData:
         )}
       </div>
     </section>
+  );
+}
+
+/** Removes one person from a role, after asking why. */
+function RemoveButton({ profileId, person, role, busy }: { profileId: string; person: string; role: Role; busy: boolean }) {
+  const [asking, setAsking] = useState(false);
+  const pageKey = useLocation().key;
+  useEffect(() => setAsking(false), [pageKey]);
+  return (
+    <Form method="post" onSubmit={() => setAsking(false)}>
+      <input type="hidden" name="profileId" value={profileId} />
+      <input type="hidden" name="permission" value={role.key} />
+      <button type="button" onClick={() => setAsking(true)} disabled={busy} className={dangerButton}>Remove</button>
+      <RemoveRoleDialog
+        open={asking}
+        onClose={() => setAsking(false)}
+        person={person}
+        roleNames={[role.name]}
+        busy={busy}
+        submitName="intent"
+        submitValue="revoke"
+      />
+    </Form>
   );
 }

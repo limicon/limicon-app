@@ -77,10 +77,17 @@ export async function deleteRole(sql: Db, key: string): Promise<boolean> {
 
 /**
  * Sets the roles a person holds to `roleKeys`, adding and removing as needed, for the admin `by`.
- * Admins may give anyone Admin, but only take it from themselves while another admin remains
- * (`checkRoleChange`). Unknown role keys are ignored.
+ * Admins may give anyone Admin, but only take it from themselves while another admin remains, and
+ * taking any role away needs a `reason` (`checkRoleChange`), recorded in `admin_role_removals`.
+ * Unknown role keys are ignored.
  */
-export async function setUserRoles(sql: Db, profileId: string, roleKeys: string[], by: string): Promise<{ ok: true } | { ok: false; problem: string }> {
+export async function setUserRoles(
+  sql: Db,
+  profileId: string,
+  roleKeys: string[],
+  by: string,
+  reason?: string,
+): Promise<{ ok: true } | { ok: false; problem: string }> {
   return sql.begin(async (tx) => {
     const known = new Set((await tx<{ key: string }[]>`select key from public.admin_roles`).map((r) => r.key));
     const next = [...new Set(roleKeys.filter((k) => known.has(k)))];
@@ -91,14 +98,48 @@ export async function setUserRoles(sql: Db, profileId: string, roleKeys: string[
       select count(*)::int as others from public.admin_permissions where permission = ${ADMIN_ROLE} and profile_id <> ${profileId}
     `;
     const others = row?.others ?? 0;
-    const check = checkRoleChange({ current, next, isSelf: profileId === by, otherAdmins: others });
+    const check = checkRoleChange({ current, next, isSelf: profileId === by, otherAdmins: others, reason });
     if (!check.ok) return check;
-    await tx`delete from public.admin_permissions where profile_id = ${profileId} and permission <> all(${next})`;
+    await tx`
+      with removed as (
+        delete from public.admin_permissions where profile_id = ${profileId} and permission <> all(${next})
+        returning permission
+      )
+      insert into public.admin_role_removals (profile_id, role_key, role_name, removed_by, reason)
+      select ${profileId}, removed.permission, r.name, ${by}, ${reason?.trim() ?? ""}
+      from removed join public.admin_roles r on r.key = removed.permission
+    `;
     for (const key of next.filter((k) => !current.includes(k))) {
       await tx`insert into public.admin_permissions (profile_id, permission, granted_by) values (${profileId}, ${key}, ${by})`;
     }
     return { ok: true as const };
   }) as Promise<{ ok: true } | { ok: false; problem: string }>;
+}
+
+export type RoleRemoval = {
+  id: number;
+  profileId: string;
+  person: string | null;
+  roleName: string;
+  removedBy: string | null;
+  reason: string;
+  removedAt: Date;
+};
+
+/** Removals from roles, newest first: one person's when `profileId` is given, else everyone's. */
+export async function listRoleRemovals(sql: Db, { profileId, limit = 50 }: { profileId?: string; limit?: number } = {}): Promise<RoleRemoval[]> {
+  const name = (p: string, u: string) => sql.unsafe(`coalesce(nullif(trim(concat_ws(' ', ${p}.first_name, ${p}.last_name)), ''), ${u}.email)`);
+  const rows = await sql<RoleRemoval[]>`
+    select x.id::int as id, x.profile_id as "profileId", ${name("p", "pu")} as person, x.role_name as "roleName",
+           ${name("b", "bu")} as "removedBy", x.reason, x.removed_at as "removedAt"
+    from public.admin_role_removals x
+    join public.profiles p on p.id = x.profile_id left join auth.users pu on pu.id = p.id
+    left join public.profiles b on b.id = x.removed_by left join auth.users bu on bu.id = b.id
+    where ${profileId ? sql`x.profile_id = ${profileId}` : sql`true`}
+    order by x.removed_at desc, x.id desc
+    limit ${limit}
+  `;
+  return rows.map((r) => ({ ...r, removedAt: new Date(r.removedAt) }));
 }
 
 /** The names of the roles a person holds, Admin first, for showing beside their name. */

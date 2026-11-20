@@ -60,18 +60,28 @@ export function roleKeyFromName(name: string, taken: Set<string>) {
   return key;
 }
 
+/** The longest reason an admin can give for removing someone from a role. */
+export const REMOVAL_REASON_MAX = 300;
+
 /**
  * Checks a change to a person's roles by an admin. Admins may give anyone the Admin role but may
- * take it away only from themselves, and only while another admin remains.
+ * take it away only from themselves, and only while another admin remains. Taking any role away
+ * needs a short reason, which is kept as a record; adding roles needs none.
  */
 export function checkRoleChange(args: {
   current: string[];
   next: string[];
   isSelf: boolean;
   otherAdmins: number;
+  reason?: string;
 }): { ok: true } | { ok: false; problem: string } {
   const losingAdmin = args.current.includes(ADMIN_ROLE) && !args.next.includes(ADMIN_ROLE);
   if (losingAdmin && !args.isSelf) return { ok: false, problem: "Admins can't remove admin status from someone else." };
   if (losingAdmin && args.otherAdmins === 0) return { ok: false, problem: "You're the only admin, so you can't step down until someone else is one." };
+  if (args.current.some((k) => !args.next.includes(k))) {
+    const reason = args.reason?.trim() ?? "";
+    if (!reason) return { ok: false, problem: "Say why you're removing the role." };
+    if ([...reason].length > REMOVAL_REASON_MAX) return { ok: false, problem: `Keep the reason to ${REMOVAL_REASON_MAX} characters.` };
+  }
   return { ok: true };
 }
