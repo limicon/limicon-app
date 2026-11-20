@@ -107,7 +107,7 @@ export default function Schedule({ loaderData }: Route.ComponentProps) {
           </Link>
         )}
       </div>
-      <div className="mt-4 flex max-w-6xl flex-wrap items-center justify-between gap-3">
+      <div className="mt-4 flex max-w-4xl flex-wrap items-center justify-between gap-3">
         <ScheduleToggle view={filters.view} />
         <LayoutTabs layout={filters.layout} />
       </div>
