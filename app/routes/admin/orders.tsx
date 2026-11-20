@@ -48,7 +48,7 @@ export default function AdminOrders({ loaderData }: Route.ComponentProps) {
       {summary && (
         <dl className="mb-6 grid max-w-5xl gap-3 sm:grid-cols-3">
           <Stat label="Orders" value={summary.orders} detail={summary.incomplete ? `${summary.incomplete} incomplete, not counted` : "Paid and comped"} />
-          <Stat label="Tickets purchased" value={summary.ticketsPurchased} detail="Some orders buy more than one" />
+          <Stat label="Tickets purchased" value={summary.ticketsPurchased} detail="Paid, not counting comps" />
           <Stat label="Revenue" value={formatDollars(summary.revenueCents)} detail="Before Stripe fees" />
         </dl>
       )}
@@ -97,7 +97,6 @@ export default function AdminOrders({ loaderData }: Route.ComponentProps) {
                 {heading("name", "Name")}
                 {heading("date", "Order date")}
                 {heading("ticket", "Ticket")}
-                {heading("quantity", "Quantity")}
                 {heading("status", "Status")}
                 {heading("price", "Price")}
               </tr>
@@ -113,7 +112,6 @@ export default function AdminOrders({ loaderData }: Route.ComponentProps) {
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">{formatWhen(o.createdAt)}</td>
                   <td className="px-3 py-2">{o.tier ?? "—"}</td>
-                  <td className="px-3 py-2 tabular-nums">{o.quantity}</td>
                   <td className="px-3 py-2"><OrderStatus status={o.status} /></td>
                   <td className="px-3 py-2 tabular-nums">{o.status === "comp" ? "Comped" : formatDollars(o.amountCents)}</td>
                 </tr>

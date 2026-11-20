@@ -6,6 +6,10 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-20 | Lauren (with Opus 5.5) | An order is one ticket, for the buyer
+
+Everyone needs their own account, so `orders` has no quantity and a unique index allows one paid or comp order per person per edition. Unfinished checkouts can repeat, and a refund frees the person to buy again. The admin Orders and Overview pages no longer show a quantity.
+
 ## 2026-11-20 | Lauren (with Opus 5.5) | Removing someone from a role needs a reason
 
 Taking a role away, from the role checkboxes or the Team page's Remove, opens a dialog that asks why; the server refuses a removal without one. Each removal is kept in `admin_role_removals` and shown to admins as Role history on the person's page and Recent removals on the Team page.

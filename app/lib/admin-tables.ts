@@ -10,7 +10,6 @@ export const ORDER_COLUMNS = [
   { key: "email", label: "Email" },
   { key: "date", label: "Order date" },
   { key: "ticket", label: "Ticket" },
-  { key: "quantity", label: "Quantity" },
   { key: "status", label: "Status" },
   { key: "price", label: "Price" },
 ] as const;

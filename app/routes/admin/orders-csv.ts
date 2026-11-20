@@ -16,7 +16,6 @@ const cell: Record<OrderColumn, (o: OrderRow) => unknown> = {
   email: (o) => o.email,
   date: (o) => o.createdAt,
   ticket: (o) => o.tier,
-  quantity: (o) => o.quantity,
   status: (o) => STATUS[o.status],
   price: (o) => (o.status === "comp" ? "Comped" : (o.amountCents / 100).toFixed(2)),
 };

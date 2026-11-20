@@ -136,7 +136,7 @@ function IncompletePurchases({ orders }: { orders: IncompleteOrder[] }) {
                       <Link to={`/admin/users/${o.profileId}`} className="font-semibold underline">{o.name ?? o.email ?? "Unknown"}</Link>
                     </td>
                     <td className="px-3 py-2 break-all">{o.email && <a href={`mailto:${o.email}`} className="underline">{o.email}</a>}</td>
-                    <td className="px-3 py-2">{o.tier ?? "No tier"}{o.quantity > 1 ? ` × ${o.quantity}` : ""}</td>
+                    <td className="px-3 py-2">{o.tier ?? "No tier"}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{formatDollars(o.amountCents)}</td>
                     <td className="px-3 py-2 whitespace-nowrap">{formatWhen(o.startedAt, { dateStyle: "medium", timeStyle: "short" })} UTC</td>
                   </tr>
@@ -172,7 +172,7 @@ function BuyerList({ buyers }: { buyers: RecentBuyer[] }) {
                 <Link to={`/admin/users/${b.profileId}`} className="font-semibold underline">{b.name ?? b.email ?? "Unknown"}</Link>
               </td>
               <td className="px-3 py-2 break-all">{b.email && <a href={`mailto:${b.email}`} className="underline">{b.email}</a>}</td>
-              <td className="px-3 py-2">{b.tier ?? "No tier"}{b.quantity > 1 ? ` × ${b.quantity}` : ""}</td>
+              <td className="px-3 py-2">{b.tier ?? "No tier"}</td>
               <td className="px-3 py-2 text-right tabular-nums">{b.status === "comp" ? "Comped" : formatDollars(b.amountCents)}</td>
               <td className="px-3 py-2 whitespace-nowrap">{formatWhen(b.at, { dateStyle: "medium", timeStyle: "short" })} UTC</td>
             </tr>

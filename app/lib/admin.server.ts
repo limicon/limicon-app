@@ -29,7 +29,6 @@ export type RecentBuyer = {
   name: string | null;
   email: string | null;
   tier: string | null;
-  quantity: number;
   status: "paid" | "comp";
   amountCents: number;
   at: Date;
@@ -41,7 +40,6 @@ export type IncompleteOrder = {
   name: string | null;
   email: string | null;
   tier: string | null;
-  quantity: number;
   amountCents: number;
   startedAt: Date;
 };
@@ -82,7 +80,7 @@ export async function getOverview(sql: Db, editionId: number): Promise<Overview>
     totals("7 days"),
     sql<(Omit<RecentBuyer, "orderId"> & { orderId: string })[]>`
       select o.id as "orderId", p.id as "profileId", nullif(trim(concat_ws(' ', p.first_name, p.last_name)), '') as name,
-             u.email, tt.name as tier, o.quantity, o.status, o.amount_cents as "amountCents",
+             u.email, tt.name as tier, o.status, o.amount_cents as "amountCents",
              coalesce(o.completed_at, o.created_at) as at
       from public.orders o
       join public.profiles p on p.id = o.buyer_id
@@ -94,7 +92,7 @@ export async function getOverview(sql: Db, editionId: number): Promise<Overview>
     `,
     sql<(Omit<IncompleteOrder, "orderId"> & { orderId: string })[]>`
       select o.id as "orderId", p.id as "profileId", nullif(trim(concat_ws(' ', p.first_name, p.last_name)), '') as name,
-             u.email, tt.name as tier, o.quantity, o.amount_cents as "amountCents", o.created_at as "startedAt"
+             u.email, tt.name as tier, o.amount_cents as "amountCents", o.created_at as "startedAt"
       from public.orders o
       join public.profiles p on p.id = o.buyer_id
       left join auth.users u on u.id = p.id
@@ -321,15 +319,15 @@ export async function issueCompTicket(
     const tiers = await sql`select 1 from public.ticket_tiers where id = ${args.tierId} and edition_id = ${args.editionId}`;
     if (!tiers.length) return "bad-tier";
   }
-  // A comp is an order of one, so it shows on the Orders page beside purchases.
+  // A comp is an order like a purchase, so it shows on the Orders page beside them.
   return sql.begin(async (tx) => {
     const held = await tx`
       select 1 from public.tickets where profile_id = ${user.id} and edition_id = ${args.editionId} and status <> 'refunded'
     `;
     if (held.length) return "has-ticket" as const;
     const [order] = await tx<{ id: string }[]>`
-      insert into public.orders (edition_id, buyer_id, tier_id, quantity, status, completed_at)
-      values (${args.editionId}, ${user.id}, ${args.tierId}, 1, 'comp', now())
+      insert into public.orders (edition_id, buyer_id, tier_id, status, completed_at)
+      values (${args.editionId}, ${user.id}, ${args.tierId}, 'comp', now())
       returning id
     `;
     await tx`

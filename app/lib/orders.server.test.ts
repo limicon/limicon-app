@@ -1,6 +1,6 @@
 /// <reference types="node" />
 // Vitest runs this in Node, which the app's own tsconfig doesn't include.
-import postgres from "postgres";
+import postgres, { type TransactionSql } from "postgres";
 import { afterAll, describe, expect, test } from "vitest";
 
 import { readGuestFilters, readOrderFilters } from "./admin-tables";
@@ -43,10 +43,10 @@ async function edition(tx: Db) {
   return Number(row!.id);
 }
 
-async function order(tx: Db, editionId: number, buyer: string, status: string, quantity: number, cents: number, at: string) {
+async function order(tx: Db, editionId: number, buyer: string, status: string, cents: number, at: string) {
   const [row] = await tx<{ id: string }[]>`
-    insert into public.orders (edition_id, buyer_id, quantity, status, amount_cents, created_at)
-    values (${editionId}, ${buyer}, ${quantity}, ${status}, ${cents}, ${at})
+    insert into public.orders (edition_id, buyer_id, status, amount_cents, created_at)
+    values (${editionId}, ${buyer}, ${status}, ${cents}, ${at})
     returning id
   `;
   if (status === "paid" || status === "comp") {
@@ -64,11 +64,11 @@ describe("orders", () => {
       const ada = await person(tx, "Ada", "Lovelace");
       const bo = await person(tx, "Bo", "Zhang");
       const cy = await person(tx, "Cy", "Adams");
-      await order(tx, id, ada, "paid", 3, 15000, "2027-01-03");
-      await order(tx, id, bo, "pending", 1, 5000, "2027-01-05");
-      await order(tx, id, cy, "comp", 1, 0, "2027-01-04");
+      await order(tx, id, ada, "paid", 15000, "2027-01-03");
+      await order(tx, id, bo, "pending", 5000, "2027-01-05");
+      await order(tx, id, cy, "comp", 0, "2027-01-04");
 
-      expect(await getOrderSummary(tx, id)).toEqual({ orders: 2, ticketsPurchased: 3, revenueCents: 15000, incomplete: 1 });
+      expect(await getOrderSummary(tx, id)).toEqual({ orders: 2, ticketsPurchased: 1, revenueCents: 15000, incomplete: 1 });
 
       const names = async (query: Record<string, string>) =>
         (await listOrders(tx, id, readOrderFilters(new URLSearchParams(query)))).map((o) => o.name);
@@ -82,6 +82,21 @@ describe("orders", () => {
       expect(await listOrders(tx, id, readOrderFilters(new URLSearchParams({ status: "pending" })), false)).toHaveLength(3);
     });
   });
+
+  test("allow one paid or comped order per person, but any number of unfinished checkouts", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const id = await edition(tx);
+      const ada = await person(tx, "Ada", "Lovelace");
+      await tx`insert into public.orders (edition_id, buyer_id, status) values (${id}, ${ada}, 'pending')`;
+      await tx`insert into public.orders (edition_id, buyer_id, status) values (${id}, ${ada}, 'pending')`;
+      await tx`insert into public.orders (edition_id, buyer_id, status) values (${id}, ${ada}, 'refunded')`;
+      await tx`insert into public.orders (edition_id, buyer_id, status) values (${id}, ${ada}, 'paid')`;
+      await expect(
+        // A savepoint keeps the expected failure from aborting the test's transaction.
+        (tx as unknown as TransactionSql).savepoint((sp) => sp`insert into public.orders (edition_id, buyer_id, status) values (${id}, ${ada}, 'comp')`),
+      ).rejects.toThrow(/orders_one_per_person_per_edition/);
+    });
+  });
 });
 
 describe("guests", () => {
@@ -91,9 +106,9 @@ describe("guests", () => {
       const ada = await person(tx, "Ada", "Lovelace");
       const cy = await person(tx, "Cy", "Adams");
       const bo = await person(tx, "Bo", "Zhang");
-      await order(tx, id, ada, "paid", 1, 5000, "2027-01-03");
-      await order(tx, id, cy, "comp", 1, 0, "2027-01-04");
-      await order(tx, id, bo, "pending", 1, 5000, "2027-01-05");
+      await order(tx, id, ada, "paid", 5000, "2027-01-03");
+      await order(tx, id, cy, "comp", 0, "2027-01-04");
+      await order(tx, id, bo, "pending", 5000, "2027-01-05");
       await tx`insert into public.registration_answers (profile_id, edition_id, question, answer) values (${ada}, ${id}, 'address', '1 Main St')`;
 
       expect(await countGuests(tx, id)).toBe(2);

@@ -92,8 +92,8 @@ describe("row-level security backstop", () => {
         values (${user!.id}, ${user!.id}, 'A note')
       `;
       await tx`
-        insert into public.orders (edition_id, buyer_id, tier_id, quantity, status, amount_cents)
-        values (${edition!.id}, ${user!.id}, ${tier!.id}, 2, 'pending', 10000)
+        insert into public.orders (edition_id, buyer_id, tier_id, status, amount_cents)
+        values (${edition!.id}, ${user!.id}, ${tier!.id}, 'pending', 5000)
       `;
       await tx`
         insert into public.registration_fields (edition_id, key, kind, label)

@@ -363,7 +363,7 @@ The model separates an account (a person, permanent) from a ticket (a person's p
 | edition\_links | External links for members per edition (MEM-2) | edition, label, url, sort order |
 | ticket\_tiers | Tiers per edition | edition, name, price, sort order |
 | discount\_codes | Admin-created codes | code, type (percent or amount), value, expires\_at, max\_uses, tier restriction |
-| orders | A purchase of one or more tickets | edition, buyer, tier, quantity, status (pending, paid, comp or refunded), amount, stripe\_session\_id |
+| orders | A purchase of one ticket, for the buyer; one paid or comp order per person per edition | edition, buyer, tier, status (pending, paid, comp or refunded), amount, stripe\_session\_id |
 | tickets | A person's registration for an edition | profile, edition, order, tier, amount\_paid, discount\_code, stripe\_session\_id, status, imported |
 | registration\_fields | The registration form's fields after the name, which admins edit | edition, key, kind (short, long, checkbox, headline or paragraph), label, help, required, link, sort order |
 | registration\_answers | Answers to registration questions, given before paying | profile, edition, question (a field's key), answer, answered\_at (when agreed, for agreements) |

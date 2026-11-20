@@ -11,7 +11,6 @@ export type OrderRow = {
   email: string | null;
   createdAt: Date;
   tier: string | null;
-  quantity: number;
   status: "pending" | "paid" | "comp" | "refunded";
   amountCents: number;
 };
@@ -31,13 +30,12 @@ export async function listOrders(sql: Db, editionId: number, f: OrderFilters, fi
     email: sql`lower(u.email) ${dir} nulls last`,
     date: sql`o.created_at ${dir}`,
     ticket: sql`tt.name ${dir} nulls last`,
-    quantity: sql`o.quantity ${dir}`,
     status: sql`o.status ${dir}`,
     price: sql`o.amount_cents ${dir}`,
   }[f.sort];
   const rows = await sql<(Omit<OrderRow, "id"> & { id: string })[]>`
     select o.id, p.id as "profileId", nullif(trim(concat_ws(' ', p.first_name, p.last_name)), '') as name, u.email,
-           o.created_at as "createdAt", tt.name as tier, o.quantity, o.status, o.amount_cents as "amountCents"
+           o.created_at as "createdAt", tt.name as tier, o.status, o.amount_cents as "amountCents"
     from public.orders o
     join public.profiles p on p.id = o.buyer_id
     left join auth.users u on u.id = p.id
@@ -51,12 +49,15 @@ export async function listOrders(sql: Db, editionId: number, f: OrderFilters, fi
   return rows.map((row) => ({ ...row, id: Number(row.id) }));
 }
 
-/** The Orders page's headline numbers: completed orders, tickets bought and revenue. */
+/**
+ * The Orders page's headline numbers: completed orders, tickets bought and revenue. Each order
+ * is one ticket, so tickets bought are the paid orders.
+ */
 export async function getOrderSummary(sql: Db, editionId: number): Promise<OrderSummary> {
   const [row] = await sql<OrderSummary[]>`
     select
       count(*) filter (where status in ('paid', 'comp'))::int as orders,
-      coalesce(sum(quantity) filter (where status = 'paid'), 0)::int as "ticketsPurchased",
+      count(*) filter (where status = 'paid')::int as "ticketsPurchased",
       coalesce(sum(amount_cents) filter (where status = 'paid'), 0)::int as "revenueCents",
       count(*) filter (where status = 'pending')::int as incomplete
     from public.orders where edition_id = ${editionId}
