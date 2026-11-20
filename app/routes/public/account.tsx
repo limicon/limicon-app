@@ -64,8 +64,9 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
             label={name ? `${name}'s profile picture` : "Your profile picture"}
             endpoint="/upload/photo"
             uploadLabel="Upload a picture"
-            help="PNG, JPEG, GIF or WebP, up to 5 MB. A square picture looks best."
+            help="Any photo your phone or computer can open. Next, you'll zoom and place it in the circle members see."
             previewClassName="size-32"
+            crop="circle"
             describedBy="picture-help"
           />
           <div className="flex flex-wrap items-center gap-3">

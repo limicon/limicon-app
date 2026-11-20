@@ -68,8 +68,9 @@ export default function ProfileEdit({ loaderData, actionData }: Route.ComponentP
               label="Your profile picture"
               endpoint="/upload/photo"
               uploadLabel="Upload a picture"
-              help="PNG, JPEG, GIF or WebP, up to 5 MB. A square picture looks best."
+              help="Any photo your phone or computer can open. Next, you'll zoom and place it in the circle members see."
               previewClassName="size-32 rounded-full"
+              crop="circle"
             />
             <FieldError id="avatarKey-error" message={errors.avatarKey} />
           </div>

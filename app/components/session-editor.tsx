@@ -124,8 +124,9 @@ export function SessionEditor({
               label={title ? `Photo for ${title}` : "The session's photo"}
               endpoint="/upload/photo"
               uploadLabel="Upload a photo"
-              help="PNG, JPEG, GIF or WebP, up to 5 MB. A square photo, at least 400 × 400, looks best."
+              help="Any photo your phone or computer can open. Next, you'll zoom and place it in the square members see."
               previewClassName="size-40 sm:size-48"
+              crop="square"
               describedBy="imageKey-label imageKey-help"
             />
           </div>

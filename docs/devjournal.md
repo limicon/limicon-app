@@ -6,6 +6,10 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-20 | Lauren (with Opus 5.5) | Members place their photo in a square before it uploads
+
+Session photos and profile pictures open a cropper first: zoom, drag or arrow keys inside a dotted square (a circle for profile pictures), or Fit the whole photo on Limicon's teal. The browser uploads an 800 × 800 JPEG, so photos of any size or shape work. Forms wait to save until an upload finishes.
+
 ## 2026-11-20 | Lauren (with Opus 5.5) | Updates comments get replies, "(admin)", and members choose email notifications
 
 As on Facebook, a comment notifies the post's author and a reply only the person answered, in Updates and Community; Updates replies start with "@Name". Admin role holders show "(admin)" on comments. Settings asks whether to email notifications and which: new Updates posts on by default, the rest off. Sending waits on an email service.
