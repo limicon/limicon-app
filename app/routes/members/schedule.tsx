@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Form, Link, useSearchParams, useSubmit } from "react-router";
+import { Form, Link, redirect, useNavigation, useSearchParams, useSubmit } from "react-router";
 
 import { RichText } from "~/components/rich-text";
 import { RsvpButton } from "~/components/rsvp-button";
@@ -12,6 +12,8 @@ import { servicesContext } from "~/context";
 import { LAYOUTS, defaultDate, monthStart, parseDate, parseLayout, viewDays, viewRange, type ScheduleLayout } from "~/lib/calendar";
 import { dayHeading, dayKey, timeRange, zoneAbbreviation, zoneName } from "~/lib/format-time";
 import { listScheduledSessions, scheduleVersion, type ScheduledSession } from "~/lib/schedule.server";
+import { publishDraft } from "~/lib/session-actions.server";
+import { listHostedSessions, type HostedSession } from "~/lib/sessions.server";
 import { SESSION_TYPES, THEMES } from "~/lib/session-form";
 import { themeColor } from "~/lib/themes";
 import { getViewerZone, setOwnTimeZone } from "~/lib/viewer-zone.server";
@@ -75,22 +77,39 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     keyword: params.get("q")?.trim().slice(0, 100) || null,
   };
 
-  const [sessions, version] = edition
-    ? await Promise.all([listScheduledSessions(db, edition.id, filters), scheduleVersion(db, edition.id)])
-    : [[], ""];
-  return { sessions, version, viewerZone, filters, timeZones: timeZoneNames(), now: filters.now };
+  const [sessions, version, hosted] = edition
+    ? await Promise.all([
+        listScheduledSessions(db, edition.id, filters),
+        scheduleVersion(db, edition.id),
+        view === "hosting" ? listHostedSessions(db, services.viewer!.userId, edition.id) : [],
+      ])
+    : [[], "", []];
+  const drafts = hosted.filter((session) => !session.published);
+  const published = hosted.find((session) => session.published && session.id === params.get("published"))?.title ?? null;
+  return { sessions, drafts, published, version, viewerZone, filters, timeZones: timeZoneNames(), now: filters.now };
 }
 
-/** Saves the time zone the member picked. */
+/** Publishes one of the member's drafts, or saves the time zone they picked. */
 export async function action({ request, context }: Route.ActionArgs) {
   const services = context.get(servicesContext);
-  const zone = String((await request.formData()).get("timeZone") ?? "");
+  const form = await request.formData();
+  if (form.get("intent") === "publish") {
+    const sessionId = String(form.get("sessionId") ?? "");
+    const result = await publishDraft(services, sessionId);
+    if (!result.ok) return { sessionId, problems: result.problems };
+    // In the address, so the message survives the schedule's own reloads.
+    const params = new URLSearchParams(new URL(request.url).searchParams);
+    params.delete("_routes");
+    params.set("published", sessionId);
+    throw redirect(`/members/schedule?${params}`);
+  }
+  const zone = String(form.get("timeZone") ?? "");
   if (isValidTimeZone(zone)) await setOwnTimeZone(services.db(), services.viewer!.userId, zone);
   return null;
 }
 
-export default function Schedule({ loaderData }: Route.ComponentProps) {
-  const { sessions, version, viewerZone, filters, timeZones, now } = loaderData;
+export default function Schedule({ loaderData, actionData }: Route.ComponentProps) {
+  const { sessions, drafts, published, version, viewerZone, filters, timeZones, now } = loaderData;
   const zone = viewerZone.zone;
   useScheduleRefresh(version);
   useBrowserZone(viewerZone.source, zone);
@@ -112,6 +131,14 @@ export default function Schedule({ loaderData }: Route.ComponentProps) {
         <ScheduleToggle view={filters.view} />
         <LayoutTabs layout={filters.layout} />
       </div>
+      {published && (
+        <p role="status" className="mt-4 max-w-4xl rounded-lg border border-[#9ED1C2] bg-[#E6F4EF] p-3 dark:border-[#2B5A4C] dark:bg-[#12291F]">
+          “{published}” is on the calendar now.
+        </p>
+      )}
+      {drafts.length > 0 && (
+        <Drafts drafts={drafts} zone={zone} problems={actionData?.problems ? { sessionId: actionData.sessionId, problems: actionData.problems } : null} />
+      )}
       <TimeZoneLine zone={zone} now={now} timeZones={timeZones} />
       <Filters filters={filters} />
       <Legend />
@@ -127,7 +154,9 @@ export default function Schedule({ loaderData }: Route.ComponentProps) {
             : filters.view === "hosting"
               ? filters.past
                 ? "None of the sessions you host have finished yet."
-                : "You aren't hosting any sessions on the calendar yet. Host one with the button above; drafts stay under Host a session until you publish them."
+                : drafts.length > 0
+                  ? "None of your sessions are on the calendar yet. Publish a draft above when it's ready."
+                  : "You aren't hosting any sessions on the calendar yet. Host one with the button above."
               : filters.mineOnly
               ? filters.past
                 ? "You didn't RSVP to any sessions that have finished."
@@ -155,6 +184,58 @@ export default function Schedule({ loaderData }: Route.ComponentProps) {
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * The member's unpublished sessions, above their hosted schedule, each with Edit and Publish to
+ * Calendar. Publishing a draft that's missing something lists what to add instead.
+ */
+function Drafts({ drafts, zone, problems }: { drafts: HostedSession[]; zone: string; problems: { sessionId: string; problems: string[] } | null }) {
+  const busy = useNavigation().state !== "idle";
+  return (
+    <section aria-labelledby="drafts" className="mt-6 max-w-4xl">
+      <h2 id="drafts" className="text-xl font-semibold">Drafts</h2>
+      <p className="text-sm">Only you and your co-hosts can see these until you publish them.</p>
+      <ul className="mt-3 grid gap-3">
+        {drafts.map((draft) => {
+          const missing = problems?.sessionId === draft.id ? problems.problems : null;
+          return (
+            <li key={draft.id} className="rounded-lg border border-dashed border-[#9DB5B9] bg-white p-4 dark:border-[#3A5359] dark:bg-[#12201F]">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="mr-auto min-w-0">
+                  <h3 className="text-lg font-semibold">{draft.title}</h3>
+                  <p className="text-sm">
+                    {draft.startsAt && draft.endsAt ? `${dayHeading(dayKey(draft.startsAt, zone))}, ${timeRange(draft.startsAt, draft.endsAt, zone)}` : "No date yet"}
+                  </p>
+                </div>
+                <Link
+                  to={`/members/host/${draft.id}`}
+                  className="rounded border border-[#15383F] px-4 py-2 font-semibold dark:border-[#8CC7D3]"
+                  aria-label={`Edit ${draft.title}`}
+                >
+                  Edit
+                </Link>
+                <Form method="post">
+                  <input type="hidden" name="sessionId" value={draft.id} />
+                  <button type="submit" name="intent" value="publish" disabled={busy} className={`${primaryButton} disabled:opacity-60`}>
+                    Publish to Calendar<span className="sr-only">: {draft.title}</span>
+                  </button>
+                </Form>
+              </div>
+              {missing && (
+                <div role="alert" className="mt-3 rounded-md bg-[#FBEAE8] p-3 text-sm text-[#7A1C14] dark:bg-[#3A1714] dark:text-[#F2B8B5]">
+                  <p className="font-semibold">Before this can go on the calendar, open Edit and:</p>
+                  <ul className="mt-1 list-disc pl-5">
+                    {missing.map((problem) => <li key={problem}>{problem}</li>)}
+                  </ul>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

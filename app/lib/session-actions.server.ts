@@ -1,8 +1,33 @@
 import { data, redirect } from "react-router";
 
 import type { RequestServices } from "~/context";
-import { checkSessionForm, readSessionForm } from "~/lib/session-form";
-import { createSession, deleteSession, ineligibleCoHosts, updateSession } from "~/lib/sessions.server";
+import { checkSessionForm, readSessionForm, sessionToFormInput } from "~/lib/session-form";
+import { createSession, deleteSession, getEditableSession, ineligibleCoHosts, updateSession } from "~/lib/sessions.server";
+
+/**
+ * Puts a draft on the calendar as it was saved, for a member who may edit it. It passes the same
+ * checks as publishing from the form; otherwise nothing changes and `problems` says what to add.
+ */
+export async function publishDraft(
+  services: RequestServices,
+  sessionId: string,
+): Promise<{ ok: true; title: string } | { ok: false; problems: string[] }> {
+  const { edition, isAdmin } = await services.membership();
+  if (!edition) throw data("No Limicon edition is set up yet.", { status: 409 });
+  const db = services.db();
+  const session = await getEditableSession(db, sessionId, { userId: services.viewer!.userId, isAdmin });
+  if (!session) throw data("Session not found", { status: 404 });
+  const result = checkSessionForm(sessionToFormInput(session), {
+    publish: true,
+    eventWindow: { first: edition.firstDay, last: edition.lastDay },
+  });
+  if (!result.ok) return { ok: false, problems: [...new Set(Object.values(result.errors).filter((e): e is string => Boolean(e)))] };
+  if ((await ineligibleCoHosts(db, edition.id, result.values.coHostIds)).length) {
+    return { ok: false, problems: ["A co-host isn't registered for this Limicon. Open Edit to change the co-hosts."] };
+  }
+  await updateSession(db, sessionId, result.values, true);
+  return { ok: true, title: session.title };
+}
 
 /** Where the editor's pages live: the Members area's for hosts, the admin console's for admins. */
 export type SessionPaths = { list: string; session: (id: string) => string };
