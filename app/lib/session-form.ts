@@ -3,6 +3,7 @@
  * title; publishing needs the rest of SES-6. Pure functions, so the rules are easy to test.
  */
 import { cleanRichText, plainToRichText, readRichText, richTextToPlain, type RichDoc } from "~/lib/rich-text";
+import { IMAGE_KEY } from "~/lib/media";
 import { instantToZoned, isValidTimeZone, zonedToInstant } from "~/lib/zoned-time";
 
 export const THEMES = [
@@ -74,6 +75,8 @@ export type SessionFormInput = {
   /** The description editor's document as JSON (plain text is read as one paragraph a line). */
   description: string;
   intention: string;
+  /** The session photo's key in the media bucket, or "" for none. */
+  imageKey: string;
   theme: string;
   sessionTypes: string[];
   experience: string[];
@@ -111,6 +114,8 @@ export type SessionValues = {
   description: string | null;
   descriptionDoc: RichDoc | null;
   intention: string | null;
+  /** The session's photo in the media bucket; schedules fall back to the host's picture. */
+  imageKey: string | null;
   theme: string | null;
   sessionTypes: string[];
   experience: string[];
@@ -148,6 +153,7 @@ export function readSessionForm(form: { get(name: string): unknown; getAll(name:
     title: text("title"),
     description: text("description"),
     intention: text("intention"),
+    imageKey: text("imageKey"),
     theme: text("theme"),
     sessionTypes: list("sessionTypes"),
     experience: list("experience"),
@@ -196,6 +202,8 @@ export function checkSessionForm(
   const errors: FieldErrors = {};
   const warnings: string[] = [];
   const { publish } = options;
+
+  if (input.imageKey && !IMAGE_KEY.test(input.imageKey)) errors.imageKey = "Upload the photo again.";
 
   if (!input.title) errors.title = "Give the session a title.";
   else if ([...input.title].length > TITLE_MAX) errors.title = `Keep the title to ${TITLE_MAX} characters.`;
@@ -300,6 +308,7 @@ export function checkSessionForm(
       description: description || null,
       descriptionDoc,
       intention: input.intention || null,
+      imageKey: input.imageKey || null,
       theme: input.theme || null,
       sessionTypes: input.sessionTypes,
       experience: input.experience,
@@ -401,6 +410,7 @@ export function sessionToFormInput(session: Omit<SessionValues, "repeats"> & { c
     title: session.title,
     description: JSON.stringify(session.descriptionDoc ?? plainToRichText(session.description ?? "")),
     intention: session.intention ?? "",
+    imageKey: session.imageKey ?? "",
     theme: session.theme ?? "",
     sessionTypes: session.sessionTypes,
     experience: session.experience,

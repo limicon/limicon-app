@@ -170,3 +170,37 @@ describe("scheduleVersion", () => {
     });
   });
 });
+
+describe("session photos", () => {
+  const photo = "3f2a1b4c-0000-4000-8000-000000000001.jpg";
+  const avatar = "3f2a1b4c-0000-4000-8000-000000000002.png";
+
+  test("carry the session's photo and its host's picture and name, for the fallback", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const { editionId, host, ids } = await setUp(tx);
+      await tx`update public.sessions set image_key = ${photo} where id = ${ids.sooner}`;
+      await tx`update public.profiles set avatar_key = ${avatar} where id = ${host}`;
+      const sessions = await listScheduledSessions(tx, editionId, upcoming);
+      expect(sessions.find((s) => s.title === "Sooner")).toMatchObject({ imageKey: photo, hostAvatarKey: avatar, hostName: "Ada Lovelace" });
+      expect(sessions.find((s) => s.title === "Later")).toMatchObject({ imageKey: null, hostAvatarKey: avatar });
+      expect(await getSessionDetails(tx, ids.sooner, editionId, host)).toMatchObject({ imageKey: photo, hostAvatarKey: avatar });
+    });
+  });
+
+  test("use the creator's picture over a co-host's", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const { editionId, host, coHost, ids } = await setUp(tx);
+      await tx`update public.sessions set created_by = ${coHost} where id = ${ids.later}`;
+      await tx`update public.profiles set avatar_key = ${avatar} where id = ${host}`;
+      const later = (await listScheduledSessions(tx, editionId, upcoming)).find((s) => s.title === "Later");
+      expect(later).toMatchObject({ hostAvatarKey: null, hostName: "Grace Hopper" });
+    });
+  });
+
+  test("refuse keys that aren't stored images", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const { ids } = await setUp(tx);
+      await expect(tx`update public.sessions set image_key = 'https://example.org/x.png' where id = ${ids.sooner}`).rejects.toThrow(/sessions_image_key_is_image/);
+    });
+  });
+});

@@ -3,6 +3,7 @@ import { Form, Link, useSearchParams, useSubmit } from "react-router";
 
 import { RichText } from "~/components/rich-text";
 import { RsvpButton } from "~/components/rsvp-button";
+import { SessionPhoto } from "~/components/session-photo";
 import { useBrowserZone, useScheduleRefresh } from "~/components/schedule-refresh";
 import { ThemeLabel } from "~/components/theme-label";
 import { servicesContext } from "~/context";
@@ -148,7 +149,8 @@ function SessionCard({ session, zone, canRsvp, hosting }: { session: ScheduledSe
       className="group relative flex overflow-hidden rounded-lg border border-[#C9DADC] bg-white transition-colors hover:border-[#15383F] hover:bg-[#F7FAFA] has-[a[data-card]:focus-visible]:outline-2 has-[a[data-card]:focus-visible]:outline-[#15383F] dark:border-[#24363B] dark:bg-[#12201F] dark:hover:border-[#8CC7D3] dark:hover:bg-[#162826] dark:has-[a[data-card]:focus-visible]:outline-[#8CC7D3]"
     >
       <span aria-hidden="true" className="w-1.5 shrink-0" style={{ background: themeColor(session.theme) }} />
-      <div className="grid min-w-0 flex-1 gap-1 p-4 sm:grid-cols-[9rem_1fr_auto] sm:items-start sm:gap-4">
+      <SessionPhoto session={session} className="mt-4 ml-3 size-16 sm:ml-4 sm:size-20" />
+      <div className="grid min-w-0 flex-1 gap-1 p-4 pl-3 sm:grid-cols-[9rem_1fr_auto] sm:items-start sm:gap-4 sm:pl-4">
         <span className="font-semibold tabular-nums">{timeRange(session.startsAt, session.endsAt, zone)}</span>
         <div className="grid min-w-0 gap-1">
           <h3 id={`session-${session.id}`} className="text-lg font-semibold">

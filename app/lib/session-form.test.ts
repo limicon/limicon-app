@@ -5,7 +5,7 @@ import { checkSessionForm, readSessionForm, sessionToFormInput, type SessionForm
 const complete: SessionFormInput = {
   title: "Thresholds and transitions",
   description: "We talk about the in-between.",
-  intention: "",
+  intention: "", imageKey: "",
   theme: "Personal Growth and Inner Work",
   sessionTypes: ["dialog"],
   experience: ["ok_to_listen"],
@@ -34,7 +34,7 @@ const draft = (input: Partial<SessionFormInput>) =>
 
 function emptyForm(): SessionFormInput {
   return {
-    title: "", description: "", intention: "", theme: "", sessionTypes: [], experience: [],
+    title: "", description: "", intention: "", imageKey: "", theme: "", sessionTypes: [], experience: [],
     date: "", start: "", lengthMinutes: "", timeZone: "America/Toronto", meetingLink: "",
     city: "", venueNote: "", maxParticipants: "", waitlist: false, recorded: "",
     recordingAudience: "", aiAllowed: "", aiPermissions: [], coHosts: [], repeat: "", repeatUntil: "", extraDates: [], extraStarts: [],
@@ -55,6 +55,14 @@ describe("checkSessionForm", () => {
     const result = draft({ title: "An idea" });
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.values.startsAt).toBeNull();
+  });
+
+  test("keeps an uploaded photo's key, and refuses anything else", () => {
+    const key = "3f2a1b4c-0000-4000-8000-000000000001.jpg";
+    expect(draft({ title: "An idea", imageKey: key })).toMatchObject({ ok: true, values: { imageKey: key } });
+    expect(draft({ title: "An idea" })).toMatchObject({ ok: true, values: { imageKey: null } });
+    expect(draft({ title: "An idea", imageKey: "https://example.org/a.jpg" })).toMatchObject({ ok: false, errors: { imageKey: expect.any(String) } });
+    expect(draft({ title: "An idea", imageKey: "3f2a1b4c-0000-4000-8000-000000000001.pdf" })).toMatchObject({ ok: false });
   });
 
   test("always needs a title, of at most 60 characters", () => {

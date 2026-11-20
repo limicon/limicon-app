@@ -6,6 +6,7 @@ import { ThemeLabel } from "~/components/theme-label";
 import { servicesContext } from "~/context";
 import { fullTimeRange, zoneName } from "~/lib/format-time";
 import { RsvpButton } from "~/components/rsvp-button";
+import { SessionPhoto } from "~/components/session-photo";
 import { cancelRsvp, getRsvpSummary, rsvp } from "~/lib/rsvps.server";
 import { getSessionDetails, scheduleVersion } from "~/lib/schedule.server";
 import { listOtherDates } from "~/lib/sessions.server";
@@ -76,8 +77,9 @@ export default function ScheduleSession({ loaderData }: Route.ComponentProps) {
       </p>
       <div className="mt-4 flex gap-4">
         <span aria-hidden="true" className="w-1.5 shrink-0 rounded-full" style={{ background: themeColor(session.theme) }} />
+        <SessionPhoto session={session} className="size-24 sm:size-40" />
         <div className="min-w-0">
-          <h1 className="text-3xl font-semibold">{session.title}</h1>
+          <h1 className="text-2xl font-semibold break-words sm:text-3xl">{session.title}</h1>
           <p className="mt-2 text-lg">{fullTimeRange(session.startsAt, session.endsAt, viewerZone.zone)}</p>
           {hostZoneDiffers && (
             <p className="text-sm">

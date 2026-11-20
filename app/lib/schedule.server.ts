@@ -1,6 +1,17 @@
 import type { Db } from "~/lib/db.server";
 import type { RichDoc } from "~/lib/rich-text";
 
+/**
+ * The session's photo, and the creator's picture and name for when it has none. A session whose
+ * creator's account is gone falls back to its current host.
+ */
+const PHOTO_COLUMNS = `s.image_key as "imageKey", creator.avatar_key as "hostAvatarKey",
+  nullif(trim(concat_ws(' ', creator.first_name, creator.last_name)), '') as "hostName"`;
+const CREATOR_JOIN = `left join lateral (
+  select p.avatar_key, p.first_name, p.last_name from public.profiles p
+  where p.id = coalesce(s.created_by, (select h.profile_id from public.session_hosts h where h.session_id = s.id and h.role = 'host' limit 1))
+) creator on true`;
+
 /** A published session as members see it on the calendar. */
 export type ScheduledSession = {
   id: string;
@@ -13,6 +24,10 @@ export type ScheduledSession = {
   city: string | null;
   /** Host and co-host names, host first. */
   hosts: string[];
+  /** The session's photo, and the picture and name of the host who created it, its fallback. */
+  imageKey: string | null;
+  hostAvatarKey: string | null;
+  hostName: string | null;
   /** About this session: plain text for the card's preview, and the formatted document. */
   description: string | null;
   descriptionDoc: RichDoc | null;
@@ -59,7 +74,7 @@ export async function listScheduledSessions(
 ): Promise<ScheduledSession[]> {
   const pattern = filters.keyword ? `%${filters.keyword.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : null;
   return sql<ScheduledSession[]>`
-    select s.id, s.title, s.theme, s.session_types as "sessionTypes",
+    select s.id, s.title, s.theme, s.session_types as "sessionTypes", ${sql.unsafe(PHOTO_COLUMNS)},
            s.starts_at as "startsAt", s.ends_at as "endsAt", s.time_zone as "timeZone", s.city,
            coalesce((
              select array_agg(
@@ -72,6 +87,7 @@ export async function listScheduledSessions(
            s.description, s.description_doc as "descriptionDoc",
            case when hosting.profile_id is not null then 'hosting' else mine.status end as "myRsvp"
     from public.sessions s
+    ${sql.unsafe(CREATOR_JOIN)}
     left join public.session_rsvps mine on mine.session_id = s.id and mine.profile_id = ${filters.viewerId}
     left join public.session_hosts hosting on hosting.session_id = s.id and hosting.profile_id = ${filters.viewerId}
     where s.edition_id = ${editionId}
@@ -103,7 +119,7 @@ export async function getSessionDetails(
 ): Promise<SessionDetails | null> {
   if (!/^[0-9a-f-]{36}$/i.test(sessionId)) return null;
   const [row] = await sql<SessionDetails[]>`
-    select s.id, s.title, s.theme, s.session_types as "sessionTypes",
+    select s.id, s.title, s.theme, s.session_types as "sessionTypes", ${sql.unsafe(PHOTO_COLUMNS)},
            s.starts_at as "startsAt", s.ends_at as "endsAt", s.time_zone as "timeZone", s.city,
            coalesce((
              select array_agg(
@@ -120,6 +136,7 @@ export async function getSessionDetails(
            ) as "viewerHosts",
            case when hosting.profile_id is not null then 'hosting' else mine.status end as "myRsvp"
     from public.sessions s
+    ${sql.unsafe(CREATOR_JOIN)}
     left join public.session_rsvps mine on mine.session_id = s.id and mine.profile_id = ${viewerId}
     left join public.session_hosts hosting on hosting.session_id = s.id and hosting.profile_id = ${viewerId}
     where s.id = ${sessionId} and s.edition_id = ${editionId} and s.published

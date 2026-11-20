@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Form, useNavigation } from "react-router";
 
 import { CoHostField } from "~/components/co-host-field";
+import { ImageUploadField } from "~/components/image-upload-field";
 import { RichTextEditor } from "~/components/rich-text-editor";
 import {
   AI_PERMISSIONS,
@@ -110,6 +111,25 @@ export function SessionEditor({
             <RichTextEditor name="description" initial={editorStart(initial.description)} label="About this session" describedBy="description-help" basic />
           </div>
           <FieldError id="description-error" message={errors.description} />
+        </div>
+        <div>
+          <p id="imageKey-label" className="block font-medium">Photo <span className="font-normal">(optional)</span></p>
+          <p id="imageKey-help" className="text-sm">
+            Shown beside your session on the schedule. Without one, members see your profile picture, or Limicon's logo.
+          </p>
+          <div className="mt-2">
+            <ImageUploadField
+              name="imageKey"
+              initialKey={initial.imageKey || null}
+              label={title ? `Photo for ${title}` : "The session's photo"}
+              endpoint="/upload/photo"
+              uploadLabel="Upload a photo"
+              help="PNG, JPEG, GIF or WebP, up to 5 MB. A square photo, at least 400 × 400, looks best."
+              previewClassName="size-40 sm:size-48"
+              describedBy="imageKey-label imageKey-help"
+            />
+          </div>
+          <FieldError id="imageKey-error" message={errors.imageKey} />
         </div>
         <div>
           <label htmlFor="intention" className="block font-medium">Intention <span className="font-normal">(optional)</span></label>

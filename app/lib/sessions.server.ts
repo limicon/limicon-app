@@ -73,7 +73,7 @@ export async function getEditableSession(
   if (!UUID.test(sessionId)) return null;
   const [row] = await sql<EditableSession[]>`
     select s.id, s.published, s.title, s.description, s.description_doc as "descriptionDoc", s.intention, s.theme,
-           s.session_types as "sessionTypes", s.experience,
+           s.image_key as "imageKey", s.session_types as "sessionTypes", s.experience,
            s.starts_at as "startsAt", s.ends_at as "endsAt", s.time_zone as "timeZone",
            s.meeting_link as "meetingLink", s.city, s.venue_note as "venueNote",
            s.max_participants as "maxParticipants", s.waitlist_enabled as "waitlistEnabled",
@@ -112,11 +112,11 @@ export async function createSession(
     for (const { startsAt, endsAt } of dates) {
       const [row] = await tx<{ id: string }[]>`
         insert into public.sessions (
-          edition_id, created_by, published, title, description, description_doc, intention, theme, session_types,
+          edition_id, created_by, published, title, description, description_doc, intention, image_key, theme, session_types,
           experience, starts_at, ends_at, time_zone, meeting_link, city, venue_note,
           max_participants, waitlist_enabled, privacy, ai_assistant_allowed, ai_permissions, series_id
         ) values (
-          ${editionId}, ${userId}, ${publish}, ${v.title}, ${v.description}, ${descriptionJson(sql, v)}, ${v.intention}, ${v.theme},
+          ${editionId}, ${userId}, ${publish}, ${v.title}, ${v.description}, ${descriptionJson(sql, v)}, ${v.intention}, ${v.imageKey}, ${v.theme},
           ${v.sessionTypes}::text[], ${v.experience}::text[], ${startsAt}, ${endsAt},
           ${v.timeZone}, ${v.meetingLink}, ${v.city}, ${v.venueNote}, ${v.maxParticipants},
           ${v.waitlistEnabled}, ${v.privacy}, ${v.aiAssistantAllowed}, ${v.aiPermissions}::text[], ${seriesId}
@@ -163,7 +163,7 @@ async function updateColumns(sql: Db, sessionId: string, v: SessionValues, publi
     update public.sessions set
       published = ${publish}, title = ${v.title}, description = ${v.description},
       description_doc = ${descriptionJson(sql, v)},
-      intention = ${v.intention}, theme = ${v.theme},
+      intention = ${v.intention}, image_key = ${v.imageKey}, theme = ${v.theme},
       session_types = ${v.sessionTypes}::text[], experience = ${v.experience}::text[],
       starts_at = ${v.startsAt}, ends_at = ${v.endsAt}, time_zone = ${v.timeZone},
       meeting_link = ${v.meetingLink}, city = ${v.city}, venue_note = ${v.venueNote},

@@ -6,6 +6,10 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-20 | Lauren (with Opus 5.5) | Sessions have photos, and members profile pictures
+
+Hosts can add a photo in the session editor, and members a profile picture on the account page; the schedule list and session pages show the photo, else the creating host's picture, else the logo. Members upload through `/upload/photo`, images only up to 5 MB, while `/admin/upload` stays admins'.
+
 ## 2026-11-20 | Lauren (with Opus 5.5) | An order is one ticket, for the buyer
 
 Everyone needs their own account, so `orders` has no quantity and a unique index allows one paid or comp order per person per edition. Unfinished checkouts can repeat, and a refund frees the person to buy again. The admin Orders and Overview pages no longer show a quantity.

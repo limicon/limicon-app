@@ -50,3 +50,23 @@ export function mediaKeyFromUrl(url: string): string | null {
 export function extensionOf(filename: string) {
   return /\.([a-z0-9]+)$/i.exec(filename)?.[1]?.toLowerCase() ?? "";
 }
+
+/** The most a member's photo upload may weigh: smaller than admins' files, since any member can add one. */
+export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+
+/** A stored image's key, as sessions and profiles save it. Matches the database's own check. */
+export const IMAGE_KEY = /^[0-9a-f-]{36}\.(png|jpg|jpeg|gif|webp)$/;
+
+/** The first bytes each image type starts with. */
+const IMAGE_SIGNATURES: Record<string, (b: Uint8Array) => boolean> = {
+  png: (b) => [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((x, i) => b[i] === x),
+  jpg: (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  jpeg: (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  gif: (b) => String.fromCharCode(...b.slice(0, 6)) === "GIF87a" || String.fromCharCode(...b.slice(0, 6)) === "GIF89a",
+  webp: (b) => String.fromCharCode(...b.slice(0, 4)) === "RIFF" && String.fromCharCode(...b.slice(8, 12)) === "WEBP",
+};
+
+/** Whether a file's first bytes are those of the image type its extension names. */
+export function looksLikeImage(ext: string, head: Uint8Array): boolean {
+  return IMAGE_SIGNATURES[ext]?.(head) ?? false;
+}

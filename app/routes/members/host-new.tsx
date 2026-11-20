@@ -23,7 +23,7 @@ async function requireGuidelines(context: Route.LoaderArgs["context"]) {
 }
 
 const blank: SessionFormInput = {
-  title: "", description: "", intention: "", theme: "", sessionTypes: [], experience: [],
+  title: "", description: "", intention: "", imageKey: "", theme: "", sessionTypes: [], experience: [],
   date: "", start: "", lengthMinutes: "60", timeZone: "America/Toronto", meetingLink: "",
   city: "", venueNote: "", maxParticipants: "", waitlist: false, recorded: "",
   recordingAudience: "", aiAllowed: "", aiPermissions: [], coHosts: [], repeat: "", repeatUntil: "", extraDates: [], extraStarts: [],

@@ -63,6 +63,7 @@ export default [
   ]),
 
   route("media/:key", "routes/media.ts"),
+  route("upload/photo", "routes/upload-photo.ts"),
   route("auth/callback", "routes/auth-callback.tsx"),
   route("sign-out", "routes/sign-out.tsx"),
 ] satisfies RouteConfig;

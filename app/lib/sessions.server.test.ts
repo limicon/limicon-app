@@ -64,7 +64,7 @@ async function setUp(tx: Db) {
 }
 
 const form: SessionFormInput = {
-  title: "Thresholds and transitions", description: "", intention: "", theme: "Personal Growth and Inner Work",
+  title: "Thresholds and transitions", description: "", intention: "", imageKey: "3f2a1b4c-0000-4000-8000-000000000001.webp", theme: "Personal Growth and Inner Work",
   sessionTypes: ["dialog", "fun"], experience: ["kid_friendly"], date: "2027-03-17", start: "12:00",
   lengthMinutes: "60", timeZone: "America/Toronto", meetingLink: "https://zoom.us/j/1", city: "", venueNote: "",
   maxParticipants: "", waitlist: false, recorded: "no", recordingAudience: "", aiAllowed: "yes",
