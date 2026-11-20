@@ -57,6 +57,11 @@ export type ScheduleFilters = {
   /** Only sessions ending after this instant, or starting before it when `past` is set. */
   now: Date;
   past: boolean;
+  /**
+   * The 3 Day and Monthly views: sessions starting from `from` up to `to`, finished or not, soonest
+   * first. Replaces the upcoming-or-past choice.
+   */
+  range?: { from: Date; to: Date } | null;
   theme: string | null;
   sessionType: string | null;
   keyword: string | null;
@@ -94,7 +99,13 @@ export async function listScheduledSessions(
       and s.published
       and (not ${filters.mineOnly} or mine.status is not null or hosting.profile_id is not null)
       and (not ${filters.hostingOnly ?? false} or hosting.profile_id is not null)
-      and ${filters.past ? sql`s.ends_at <= ${filters.now}` : sql`s.ends_at > ${filters.now}`}
+      and ${
+        filters.range
+          ? sql`s.starts_at >= ${filters.range.from} and s.starts_at < ${filters.range.to}`
+          : filters.past
+            ? sql`s.ends_at <= ${filters.now}`
+            : sql`s.ends_at > ${filters.now}`
+      }
       and (${filters.theme}::text is null or s.theme = ${filters.theme})
       and (${filters.sessionType}::text is null or ${filters.sessionType} = any (s.session_types))
       and (
@@ -106,7 +117,7 @@ export async function listScheduledSessions(
           where h.session_id = s.id and concat_ws(' ', p.first_name, p.last_name) ilike ${pattern}
         )
       )
-    order by ${filters.past ? sql`s.starts_at desc` : sql`s.starts_at asc`}, s.title
+    order by ${filters.past && !filters.range ? sql`s.starts_at desc` : sql`s.starts_at asc`}, s.title
   `;
 }
 

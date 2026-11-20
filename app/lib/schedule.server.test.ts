@@ -90,6 +90,18 @@ describe("listScheduledSessions", () => {
     });
   });
 
+  test("lists every session starting within a calendar view's days, finished or not, soonest first", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const { editionId } = await setUp(tx);
+      const range = { from: new Date("2027-03-16T00:00:00Z"), to: new Date("2027-03-18T00:00:00Z") };
+      const titles = async (filters: Partial<ScheduleFilters>) =>
+        (await listScheduledSessions(tx, editionId, { ...upcoming, range, ...filters })).map((s) => s.title);
+      expect(await titles({})).toEqual(["Finished", "Happening now", "Sooner"]);
+      expect(await titles({ past: true })).toEqual(["Finished", "Happening now", "Sooner"]);
+      expect(await titles({ keyword: "mycelial" })).toEqual(["Sooner"]);
+    });
+  });
+
   test("filters by theme, session type and keyword", async () => {
     await inRolledBackTransaction(async (tx) => {
       const { editionId } = await setUp(tx);

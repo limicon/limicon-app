@@ -6,7 +6,9 @@ import { RsvpButton } from "~/components/rsvp-button";
 import { SessionPhoto } from "~/components/session-photo";
 import { useBrowserZone, useScheduleRefresh } from "~/components/schedule-refresh";
 import { ThemeLabel } from "~/components/theme-label";
+import { MonthView, ThreeDayView } from "~/components/schedule-calendar";
 import { servicesContext } from "~/context";
+import { LAYOUTS, defaultDate, monthStart, parseDate, parseLayout, viewDays, viewRange, type ScheduleLayout } from "~/lib/calendar";
 import { dayHeading, dayKey, timeRange, zoneAbbreviation, zoneName } from "~/lib/format-time";
 import { listScheduledSessions, scheduleVersion, type ScheduledSession } from "~/lib/schedule.server";
 import { SESSION_TYPES, THEMES } from "~/lib/session-form";
@@ -27,7 +29,14 @@ const VIEWS: { value: ScheduleView; label: string }[] = [
   { value: "hosting", label: "Hosting" },
 ];
 
-const viewHref = (view: ScheduleView) => (view === "all" ? "/members/schedule" : `/members/schedule?view=${view}`);
+/** What the schedule shows, rather than how it's searched and filtered: clearing filters keeps these. */
+const KEPT_PARAMS = ["view", "layout", "date"];
+
+function clearHref(params: URLSearchParams) {
+  const kept = new URLSearchParams([...params].filter(([key]) => KEPT_PARAMS.includes(key)));
+  const query = kept.toString();
+  return `/members/schedule${query ? `?${query}` : ""}`;
+}
 
 const primaryButton = "rounded bg-[#15383F] px-4 py-2 font-semibold text-[#F3E6D7] dark:bg-[#F3E6D7] dark:text-[#15383F]";
 
@@ -43,13 +52,23 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const theme = params.get("theme");
   const sessionType = params.get("type");
   const view: ScheduleView = params.get("view") === "mine" ? "mine" : params.get("view") === "hosting" ? "hosting" : "all";
+  const now = new Date();
+  // The 3 Day and Monthly views (CAL-1) show the days around `date` instead of upcoming or past sessions.
+  const layout = parseLayout(params.get("layout"));
+  const today = dayKey(now, viewerZone.zone);
+  const picked = parseDate(params.get("date")) ?? defaultDate(today, edition?.firstDay ?? null);
+  const date = layout === "month" ? monthStart(picked) : picked;
   const filters = {
+    layout,
+    date,
+    today,
+    range: layout === "list" ? null : viewRange(viewDays(layout, date), viewerZone.zone),
     viewerId: services.viewer!.userId,
     view,
     mineOnly: view === "mine",
     hostingOnly: view === "hosting",
-    now: new Date(),
-    past: params.get("when") === "past",
+    now,
+    past: layout === "list" && params.get("when") === "past",
     theme: theme && (THEMES as readonly string[]).includes(theme) ? theme : null,
     sessionType: sessionType && SESSION_TYPES.some((t) => t.value === sessionType) ? sessionType : null,
     keyword: params.get("q")?.trim().slice(0, 100) || null,
@@ -88,12 +107,19 @@ export default function Schedule({ loaderData }: Route.ComponentProps) {
           </Link>
         )}
       </div>
-      <ScheduleToggle view={filters.view} />
+      <div className="mt-4 flex max-w-6xl flex-wrap items-center justify-between gap-3">
+        <ScheduleToggle view={filters.view} />
+        <LayoutTabs layout={filters.layout} />
+      </div>
       <TimeZoneLine zone={zone} now={now} timeZones={timeZones} />
       <Filters filters={filters} />
       <Legend />
 
-      {days.length === 0 ? (
+      {filters.layout === "3day" ? (
+        <ThreeDayView sessions={sessions} zone={zone} date={filters.date} today={filters.today} />
+      ) : filters.layout === "month" ? (
+        <MonthView sessions={sessions} zone={zone} date={filters.date} today={filters.today} />
+      ) : days.length === 0 ? (
         <p className="mt-8">
           {filtered
             ? "No sessions match. Try another search, or clear the filters."
@@ -253,9 +279,34 @@ function ScheduleToggle({ view }: { view: ScheduleView }) {
   const tab = (active: boolean) =>
     `flex items-center justify-center rounded-md px-2 py-2 text-center text-sm font-semibold sm:px-4 sm:text-base ${active ? "bg-[#15383F] text-[#F3E6D7] dark:bg-[#F3E6D7] dark:text-[#15383F]" : "hover:bg-black/5 dark:hover:bg-white/10"}`;
   return (
-    <nav aria-label="Which schedule" className="mt-4 grid grid-cols-3 gap-1 rounded-lg sm:inline-grid border border-[#C9DADC] bg-white p-1 dark:border-[#24363B] dark:bg-[#12201F]">
+    <nav aria-label="Which schedule" className="grid w-full grid-cols-3 sm:w-auto gap-1 rounded-lg sm:inline-grid border border-[#C9DADC] bg-white p-1 dark:border-[#24363B] dark:bg-[#12201F]">
       {VIEWS.map(({ value, label }) => (
         <Link key={value} to={href(value)} className={tab(view === value)} aria-current={view === value ? "page" : undefined}>
+          {label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+/** Switches between the list, 3 Day and Monthly layouts (CAL-1), keeping the schedule, search and filters. */
+function LayoutTabs({ layout }: { layout: ScheduleLayout }) {
+  const [params] = useSearchParams();
+  const href = (target: ScheduleLayout) => {
+    const next = new URLSearchParams(params);
+    if (target === "list") {
+      next.delete("layout");
+      next.delete("date");
+    } else next.set("layout", target);
+    const query = next.toString();
+    return `/members/schedule${query ? `?${query}` : ""}`;
+  };
+  const tab = (active: boolean) =>
+    `flex items-center justify-center rounded-md px-3 py-1.5 text-center text-sm font-semibold sm:px-4 ${active ? "bg-[#15383F] text-[#F3E6D7] dark:bg-[#F3E6D7] dark:text-[#15383F]" : "hover:bg-black/5 dark:hover:bg-white/10"}`;
+  return (
+    <nav aria-label="Layout" className="grid w-full grid-cols-3 gap-1 rounded-lg border border-[#C9DADC] bg-white p-1 sm:inline-grid sm:w-auto dark:border-[#24363B] dark:bg-[#12201F]">
+      {LAYOUTS.map(({ value, label }) => (
+        <Link key={value} to={href(value)} className={tab(layout === value)} aria-current={layout === value ? "page" : undefined}>
           {label}
         </Link>
       ))}
@@ -301,6 +352,12 @@ function Filters({ filters }: { filters: Route.ComponentProps["loaderData"]["fil
       }}
     >
       {filters.view !== "all" && <input type="hidden" name="view" value={filters.view} />}
+      {filters.layout !== "list" && (
+        <>
+          <input type="hidden" name="layout" value={filters.layout} />
+          <input type="hidden" name="date" value={filters.date} />
+        </>
+      )}
       <div>
         <label htmlFor="q" className={label}>Search</label>
         <div className="flex gap-2">
@@ -308,7 +365,7 @@ function Filters({ filters }: { filters: Route.ComponentProps["loaderData"]["fil
           <button type="submit" className={`${primaryButton} shrink-0`}>Search</button>
         </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className={`grid gap-4 ${filters.layout === "list" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
         <div>
           <label htmlFor="theme" className={label}>Theme</label>
           <select id="theme" name="theme" defaultValue={filters.theme ?? ""} className={field}>
@@ -323,16 +380,19 @@ function Filters({ filters }: { filters: Route.ComponentProps["loaderData"]["fil
             {SESSION_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
           </select>
         </div>
-        <div>
-          <label htmlFor="when" className={label}>When</label>
-          <select id="when" name="when" defaultValue={filters.past ? "past" : ""} className={field}>
-            <option value="">Upcoming</option>
-            <option value="past">Past</option>
-          </select>
-        </div>
+        {/* The calendar layouts pick their days with their own Previous and Next. */}
+        {filters.layout === "list" && (
+          <div>
+            <label htmlFor="when" className={label}>When</label>
+            <select id="when" name="when" defaultValue={filters.past ? "past" : ""} className={field}>
+              <option value="">Upcoming</option>
+              <option value="past">Past</option>
+            </select>
+          </div>
+        )}
       </div>
-      {[...params.keys()].some((key) => key !== "view") && (
-        <Link to={viewHref(filters.view)} className="justify-self-start text-sm underline">
+      {[...params.keys()].some((key) => !KEPT_PARAMS.includes(key)) && (
+        <Link to={clearHref(params)} className="justify-self-start text-sm underline">
           Clear search and filters
         </Link>
       )}
