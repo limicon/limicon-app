@@ -6,6 +6,14 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-20 | Lauren (with Opus 5.5) | Community has @mentions, replies and a notifications bell
+
+Members @mention each other in Community posts and comments, with name suggestions, and reply to comments one level deep, starting with "@Name". Only admins may tag @everyone. A bell beside the picture menu counts notifications for mentions, replies and comments on one's posts; `notifications` holds them.
+
+## 2026-11-20 | Lauren (with Opus 5.5) | Community is a group feed, and members have profiles
+
+Community is now Limicon's group: any member posts, likes and comments, with search. View all members lists everyone A to Z, searchable by name or keyword, and opens profiles with links, skills, interests, projects and recent activity. A picture menu, top right, opens View Profile, Edit Profile and Settings.
+
 ## 2026-11-20 | Lauren (with Opus 5.5) | Sessions have photos, and members profile pictures
 
 Hosts can add a photo in the session editor, and members a profile picture on the account page; the schedule list and session pages show the photo, else the creating host's picture, else the logo. Members upload through `/upload/photo`, images only up to 5 MB, while `/admin/upload` stays admins'.

@@ -146,7 +146,7 @@ function Post({ post, zone, userId, canEdit, isAdmin }: { post: UpdatePost; zone
       <header>
         <h2 id={`post-${post.id}`} className="text-2xl font-semibold">{post.title}</h2>
         <p className="mt-1 text-sm opacity-80">
-          {post.authorName} · {when(post.createdAt, zone)}
+          {post.authorId ? <Link to={`/members/people/${post.authorId}`} className="hover:underline">{post.authorName}</Link> : post.authorName} · {when(post.createdAt, zone)}
           {post.editedAt && " · edited"}
         </p>
         {(canEdit || isAdmin) && (
@@ -275,7 +275,7 @@ function Comment({ comment, zone, mine, isAdmin }: { comment: UpdateComment; zon
   return (
     <li className="rounded bg-[#F4F7F7] px-3 py-2 dark:bg-[#0F1C1E]">
       <p className="text-sm">
-        <span className="font-semibold">{comment.authorName}</span>
+        <Link to={`/members/people/${comment.authorId}`} className="font-semibold hover:underline">{comment.authorName}</Link>
         <span className="opacity-80"> · {when(comment.createdAt, zone)}{comment.editedAt && " · edited"}</span>
       </p>
       {editing ? (

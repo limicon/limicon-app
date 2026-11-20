@@ -33,6 +33,8 @@ Each entry names the work that calls for reading the doc.
 - [`config-supabase.md`](docs/config-supabase.md): changing the hosted database, the Data API, sign-in email, or the database password.
 - [`feature-admin-console.md`](docs/feature-admin-console.md): the admin console at `/admin`: who can open it, its pages, managing users and admins, deactivation, and the FAQ.
 - [`feature-calendaring.md`](docs/feature-calendaring.md): getting sessions onto members' own calendars, through ICS feeds, invites on RSVP or add-to-calendar links.
+- [`feature-community.md`](docs/feature-community.md): the Members area's Community page: members' posts, likes, comments and replies, @mentions and @everyone, search, notifications and the bell, or the profile picture menu.
+- [`feature-profiles.md`](docs/feature-profiles.md): members' profiles, their links and keywords, recent activity, All members, or member Settings.
 - [`feature-sessions.md`](docs/feature-sessions.md): hosting sessions, session times and time zones, the session lifecycle, repeating sessions, the schedule and its live updates, theme colors, RSVPs, the waitlist, or My Schedule.
 - [`feature-updates.md`](docs/feature-updates.md): the Members area's Updates page: posts, templates, likes, comments and edited-comment notices.
 - [`process-commit.md`](docs/process-commit.md): making a commit.

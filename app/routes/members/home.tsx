@@ -18,7 +18,7 @@ const areas = [
   { to: "/members/updates", title: "Updates", text: "News and announcements from the Organizing Team." },
   { to: "/members/schedule", title: "Schedule", text: "Every session on the calendar, and the ones you've joined." },
   { to: "/members/host", title: "Host a session", text: "Offer a session of your own. Anyone with a ticket can host." },
-  { to: "/members/community", title: "Community", text: "Find other members, and talk with them." },
+  { to: "/members/community", title: "Community", text: "Talk with other members, and find people who share your interests." },
 ];
 
 export default function MembersHome({ loaderData }: Route.ComponentProps) {

@@ -123,6 +123,15 @@ describe("row-level security backstop", () => {
         insert into public.admin_role_removals (profile_id, role_key, role_name, removed_by, reason)
         values (${user!.id}, 'bookkeeper', 'Bookkeeper', ${user!.id}, 'Left the team')
       `;
+      await tx`insert into public.profile_links (profile_id, platform, value, position) values (${user!.id}, 'website', 'example.org', 0)`;
+      await tx`insert into public.profile_keywords (profile_id, kind, keyword, key, position) values (${user!.id}, 'skill', 'Maths', 'maths', 0)`;
+      await tx`insert into public.profile_projects (profile_id, keywords, position) values (${user!.id}, 'engine', 0)`;
+      const [communityPost] = await tx<{ id: string }[]>`
+        insert into public.community_posts (author_id, body) values (${user!.id}, 'Hello') returning id
+      `;
+      await tx`insert into public.community_post_likes (post_id, profile_id) values (${communityPost!.id}, ${user!.id})`;
+      await tx`insert into public.community_comments (post_id, author_id, body) values (${communityPost!.id}, ${user!.id}, 'Hi')`;
+      await tx`insert into public.notifications (recipient_id, actor_id, kind, post_id) values (${user!.id}, ${user!.id}, 'mention', ${communityPost!.id})`;
 
       const tables = await tx<{ tablename: string }[]>`
         select tablename from pg_tables where schemaname = 'public'
