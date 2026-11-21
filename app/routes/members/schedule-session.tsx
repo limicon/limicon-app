@@ -107,7 +107,15 @@ export default function ScheduleSession({ loaderData }: Route.ComponentProps) {
           {rsvps.waitlisted > 0 && ` · ${rsvps.waitlisted} on the waitlist`}
         </p>
         {finished ? (
-          <p className="text-sm">This session has finished.</p>
+          <p className="text-sm">
+            This session has finished.{" "}
+            {/* Any member may harvest a session, RSVP or not; its hosts give host feedback instead. */}
+            {session.viewerHosts ? (
+              <Link to={`/members/feedback/host/${session.id}`} className="font-semibold underline">Fill in Session Host Feedback</Link>
+            ) : (
+              <Link to={`/members/feedback/harvest/${session.id}`} className="font-semibold underline">Share your Session Harvest</Link>
+            )}
+          </p>
         ) : (
           <RsvpButton
             sessionId={session.id}

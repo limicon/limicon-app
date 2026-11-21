@@ -35,7 +35,7 @@ Each entry names the work that calls for reading the doc.
 - [`feature-calendaring.md`](docs/feature-calendaring.md): getting sessions onto members' own calendars, through ICS feeds, invites on RSVP or add-to-calendar links.
 - [`feature-community.md`](docs/feature-community.md): the Members area's Community page: members' posts, likes, comments and replies, @mentions and @everyone, search, notifications and the bell, or the profile picture menu.
 - [`feature-profiles.md`](docs/feature-profiles.md): members' profiles, their links and keywords, recent activity, All members, or member Settings, including email notification choices.
-- [`feature-sessions.md`](docs/feature-sessions.md): hosting sessions, session times and time zones, the session lifecycle, repeating sessions, the schedule and its live updates, theme colors, RSVPs, the waitlist, or My Schedule.
+- [`feature-sessions.md`](docs/feature-sessions.md): hosting sessions, session times and time zones, the session lifecycle, repeating sessions, the schedule and its live updates, theme colors, RSVPs, the waitlist, My Schedule, or the Host Feedback and Harvest forms after a session, with voice notes.
 - [`feature-updates.md`](docs/feature-updates.md): the Members area's Updates page: posts, templates, likes, comments and replies, and edited-comment notices.
 - [`process-commit.md`](docs/process-commit.md): making a commit.
 - [`process-local-development.md`](docs/process-local-development.md): running the app and the local Supabase, migrations, tests, or turning on Google sign-in locally.

@@ -102,3 +102,11 @@ export async function publishSession(args: {
     return row!.id;
   });
 }
+
+/** RSVPs the account for `email` to a session, straight into the local database. */
+export async function rsvpTo(email: string, sessionId: string) {
+  await withDb((sql) => sql`
+    insert into public.session_rsvps (session_id, profile_id, status)
+    select ${sessionId}, id, 'registered' from auth.users where email = ${email}
+  `);
+}

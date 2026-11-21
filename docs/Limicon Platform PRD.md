@@ -226,8 +226,7 @@ Happy Money pays admins and volunteers for the work of running Limicon, so the c
 
 These in-app forms replace the Google Forms. Admins can edit their questions.
 
-- **FRM-1 Session Harvest.** Any registered member can fill it in, for any session. It asks:
-  - which session they attended
+- **FRM-1 Session Harvest.** Members registered for a session get it when the session ends, by email and on the Members home page. Any other member can also fill it in for any session that has ended, since some join without RSVPing. The session is filled in automatically. Members can answer in writing, with a voice note, or both. It asks:
   - one takeaway
   - what they would like to feed back into the system
   - what they felt attracted towards or repelled by

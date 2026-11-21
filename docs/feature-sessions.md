@@ -80,6 +80,22 @@ Members > Schedule (`app/routes/members/schedule*.tsx`) shows the edition's publ
 - **Waitlist.** When a registered member cancels, the earliest waitlisted RSVP becomes registered. Calendaring treats a promotion like a new RSVP.
 - **Unpublished sessions** keep their RSVPs, as history and as the list of members who were told, and a re-published session has them back. Deleting a session that has RSVPs unpublishes it instead.
 
+## Feedback after a session
+
+Two forms open when a session ends, replacing the last edition's Google Forms (PRD FRM-1, FRM-3, FRM-4). Their questions live in `app/lib/feedback.ts`; email and session name aren't asked, since the app knows them.
+
+- **Session Host Feedback** (`host_feedback`) goes to each host and co-host of a published session that has ended. Each host sends their own. Answering Yes to "Did any tensions arise" shows the Tension questions; answering No clears them.
+- **Session Harvest** (`session_harvests`) is owed by each member with a registered RSVP, and only those count toward the badge. Any member may still harvest any ended session they didn't host, since some join without RSVPing: from "Share your Session Harvest" on the session's page, or "Harvest another session" on the Session Harvest page. Every question is optional, as on the Google Form. A session's hosts give host feedback instead, and its page links them there.
+- **Voice notes.** The harvest can carry a voice note, recorded in the browser (WebM in Chrome and Firefox, MP4 in Safari) or uploaded from a file such as a phone's voice memo, up to 15 minutes recorded or 25 MB uploaded. They upload to `/members/feedback/voice` and are stored under `voice/` in the media bucket, checked by their first bytes. They play only from `/members/feedback/voice/<key>`, to their uploader and to admins, never from the public `/media/` address. Replacing or removing one deletes the old file when the form is sent.
+- **Members home.** A Session Host Feedback box appears once a session the member hosted has ended, and a Session Harvest box once any session they could harvest has. Each counts the forms they owe and haven't sent, with the same red badge as Updates ("1 New Form"). The boxes stay after every form is sent, so members can go back and edit their answers.
+- Only published sessions of the current edition count, and co-creation meetings don't.
+
+### To do
+
+- **Alert the Organizing Team to issues (FRM-4). Needs addressing before the event.** A host who reports tensions and answers "Yes, please email me to discuss" is saved, but nobody is told. The team needs an alert, by email or in the app; the team hasn't yet chosen between the app's own email and Gmail ([`selection-email.md`](selection-email.md)).
+- **Admins see responses (FRM-5).** The console has no page for host feedback or harvests yet, nor a CSV export.
+- **Email the forms.** Members should get each form by email when a session ends. This waits on the same email decision.
+
 ## Open questions
 
 - Are copies linked by `series_id`, and if so, does anything beyond "Also on" links use the link?

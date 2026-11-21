@@ -6,6 +6,10 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-21 | Lauren (with Opus 5.5) | Session Host Feedback and Session Harvest forms, with voice notes
+
+From last year's Google Forms: when a session ends, hosts owe Host Feedback and registered members a Harvest, shown on Members home with a "New Form" badge; answers stay editable. Any member can harvest any ended session, with an optional voice note. To do: alerting the team to reported tensions, an admin view, and emailing the forms.
+
 ## 2026-11-20 | Lauren (with Opus 5.5) | Every remove or delete asks first
 
 Each button that removes, deletes, cancels or unpublishes something, from a photo or keyword to a session or account, now opens an "are you sure" box before it acts. New removal buttons should do the same, with `confirm()` as the existing ones do.
