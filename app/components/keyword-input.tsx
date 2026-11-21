@@ -42,7 +42,7 @@ export function KeywordInput({
               {keyword}
               <button
                 type="button"
-                onClick={() => setKeywords((current) => current.filter((k) => k !== keyword))}
+                onClick={() => confirm(`Remove “${keyword}”?`) && setKeywords((current) => current.filter((k) => k !== keyword))}
                 className="grid size-6 place-items-center rounded-full hover:bg-black/10 dark:hover:bg-white/10"
                 aria-label={`Remove ${keyword}`}
               >

@@ -525,7 +525,7 @@ function RepeatFields({
                 </div>
                 {rows.length > 1 && (
                   <button
-                    type="button" onClick={() => setRows(rows.filter((r) => r.key !== row.key))}
+                    type="button" onClick={() => confirm(`Remove date ${index + 2}?`) && setRows(rows.filter((r) => r.key !== row.key))}
                     className="px-2 py-2 text-sm underline" aria-label={`Remove date ${index + 2}`}
                   >
                     Remove

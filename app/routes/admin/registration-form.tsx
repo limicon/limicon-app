@@ -204,7 +204,7 @@ function FieldRow({
         <div className="ml-auto flex gap-1">
           <button type="button" onClick={() => onMove(-1)} disabled={index === 0} aria-label={`Move "${row.label || "field"}" up`} className={`${secondaryButton} disabled:opacity-40`}>↑</button>
           <button type="button" onClick={() => onMove(1)} disabled={index === count - 1} aria-label={`Move "${row.label || "field"}" down`} className={`${secondaryButton} disabled:opacity-40`}>↓</button>
-          <button type="button" onClick={onRemove} className={dangerButton}>Remove</button>
+          <button type="button" onClick={() => confirm(`Remove the field “${row.label || "Untitled"}”?`) && onRemove()} className={dangerButton}>Remove</button>
         </div>
       </div>
       <FieldError id={`${id("kind")}-error`} message={errors.kind ?? errors.key} />

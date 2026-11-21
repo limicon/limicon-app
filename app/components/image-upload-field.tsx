@@ -27,7 +27,8 @@ export function ImageUploadField({
   /** The preview's alt text. */
   label: string;
   endpoint?: string;
-  help?: string;
+  /** Hint under the button; null leaves it out. */
+  help?: string | null;
   uploadLabel?: string;
   previewClassName?: string;
   /** Ids of text that explains the field, read out with its buttons. */
@@ -40,7 +41,7 @@ export function ImageUploadField({
   const [problem, setProblem] = useState<string | null>(null);
   const [cropping, setCropping] = useState<File | null>(null);
   const input = useRef<HTMLInputElement>(null);
-  const helpId = [describedBy, `${name}-upload-help`].filter(Boolean).join(" ");
+  const helpId = [describedBy, help && `${name}-upload-help`].filter(Boolean).join(" ") || undefined;
 
   // Saving mid-upload would save the form without the new image, so the form waits for it. The
   // listener runs before React Router's own submit handler, which skips a prevented submit.
@@ -88,7 +89,7 @@ export function ImageUploadField({
             <button type="button" disabled={busy} onClick={() => input.current?.click()} className={secondaryButton} aria-describedby={helpId}>
               Change
             </button>
-            <button type="button" disabled={busy} onClick={() => setKey("")} className={`${dangerButton} border border-current`}>
+            <button type="button" disabled={busy} onClick={() => confirm("Delete this picture? Save afterwards to make it final.") && setKey("")} className={`${dangerButton} border border-current`}>
               Delete
             </button>
           </div>
@@ -100,7 +101,7 @@ export function ImageUploadField({
       )}
       {busy && <p role="status" className="mt-2 text-sm">Uploading…</p>}
       {problem && <p role="alert" className="mt-2 text-sm font-medium text-[#B3261E] dark:text-[#F2B8B5]">{problem}</p>}
-      <p id={`${name}-upload-help`} className="mt-2 text-sm opacity-80">{help}</p>
+      {help && <p id={`${name}-upload-help`} className="mt-2 text-sm opacity-80">{help}</p>}
       <input
         ref={input}
         type="file"

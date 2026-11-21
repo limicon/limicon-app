@@ -119,10 +119,10 @@ export default function AdminWebsite({ loaderData }: Route.ComponentProps) {
                     <input type="hidden" name="slug" value={p.slug} />
                     <button type="submit" name="intent" value="up" disabled={busy || index === 0} aria-label={`Move ${p.title} up the menu`} className={`${secondaryButton} disabled:opacity-40`}>↑</button>
                     <button type="submit" name="intent" value="down" disabled={busy || index === others.length - 1} aria-label={`Move ${p.title} down the menu`} className={`${secondaryButton} disabled:opacity-40`}>↓</button>
-                    <button type="submit" name="intent" value={p.inMenu ? "hide" : "show"} disabled={busy} className={secondaryButton}>
+                    <button type="submit" name="intent" value={p.inMenu ? "hide" : "show"} disabled={busy} onClick={(event) => { if (p.inMenu && !confirm(`Take “${p.title}” out of the site menu?`)) event.preventDefault(); }} className={secondaryButton}>
                       {p.inMenu ? "Take out of menu" : "Put in menu"}
                     </button>
-                    <button type="submit" name="intent" value={p.published ? "unpublish" : "publish"} disabled={busy} className={secondaryButton}>
+                    <button type="submit" name="intent" value={p.published ? "unpublish" : "publish"} disabled={busy} onClick={(event) => { if (p.published && !confirm(`Unpublish “${p.title}”? Only admins will be able to see it.`)) event.preventDefault(); }} className={secondaryButton}>
                       {p.published ? "Unpublish" : "Publish"}
                     </button>
                     <DeleteButton title={p.title} busy={busy} />

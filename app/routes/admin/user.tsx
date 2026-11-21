@@ -200,7 +200,7 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
               ) : (
                 <>
                   <p className="text-sm">Deactivating keeps their data but closes the Members area and this console to them (MSG-4).</p>
-                  <button type="submit" name="intent" value="deactivate" disabled={busy} className={`${dangerButton} mt-2 border border-current`}>Deactivate account</button>
+                  <button type="submit" name="intent" value="deactivate" disabled={busy} onClick={(event) => { if (!confirm("Deactivate this account? They lose access to the Members area and this console until you reactivate it.")) event.preventDefault(); }} className={`${dangerButton} mt-2 border border-current`}>Deactivate account</button>
                 </>
               )}
             </Form>
@@ -272,7 +272,7 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
                   {canComp && t.status === "comp" && t.year === year && (
                     <Form method="post">
                       <input type="hidden" name="ticketId" value={t.id} />
-                      <button type="submit" name="intent" value="remove-comp" disabled={busy} className={dangerButton}>Remove comp</button>
+                      <button type="submit" name="intent" value="remove-comp" disabled={busy} onClick={(event) => { if (!confirm(`Remove their ${t.year} comp ticket?`)) event.preventDefault(); }} className={dangerButton}>Remove comp</button>
                     </Form>
                   )}
                 </li>
@@ -345,7 +345,7 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
                   {note.authorId === viewerId && (
                     <Form method="post">
                       <input type="hidden" name="noteId" value={note.id} />
-                      <button type="submit" name="intent" value="delete-note" disabled={busy} className={dangerButton}>Delete</button>
+                      <button type="submit" name="intent" value="delete-note" disabled={busy} onClick={(event) => { if (!confirm("Delete this note? This can't be undone.")) event.preventDefault(); }} className={dangerButton}>Delete</button>
                     </Form>
                   )}
                 </div>

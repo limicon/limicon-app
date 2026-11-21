@@ -227,7 +227,7 @@ function RoleSection({ role, loaderData, actionData }: { role: Role; loaderData:
                 <Form method="post">
                   <input type="hidden" name="email" value={invite.email} />
                   <input type="hidden" name="permission" value={role.key} />
-                  <button type="submit" name="intent" value="cancel" disabled={busy} className={dangerButton}>Cancel invitation</button>
+                  <button type="submit" name="intent" value="cancel" disabled={busy} onClick={(event) => { if (!confirm(`Cancel the invitation to ${invite.email}?`)) event.preventDefault(); }} className={dangerButton}>Cancel invitation</button>
                 </Form>
               </li>
             ))}

@@ -21,8 +21,9 @@ export async function loader({ context }: Route.LoaderArgs) {
 }
 
 /**
- * Saves the member's profile picture, which their sessions show on the schedule when they have no
- * photo of their own. Only members upload photos, so only they set one.
+ * Saves the member's profile picture: the one picture their profile, Community posts and comments,
+ * and their sessions without a photo of their own all show. Only members upload photos, so only
+ * they set one.
  */
 export async function action({ request, context }: Route.ActionArgs) {
   const services = context.get(servicesContext);
@@ -56,7 +57,7 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
         <Form method="post" className="mt-8 grid gap-3" aria-labelledby="picture-heading">
           <h2 id="picture-heading" className="text-lg font-semibold">Profile picture</h2>
           <p id="picture-help" className="text-sm">
-            Sessions you host show it on the schedule when they don't have a photo of their own.
+            Members see it on your profile, beside your posts and comments in Community, and on the schedule for sessions you host that don't have a photo of their own.
           </p>
           <ImageUploadField
             name="avatarKey"
@@ -64,7 +65,7 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
             label={name ? `${name}'s profile picture` : "Your profile picture"}
             endpoint="/upload/photo"
             uploadLabel="Upload a picture"
-            help="Any photo your phone or computer can open. Next, you'll zoom and place it in the circle members see."
+            help={null}
             previewClassName="size-32"
             crop="circle"
             describedBy="picture-help"

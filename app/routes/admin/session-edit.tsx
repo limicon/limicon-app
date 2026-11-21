@@ -145,7 +145,7 @@ export default function AdminSessionEdit({ loaderData, actionData }: Route.Compo
           calendar and kept as a draft instead, so there's a record of who was going.
         </p>
         <Form method="post" className="mt-3">
-          <button type="submit" name="intent" value="delete" className="rounded bg-[#B3261E] px-4 py-2 font-semibold text-white">
+          <button type="submit" name="intent" value="delete" onClick={(event) => { if (!confirm("Delete this session for good? This can't be undone.")) event.preventDefault(); }} className="rounded bg-[#B3261E] px-4 py-2 font-semibold text-white">
             Delete for good
           </button>
         </Form>

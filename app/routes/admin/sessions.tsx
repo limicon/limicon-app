@@ -140,7 +140,7 @@ export default function AdminSessions({ loaderData }: Route.ComponentProps) {
                       {session.isCocreationMeeting ? "Unmark co-creation" : "Mark as co-creation"}
                     </button>
                     {session.published && (
-                      <button type="submit" name="intent" value="unpublish" disabled={busy} className={secondaryButton}>
+                      <button type="submit" name="intent" value="unpublish" disabled={busy} onClick={(event) => { if (!confirm(`Take “${session.title}” off the calendar? Its hosts keep it as a draft.`)) event.preventDefault(); }} className={secondaryButton}>
                         Take off calendar
                       </button>
                     )}

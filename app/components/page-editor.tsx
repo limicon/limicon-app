@@ -225,7 +225,7 @@ function SectionToolbar({
       </label>
       <button type="button" onClick={() => onMove(-1)} disabled={index === 0} aria-label={`Move this ${kind.label.toLowerCase()} section up`} className="rounded px-2 hover:bg-white/20 disabled:opacity-40">↑</button>
       <button type="button" onClick={() => onMove(1)} disabled={index === count - 1} aria-label={`Move this ${kind.label.toLowerCase()} section down`} className="rounded px-2 hover:bg-white/20 disabled:opacity-40">↓</button>
-      <button type="button" onClick={onRemove} className="rounded px-2 font-semibold hover:bg-white/20">Remove</button>
+      <button type="button" onClick={() => confirm(`Remove this ${kind.label.toLowerCase()} section? It's gone for good when you save.`) && onRemove()} className="rounded px-2 font-semibold hover:bg-white/20">Remove</button>
     </div>
   );
 }
@@ -320,7 +320,7 @@ function ButtonsEditor({ section }: { section: Extract<Section, { type: "buttons
             <SmallInput name={`btnLabel:${id}`} label={`Button ${i + 1} text`} defaultValue={b.label} />
             <SmallInput name={`btnHref:${id}`} label="Links to" defaultValue={b.href} placeholder="/tickets or https://…" />
             <SmallSelect name={`btnStyle:${id}`} label="Style" defaultValue={b.style} options={[{ value: "primary", label: "Filled" }, { value: "secondary", label: "Outline" }]} />
-            <button type="button" onClick={() => setRows((all) => all.filter((r) => r.key !== b.key))} className={dangerButton}>Remove</button>
+            <button type="button" onClick={() => confirm(`Remove button ${i + 1}?`) && setRows((all) => all.filter((r) => r.key !== b.key))} className={dangerButton}>Remove</button>
           </div>
         ))}
         <div className="flex flex-wrap items-end gap-3">

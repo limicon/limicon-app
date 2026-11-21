@@ -103,6 +103,7 @@ export function CoHostField({
                 aria-label={`Remove ${person.name}`}
                 onClick={(event) => {
                   event.stopPropagation();
+                  if (!confirm(`Remove ${person.name} as a co-host?`)) return;
                   setPeople((current) => current.filter((p) => p.id !== person.id));
                   input.current?.focus();
                 }}

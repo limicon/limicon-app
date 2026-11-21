@@ -45,7 +45,7 @@ export function RsvpButton({
         <span className={`rounded-full px-3 py-0.5 text-sm font-semibold ${shown === "registered" ? "bg-[#CDEBE3] text-[#0F4A3C]" : "bg-[#F9DCBD] text-[#5A3612]"}`}>
           {shown === "registered" ? "Going" : "Waitlisted"}
         </span>
-        <button type="submit" name="intent" value="cancel" className={secondary} aria-label={`Cancel your RSVP to ${title}`}>
+        <button type="submit" name="intent" value="cancel" onClick={(event) => { if (!confirm(shown === "registered" ? `Cancel your RSVP to ${title}?` : `Leave the waitlist for ${title}?`)) event.preventDefault(); }} className={secondary} aria-label={`Cancel your RSVP to ${title}`}>
           Cancel
         </button>
       </fetcher.Form>

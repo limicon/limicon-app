@@ -6,6 +6,10 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-20 | Lauren (with Opus 5.5) | Every remove or delete asks first
+
+Each button that removes, deletes, cancels or unpublishes something, from a photo or keyword to a session or account, now opens an "are you sure" box before it acts. New removal buttons should do the same, with `confirm()` as the existing ones do.
+
 ## 2026-11-20 | Lauren (with Opus 5.5) | Repeating sessions can have their own titles, and show as recurring
 
 Unchecking "All sessions have the same title and description" gives each further date its own title and description boxes, for a series in parts. Schedule cards and session pages mark repeating sessions "Recurring session", without part numbers, so nobody thinks they must have attended earlier dates. A saved session's Save button grays out until something changes.

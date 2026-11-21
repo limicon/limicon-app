@@ -280,7 +280,7 @@ export default function AdminSettings({ loaderData, actionData }: Route.Componen
                 {tier.tickets === 0 && (
                   <Form method="post">
                     <input type="hidden" name="tierId" value={tier.id} />
-                    <button type="submit" name="intent" value="delete-tier" className={dangerButton}>Remove tier</button>
+                    <button type="submit" name="intent" value="delete-tier" onClick={(event) => { if (!confirm(`Remove the ${tier.name} tier?`)) event.preventDefault(); }} className={dangerButton}>Remove tier</button>
                   </Form>
                 )}
               </div>
@@ -404,7 +404,7 @@ function LinksForm({ initial, errors, message, busy }: { initial: MemberLink[]; 
               <div className="flex gap-1 sm:mt-6">
                 <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Move ${row.label || "link"} up`} className={`${secondaryButton} disabled:opacity-40`}>↑</button>
                 <button type="button" onClick={() => move(index, 1)} disabled={index === rows.length - 1} aria-label={`Move ${row.label || "link"} down`} className={`${secondaryButton} disabled:opacity-40`}>↓</button>
-                <button type="button" onClick={() => setRows((current) => current.filter((r) => r.key !== row.key))} className={dangerButton}>Remove</button>
+                <button type="button" onClick={() => confirm(`Remove ${row.label ? `“${row.label}”` : "this link"}?`) && setRows((current) => current.filter((r) => r.key !== row.key))} className={dangerButton}>Remove</button>
               </div>
             </li>
           );

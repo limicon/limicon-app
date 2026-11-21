@@ -68,7 +68,7 @@ export default function ProfileEdit({ loaderData, actionData }: Route.ComponentP
               label="Your profile picture"
               endpoint="/upload/photo"
               uploadLabel="Upload a picture"
-              help="Any photo your phone or computer can open. Next, you'll zoom and place it in the circle members see."
+              help={null}
               previewClassName="size-32 rounded-full"
               crop="circle"
             />
@@ -111,7 +111,7 @@ export default function ProfileEdit({ loaderData, actionData }: Route.ComponentP
                   <input name="title" defaultValue={title.value} maxLength={LIMITS.title} aria-label={`Title ${i + 1}`}
                     aria-describedby={describe("titles", "titles-help")} className={inputClass} />
                   {titles.length > 1 && (
-                    <button type="button" className={dangerButton} onClick={() => setTitles(titles.filter((t) => t.key !== title.key))}
+                    <button type="button" className={dangerButton} onClick={() => confirm(`Remove title ${i + 1}?`) && setTitles(titles.filter((t) => t.key !== title.key))}
                       aria-label={`Remove title ${i + 1}`}>Remove</button>
                   )}
                 </li>
@@ -174,7 +174,7 @@ export default function ProfileEdit({ loaderData, actionData }: Route.ComponentP
                           onChange={(event) => setLinks(links.map((l) => (l.key === link.key ? { ...l, value: event.target.value } : l)))} />
                         <FieldError id={`link-${i}-error`} message={error} />
                       </div>
-                      <button type="button" className={dangerButton} onClick={() => setLinks(links.filter((l) => l.key !== link.key))}
+                      <button type="button" className={dangerButton} onClick={() => confirm(`Remove link ${i + 1}?`) && setLinks(links.filter((l) => l.key !== link.key))}
                         aria-label={`Remove link ${i + 1}`}>Remove</button>
                     </li>
                   );
@@ -223,7 +223,7 @@ export default function ProfileEdit({ loaderData, actionData }: Route.ComponentP
                 </div>
                 <FieldError id={`project-${i}-error`} message={error} />
                 <div>
-                  <button type="button" className={dangerButton} onClick={() => setProjects(projects.filter((p) => p.key !== project.key))}>
+                  <button type="button" className={dangerButton} onClick={() => confirm(`Remove project ${i + 1}?`) && setProjects(projects.filter((p) => p.key !== project.key))}>
                     Remove project {i + 1}
                   </button>
                 </div>
