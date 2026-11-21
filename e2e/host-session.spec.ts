@@ -55,6 +55,7 @@ test("a member accepts the guidelines, then drafts, publishes and deletes a sess
 
   await listed.click();
   await page.getByText("Delete this session").click();
+  page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Delete for good" }).click();
   await expect(page).toHaveURL(/\/members\/host/);
   await expect(page.getByText("You haven't created a session yet.")).toBeVisible();

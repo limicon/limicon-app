@@ -58,14 +58,14 @@ test("a poster adds an update, and a member likes it and comments", async ({ bro
   await post.getByRole("button", { name: `Like ${title}` }).click();
   await expect(post.getByRole("button", { name: `Unlike ${title}` })).toContainText("Liked · 1");
 
-  await post.getByRole("textbox", { name: `Comment on ${title}` }).fill("Can't wait!");
+  await post.getByRole("combobox", { name: `Comment on ${title}` }).fill("Can't wait!");
   await post.getByRole("button", { name: "Comment" }).click();
   await expect(post.getByRole("button", { name: "Hide comments" })).toBeVisible();
   await expect(post.getByRole("listitem")).toContainText("Can't wait!");
-  await expect(post.getByRole("textbox", { name: `Comment on ${title}` })).toHaveValue("");
+  await expect(post.getByRole("combobox", { name: `Comment on ${title}` })).toHaveValue("");
 
   await post.getByRole("button", { name: "Edit" }).click();
-  await post.getByRole("textbox", { name: "Edit your comment" }).fill("Can't wait for Monday!");
+  await post.getByRole("combobox", { name: "Edit your comment" }).fill("Can't wait for Monday!");
   await post.getByRole("button", { name: "Save" }).click();
   await expect(post.getByRole("listitem")).toContainText("Can't wait for Monday!");
   await expect(post.getByRole("listitem")).toContainText("edited");

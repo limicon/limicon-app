@@ -114,6 +114,7 @@ test("members RSVP in one click and find those sessions, and their own, on My Sc
   // The session's page counts the RSVP beside its host, and cancelling takes it off My Schedule.
   await page.goto(`/members/schedule/${id}`);
   await expect(page.getByText("1 going, plus the host")).toBeVisible();
+  page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: `Cancel your RSVP to Going ${run}` }).click();
   await expect(page.getByText("0 going, plus the host")).toBeVisible();
   await page.goto(`/members/schedule?view=mine&q=${run}`);

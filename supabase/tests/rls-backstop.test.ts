@@ -132,6 +132,8 @@ describe("row-level security backstop", () => {
       await tx`insert into public.community_post_likes (post_id, profile_id) values (${communityPost!.id}, ${user!.id})`;
       await tx`insert into public.community_comments (post_id, author_id, body) values (${communityPost!.id}, ${user!.id}, 'Hi')`;
       await tx`insert into public.notifications (recipient_id, actor_id, kind, post_id) values (${user!.id}, ${user!.id}, 'mention', ${communityPost!.id})`;
+      await tx`insert into public.host_feedback (session_id, profile_id, experience, had_tensions) values (${session!.id}, ${user!.id}, '{energizing}', false)`;
+      await tx`insert into public.session_harvests (session_id, profile_id, one_word) values (${session!.id}, ${user!.id}, 'Alive')`;
 
       const tables = await tx<{ tablename: string }[]>`
         select tablename from pg_tables where schemaname = 'public'
