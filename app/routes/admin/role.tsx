@@ -65,7 +65,7 @@ export default function AdminRole({ loaderData, actionData }: Route.ComponentPro
       </div>
       {errors.form && <Notice tone="problem">{errors.form}</Notice>}
 
-      <Form method="post" className="grid max-w-3xl gap-6" key={JSON.stringify(input)}>
+      <Form method="post" className="grid gap-6" key={JSON.stringify(input)}>
         <div>
           <label htmlFor="name" className="block font-medium">Name of the role</label>
           <input

@@ -50,7 +50,7 @@ export default function ProfileEdit({ loaderData, actionData }: Route.ComponentP
   const describe = (id: string, hint?: string) => [hint, errors[id] && `${id}-error`].filter(Boolean).join(" ") || undefined;
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <header className="mb-6">
         <h1 className="text-3xl font-semibold">Edit your profile</h1>
         <p className="mt-2 max-w-[68ch]">Other Limicon members see your profile. It's never shown to the public.</p>

@@ -90,7 +90,7 @@ export default function AdminTeam({ loaderData, actionData }: Route.ComponentPro
       </PageHeading>
       {done && doneMessages[done] && !actionData && <Notice>{doneMessages[done]}</Notice>}
 
-      <div className="grid max-w-4xl gap-10">
+      <div className="grid gap-10">
         {roles.map((role) => (
           <RoleSection key={role.key} role={role} loaderData={loaderData} actionData={actionData?.permission === role.key ? actionData : undefined} />
         ))}
@@ -100,7 +100,7 @@ export default function AdminTeam({ loaderData, actionData }: Route.ComponentPro
         <Link to="/admin/roles/new" className={primaryButton}>+ Add new role</Link>
       </p>
 
-      <section aria-labelledby="removals-heading" className="mt-10 max-w-4xl">
+      <section aria-labelledby="removals-heading" className="mt-10">
         <h2 id="removals-heading" className="text-2xl font-semibold">Recent removals</h2>
         <p className="mt-1">Who was removed from a role, by whom and why, newest first. Each person's page shows their whole history.</p>
         <div className={`${card} mt-3 p-0`}>

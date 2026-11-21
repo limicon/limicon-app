@@ -31,7 +31,7 @@ export function UpdatePostForm(props: {
   }
 
   return (
-    <Form ref={form} method="post" className="grid max-w-3xl gap-5">
+    <Form ref={form} method="post" className="grid gap-5">
       {props.chooseTemplate && (
         <div>
           <label htmlFor="template" className="block font-semibold">Start from</label>

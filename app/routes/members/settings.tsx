@@ -47,7 +47,7 @@ export default function Settings({ loaderData, actionData }: Route.ComponentProp
   const [wantsEmail, setWantsEmail] = useState(settings.emailNotifications);
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <h1 className="text-3xl font-semibold">Settings</h1>
 
       <section aria-labelledby="account-heading" className={`${card} mt-6`}>

@@ -95,7 +95,7 @@ function YourSessions({ sessions }: { sessions: Route.ComponentProps["loaderData
       {sessions.length === 0 ? (
         <p className="mt-3">You haven't created a session yet.</p>
       ) : (
-        <ul className="mt-4 grid max-w-3xl gap-3">
+        <ul className="mt-4 grid gap-3">
           {sessions.map((session) => (
             <li key={session.id}>
               <Link

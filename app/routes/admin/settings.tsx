@@ -209,7 +209,7 @@ export default function AdminSettings({ loaderData, actionData }: Route.Componen
         busy={busy}
       />
 
-      <section id="tickets" aria-labelledby="tickets-heading" className="mt-10 max-w-3xl scroll-mt-4">
+      <section id="tickets" aria-labelledby="tickets-heading" className="mt-10 scroll-mt-4">
         <h2 id="tickets-heading" className="text-xl font-semibold">Tickets</h2>
 
         <Form method="post" className={`${card} mt-4 grid gap-3`} key={actionData?.form === "comp" ? actionData.input : "comp"}>
@@ -257,7 +257,7 @@ export default function AdminSettings({ loaderData, actionData }: Route.Componen
         </div>
       </section>
 
-      <section aria-labelledby="tiers-heading" className="mt-10 max-w-3xl">
+      <section aria-labelledby="tiers-heading" className="mt-10">
         <h2 id="tiers-heading" className="text-xl font-semibold">Ticket tiers</h2>
         <p className="mt-1">Every tier gives the same access (REG-3). Lower order numbers show first.</p>
         <ul className="mt-4 grid gap-3">
@@ -298,7 +298,7 @@ export default function AdminSettings({ loaderData, actionData }: Route.Componen
         </ul>
       </section>
 
-      <Form method="post" className={`${card} mt-10 grid max-w-3xl gap-4`} key={JSON.stringify(settings)}>
+      <Form method="post" className={`${card} mt-10 grid gap-4`} key={JSON.stringify(settings)}>
         <input type="hidden" name="intent" value="settings" />
         <h2 className="text-lg font-semibold">Switches</h2>
         <Switch
@@ -361,7 +361,7 @@ function LinksForm({ initial, errors, message, busy }: { initial: MemberLink[]; 
     });
 
   return (
-    <Form method="post" className={`${card} mt-10 grid max-w-3xl gap-4`} aria-labelledby="links-heading">
+    <Form method="post" className={`${card} mt-10 grid gap-4`} aria-labelledby="links-heading">
       <input type="hidden" name="intent" value="links" />
       <div>
         <h2 id="links-heading" className="text-lg font-semibold">Member links</h2>
@@ -493,7 +493,7 @@ function EventForm({
   const whenProps = { initial, errors, timeZones, browserZone };
 
   return (
-    <Form method="post" className={`${card} grid max-w-3xl gap-6`} key={`${version}-${JSON.stringify(initial)}`}>
+    <Form method="post" className={`${card} grid gap-6`} key={`${version}-${JSON.stringify(initial)}`}>
       <input type="hidden" name="intent" value="event" />
       <h2 className="text-lg font-semibold">The event</h2>
       <div>

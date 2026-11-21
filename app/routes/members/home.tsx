@@ -28,8 +28,8 @@ export default function MembersHome({ loaderData }: Route.ComponentProps) {
   return (
     <>
       <h1 className="text-3xl font-semibold">Welcome to {name}</h1>
-      <p className="mt-3 max-w-2xl">Everything for members is here.</p>
-      <ul className="mt-8 grid max-w-4xl gap-4 sm:grid-cols-2">
+      <p className="mt-3">Everything for members is here.</p>
+      <ul className="mt-8 grid gap-4 sm:grid-cols-2">
         {areas.map((area) => (
           <li key={area.to}>
             <Link

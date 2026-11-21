@@ -108,7 +108,7 @@ export default function AdminSessions({ loaderData }: Route.ComponentProps) {
       {sessions.length === 0 ? (
         <p>No sessions here yet.</p>
       ) : (
-        <ul className="grid max-w-5xl gap-3">
+        <ul className="grid gap-3">
           {sessions.map((session) => (
             <li key={session.id} className={`${card} p-4`}>
               <div className="flex flex-wrap items-start gap-x-4 gap-y-2">

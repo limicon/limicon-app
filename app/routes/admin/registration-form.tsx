@@ -106,12 +106,12 @@ export default function AdminRegistrationForm({ loaderData, actionData }: Route.
       </div>
       {actionData?.message && <p role="alert" className="mb-4 font-medium text-[#B3261E]">{actionData.message}</p>}
       {Object.keys(errors).length > 0 && (
-        <p role="alert" className="mb-4 max-w-3xl rounded border border-[#B3261E] p-3 font-medium text-[#B3261E] dark:text-[#F2B8B5]">
+        <p role="alert" className="mb-4 rounded border border-[#B3261E] p-3 font-medium text-[#B3261E] dark:text-[#F2B8B5]">
           Some fields need fixing. They're marked below.
         </p>
       )}
 
-      <Form method="post" className="grid max-w-3xl gap-3">
+      <Form method="post" className="grid gap-3">
         <ol className="grid gap-3">
           {rows.map((row, index) => (
             <li key={row.id}>

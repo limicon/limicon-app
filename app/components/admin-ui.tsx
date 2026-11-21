@@ -38,7 +38,7 @@ export function Notice({ tone = "ok", children }: { tone?: "ok" | "problem"; chi
       ? "border-[#8CC7D3] bg-[#E6F5F6] text-[#15383F]"
       : "border-[#E8B4B0] bg-[#FCEDEC] text-[#5C1712]";
   return (
-    <div role={tone === "ok" ? "status" : "alert"} className={`mb-6 max-w-3xl rounded-lg border p-4 ${colors}`}>
+    <div role={tone === "ok" ? "status" : "alert"} className={`mb-6 rounded-lg border p-4 ${colors}`}>
       {children}
     </div>
   );

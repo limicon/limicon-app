@@ -89,7 +89,7 @@ export default function AdminSessionEdit({ loaderData, actionData }: Route.Compo
         </Notice>
       )}
 
-      <section aria-label="Admin details" className={`${card} mb-8 grid max-w-3xl gap-4 sm:grid-cols-2`}>
+      <section aria-label="Admin details" className={`${card} mb-8 grid gap-4 sm:grid-cols-2`}>
         <div>
           <h2 className="font-semibold">Hosts</h2>
           {meta.hosts.length === 0 ? (
@@ -138,7 +138,7 @@ export default function AdminSessionEdit({ loaderData, actionData }: Route.Compo
         timeZones={loaderData.timeZones}
         hostId={loaderData.hostId}
       />
-      <details className="mt-10 max-w-3xl rounded-lg border border-[#E8B4B0] p-4">
+      <details className="mt-10 rounded-lg border border-[#E8B4B0] p-4">
         <summary className="cursor-pointer font-semibold">Delete this session</summary>
         <p className="mt-3">
           This removes the session for good, and it can't be undone. If members have RSVPed, it's taken off the

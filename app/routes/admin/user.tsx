@@ -170,7 +170,7 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
       {done && doneMessages[done] && !actionData && <Notice>{doneMessages[done]}</Notice>}
       {actionData?.form === "problem" && <Notice tone="problem">{actionData.error}</Notice>}
 
-      <div className="grid max-w-5xl gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <section aria-labelledby="account-heading" className={card}>
           <h2 id="account-heading" className="text-lg font-semibold">Account</h2>
           <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
@@ -298,7 +298,7 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
         </section>
       </div>
 
-      <section aria-labelledby="answers-heading" className={`${card} mt-4 max-w-5xl`}>
+      <section aria-labelledby="answers-heading" className={`${card} mt-4`}>
         <h2 id="answers-heading" className="text-lg font-semibold">Registration answers for {year}</h2>
         {answers.length === 0 ? (
           <p className="mt-2 text-sm">They haven't answered the registration questions.</p>
@@ -316,7 +316,7 @@ export default function AdminUser({ loaderData, actionData }: Route.ComponentPro
         )}
       </section>
 
-      <section aria-labelledby="notes-heading" className={`${card} mt-4 max-w-5xl`}>
+      <section aria-labelledby="notes-heading" className={`${card} mt-4`}>
         <h2 id="notes-heading" className="text-lg font-semibold">Admin notes</h2>
         <p className="mt-1 text-sm opacity-80">Only admins see these. You can delete notes you wrote.</p>
         <Form method="post" className="mt-3 grid gap-2" key={user.notes.length}>

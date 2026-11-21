@@ -34,7 +34,7 @@ export default function AdminPolicies({ loaderData }: Route.ComponentProps) {
         </p>
       </PageHeading>
       {savedTitle && <Notice>{savedTitle} saved. The public page shows it now.</Notice>}
-      <ul className="grid max-w-3xl gap-3">
+      <ul className="grid gap-3">
         {documents.map((d) => (
           <li key={d.slug} className={`${card} flex flex-wrap items-center gap-4`}>
             <div className="min-w-0 flex-1">

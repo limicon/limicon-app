@@ -46,14 +46,14 @@ export default function AdminOrders({ loaderData }: Route.ComponentProps) {
       </PageHeading>
 
       {summary && (
-        <dl className="mb-6 grid max-w-5xl gap-3 sm:grid-cols-3">
+        <dl className="mb-6 grid gap-3 sm:grid-cols-3">
           <Stat label="Orders" value={summary.orders} detail={summary.incomplete ? `${summary.incomplete} incomplete, not counted` : "Paid and comped"} />
           <Stat label="Tickets purchased" value={summary.ticketsPurchased} detail="Paid, not counting comps" />
           <Stat label="Revenue" value={formatDollars(summary.revenueCents)} detail="Before Stripe fees" />
         </dl>
       )}
 
-      <div className="mb-4 flex max-w-5xl flex-wrap items-end justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <Form method="get" role="search" className="flex flex-wrap items-end gap-3" key={params.toString()}>
           {filters.sort !== "date" && <input type="hidden" name="sort" value={filters.sort} />}
           <div>
@@ -90,7 +90,7 @@ export default function AdminOrders({ loaderData }: Route.ComponentProps) {
       {orders.length === 0 ? (
         <p>No orders match.</p>
       ) : (
-        <div className="max-w-5xl overflow-x-auto rounded-lg border border-[#C9DADC] bg-white dark:border-[#24363B] dark:bg-[#12201F]">
+        <div className="overflow-x-auto rounded-lg border border-[#C9DADC] bg-white dark:border-[#24363B] dark:bg-[#12201F]">
           <table className="w-full text-left text-sm">
             <thead className="bg-[#EEF3F3] dark:bg-[#16262A]">
               <tr>

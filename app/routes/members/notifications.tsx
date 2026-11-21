@@ -45,7 +45,7 @@ export default function Notifications({ loaderData }: Route.ComponentProps) {
     new Intl.DateTimeFormat("en-US", { timeZone: zone, dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <h1 className="text-3xl font-semibold">Notifications</h1>
       <p className="mt-2">When someone comments on your post, replies to your comment or mentions you, in Community or on Updates.</p>
       {notifications.length === 0 ? (

@@ -58,7 +58,7 @@ export default function AdminPolicyEdit({ loaderData, actionData }: Route.Compon
         </PageHeading>
       </div>
       {actionData?.error && <Notice tone="problem">{actionData.error}</Notice>}
-      <Form method="post" className="grid max-w-3xl gap-4">
+      <Form method="post" className="grid gap-4">
         {body ? (
           <RichTextEditor name="body" initial={body} label={title} />
         ) : (

@@ -32,7 +32,7 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
   const projectKeywords = (keywords: string) => keywords.split(",").map((k) => k.trim()).filter(Boolean);
 
   return (
-    <article className="max-w-3xl">
+    <article>
       <header className="flex flex-col gap-5 sm:flex-row sm:items-start">
         <Avatar name={profile.name} avatarKey={profile.avatarKey} className="size-32 text-4xl" />
         <div className="min-w-0 flex-1">

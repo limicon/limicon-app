@@ -90,7 +90,7 @@ export default function AdminWebsite({ loaderData }: Route.ComponentProps) {
         <a href="/?edit=1" className={secondaryButton}>Edit the website, starting at the home page</a>
       </div>
 
-      <ul className="grid max-w-4xl gap-3">
+      <ul className="grid gap-3">
         {pages.map((p) => {
           const index = others.findIndex((o) => o.slug === p.slug);
           return (

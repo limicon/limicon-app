@@ -108,7 +108,7 @@ export function ThreeDayView({ sessions, zone, date, today }: Props) {
   );
 
   return (
-    <div className="mt-8 grid max-w-4xl gap-4">
+    <div className="mt-8 grid gap-4">
       <PeriodNav
         previous={{ href: dateHref(addDays(date, -3)), label: "Previous 3 days" }}
         next={{ href: dateHref(addDays(date, 3)), label: "Next 3 days" }}
@@ -246,7 +246,7 @@ export function MonthView({ sessions, zone, date, today }: Props) {
   const inMonth = sessions.filter((session) => dayKey(session.startsAt, zone).startsWith(first.slice(0, 7)));
 
   return (
-    <div className="mt-8 grid max-w-4xl gap-4">
+    <div className="mt-8 grid gap-4">
       <PeriodNav
         previous={{ href: dateHref(addMonths(first, -1)), label: monthName(addMonths(first, -1)) }}
         next={{ href: dateHref(addMonths(first, 1)), label: monthName(addMonths(first, 1)) }}

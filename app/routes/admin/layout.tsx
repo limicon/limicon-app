@@ -1,4 +1,4 @@
-import { Form, Link, NavLink, Outlet } from "react-router";
+import { Form, Link, NavLink, Outlet, useMatches } from "react-router";
 
 import { servicesContext } from "~/context";
 import type { Privilege } from "~/lib/admin-roles";
@@ -30,6 +30,9 @@ const sections: { to: string; label: string; end?: boolean; needs?: Privilege }[
 /** The admin console's shell (ADM-1): its own menu, apart from the public site and Members area. */
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
   const name = loaderData.editionYear ? `Limicon ${loaderData.editionYear}` : "Limicon";
+  // Every page shares one content width so right edges line up; a page that previews the public
+  // site edge to edge opts out with `handle = { fullWidth: true }`.
+  const fullWidth = useMatches().some((match) => (match.handle as { fullWidth?: boolean } | undefined)?.fullWidth);
   return (
     <div className="min-h-screen bg-[#F4F7F7] text-[#15383F] md:grid md:grid-cols-[15rem_1fr] dark:bg-[#0B1417] dark:text-[#E3EEF0]">
       <aside className="bg-[#2A1E14] text-[#F3E6D7] md:min-h-screen">
@@ -84,7 +87,9 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
         </div>
       </aside>
       <main className="min-w-0 px-4 py-8 md:px-10 md:py-10">
-        <Outlet />
+        <div className={fullWidth ? undefined : "max-w-5xl"}>
+          <Outlet />
+        </div>
       </main>
     </div>
   );

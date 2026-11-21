@@ -71,7 +71,7 @@ export default function AdminFaq({ loaderData, actionData }: Route.ComponentProp
       </PageHeading>
       {done && doneMessages[done] && !actionData && <Notice>{doneMessages[done]}</Notice>}
 
-      <section aria-labelledby="add-heading" className={`${card} mb-8 max-w-3xl`}>
+      <section aria-labelledby="add-heading" className={`${card} mb-8`}>
         <h2 id="add-heading" className="mb-3 text-lg font-semibold">Add a question</h2>
         <FaqForm
           entryId={null}
@@ -87,7 +87,7 @@ export default function AdminFaq({ loaderData, actionData }: Route.ComponentProp
       {entries.length === 0 ? (
         <p className="mt-3">No questions yet.</p>
       ) : (
-        <ol className="mt-3 grid max-w-3xl gap-3">
+        <ol className="mt-3 grid gap-3">
           {entries.map((entry, index) => {
             const failed = actionData?.entryId === entry.id;
             return (

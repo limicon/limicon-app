@@ -26,7 +26,7 @@ export default function People({ loaderData }: Route.ComponentProps) {
   const filtered = Boolean(keyword || query);
 
   return (
-    <div className="max-w-5xl">
+    <div>
       <Link to="/members/community" className="text-sm underline">← Back to Community</Link>
       <header className="mt-3 mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>

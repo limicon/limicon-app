@@ -140,7 +140,7 @@ export function SessionEditor({
   const titleLength = [...title].length;
 
   return (
-    <Form ref={formRef} method="post" className="grid max-w-3xl gap-6" noValidate>
+    <Form ref={formRef} method="post" className="grid gap-6" noValidate>
       <Fieldset legend="About the session">
         <div>
           <label htmlFor="title" className="block font-medium">Session title</label>

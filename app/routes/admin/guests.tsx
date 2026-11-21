@@ -47,7 +47,7 @@ export default function AdminGuests({ loaderData }: Route.ComponentProps) {
         </div>
       </dl>
 
-      <div className="mb-4 flex max-w-5xl flex-wrap items-end justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <Form method="get" role="search" className="flex flex-wrap items-end gap-3" key={params.toString()}>
           {byLast && <input type="hidden" name="sort" value="last" />}
           <div>
@@ -71,7 +71,7 @@ export default function AdminGuests({ loaderData }: Route.ComponentProps) {
       {guests.length === 0 ? (
         <p>{filters.q ? "Nobody matches." : "No guests yet."}</p>
       ) : (
-        <div className="max-w-5xl overflow-x-auto rounded-lg border border-[#C9DADC] bg-white dark:border-[#24363B] dark:bg-[#12201F]">
+        <div className="overflow-x-auto rounded-lg border border-[#C9DADC] bg-white dark:border-[#24363B] dark:bg-[#12201F]">
           <table className="w-full text-left text-sm">
             <thead className="bg-[#EEF3F3] dark:bg-[#16262A]">
               <tr>

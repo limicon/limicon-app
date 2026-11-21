@@ -50,7 +50,7 @@ export default function AdminOverview({ loaderData }: Route.ComponentProps) {
 
       {canSeeOrders && <IncompletePurchases orders={incomplete} />}
 
-      <section aria-labelledby="week-heading" className="mt-6 max-w-5xl">
+      <section aria-labelledby="week-heading" className="mt-6">
         <details className="group">
           <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-3 [&::-webkit-details-marker]:hidden">
             <h2 id="week-heading" className="text-xl font-semibold">
@@ -65,13 +65,13 @@ export default function AdminOverview({ loaderData }: Route.ComponentProps) {
         <TotalsRow totals={thisWeek} showMoney={canSeeOrders} />
       </section>
 
-      <div className="mt-6 grid max-w-5xl gap-4">
+      <div className="mt-6 grid gap-4">
         <WeeklyChart weekly={overview.weekly} />
       </div>
 
       <section aria-labelledby="sessions-heading" className="mt-10">
         <h2 id="sessions-heading" className="text-xl font-semibold">Sessions</h2>
-        <dl className="mt-3 grid max-w-5xl gap-3 sm:grid-cols-3">
+        <dl className="mt-3 grid gap-3 sm:grid-cols-3">
           <Stat label={`On the ${year} calendar`} value={overview.sessions.published} to="/admin/sessions?show=published" />
           <Stat label="Drafts" value={overview.sessions.drafts} to="/admin/sessions?show=drafts" />
           <Stat label="Hosts" value={overview.sessions.hosts} />
@@ -83,7 +83,7 @@ export default function AdminOverview({ loaderData }: Route.ComponentProps) {
 
 function TotalsRow({ totals, pendingInvitations, showMoney }: { totals: OverviewTotals; pendingInvitations?: number; showMoney: boolean }) {
   return (
-    <dl className="mt-3 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <Stat label="Ticket holders" value={totals.ticketHolders} detail={`${totals.paid} paid · ${totals.comp} comp`} to="/admin/guests" />
       {showMoney ? (
         <Stat label="Ticket revenue" value={formatDollars(totals.revenueCents)} detail="Before Stripe fees" to="/admin/orders" />
@@ -104,7 +104,7 @@ function TotalsRow({ totals, pendingInvitations, showMoney }: { totals: Overview
 /** Checkouts people started and didn't finish, newest first, so an admin can follow up. */
 function IncompletePurchases({ orders }: { orders: IncompleteOrder[] }) {
   return (
-    <section aria-labelledby="incomplete-heading" className={`mt-6 max-w-5xl rounded-lg border p-4 ${orders.length ? "border-[#E8B4B0] bg-[#FCEDEC] dark:bg-[#2A1513]" : "border-[#C9DADC] bg-white dark:border-[#24363B] dark:bg-[#12201F]"}`}>
+    <section aria-labelledby="incomplete-heading" className={`mt-6 rounded-lg border p-4 ${orders.length ? "border-[#E8B4B0] bg-[#FCEDEC] dark:bg-[#2A1513]" : "border-[#C9DADC] bg-white dark:border-[#24363B] dark:bg-[#12201F]"}`}>
       <div className="flex flex-wrap items-baseline gap-x-3">
         <h2 id="incomplete-heading" className="text-xl font-semibold">
           {orders.length ? `⚠ ${orders.length} incomplete ${orders.length === 1 ? "purchase" : "purchases"}` : "Incomplete purchases"}

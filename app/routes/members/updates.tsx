@@ -112,7 +112,7 @@ function when(value: Date | string, zone: string) {
 export default function Updates({ loaderData }: Route.ComponentProps) {
   const { posts, zone, userId, canPost, isAdmin, edits } = loaderData;
   return (
-    <section className="max-w-3xl">
+    <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold">Updates</h1>
         {canPost && (

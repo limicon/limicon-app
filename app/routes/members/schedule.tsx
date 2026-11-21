@@ -119,7 +119,7 @@ export default function Schedule({ loaderData, actionData }: Route.ComponentProp
 
   return (
     <>
-      <div className="flex max-w-4xl flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold">{VIEWS.find((v) => v.value === filters.view)!.label}</h1>
         {filters.view === "hosting" && (
           <Link to="/members/host/new" className={`${primaryButton} px-5 py-2.5`}>
@@ -127,12 +127,12 @@ export default function Schedule({ loaderData, actionData }: Route.ComponentProp
           </Link>
         )}
       </div>
-      <div className="mt-4 flex max-w-4xl flex-wrap items-center justify-between gap-3">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <ScheduleToggle view={filters.view} />
         <LayoutTabs layout={filters.layout} />
       </div>
       {published && (
-        <p role="status" className="mt-4 max-w-4xl rounded-lg border border-[#9ED1C2] bg-[#E6F4EF] p-3 dark:border-[#2B5A4C] dark:bg-[#12291F]">
+        <p role="status" className="mt-4 rounded-lg border border-[#9ED1C2] bg-[#E6F4EF] p-3 dark:border-[#2B5A4C] dark:bg-[#12291F]">
           “{published}” is on the calendar now.
         </p>
       )}
@@ -166,7 +166,7 @@ export default function Schedule({ loaderData, actionData }: Route.ComponentProp
                 : "No sessions are on the calendar yet. Hosts can add theirs under Host a session."}
         </p>
       ) : (
-        <div className="mt-8 grid max-w-4xl gap-8">
+        <div className="mt-8 grid gap-8">
           {days.map(([key, daySessions]) => (
             <section key={key} aria-labelledby={`day-${key}`}>
               <h2 id={`day-${key}`} className="sticky top-0 z-10 bg-[#F4F7F7] py-2 text-lg font-semibold dark:bg-[#0B1417]">
@@ -194,7 +194,7 @@ export default function Schedule({ loaderData, actionData }: Route.ComponentProp
 function Drafts({ drafts, zone, problems }: { drafts: HostedSession[]; zone: string; problems: { sessionId: string; problems: string[] } | null }) {
   const busy = useNavigation().state !== "idle";
   return (
-    <section aria-labelledby="drafts" className="mt-6 max-w-4xl">
+    <section aria-labelledby="drafts" className="mt-6">
       <h2 id="drafts" className="text-xl font-semibold">Drafts</h2>
       <p className="text-sm">Only you and your co-hosts can see these until you publish them.</p>
       <ul className="mt-3 grid gap-3">
@@ -399,7 +399,7 @@ function LayoutTabs({ layout }: { layout: ScheduleLayout }) {
 
 function TimeZoneLine({ zone, now, timeZones }: { zone: string; now: Date; timeZones: string[] }) {
   return (
-    <details className="mt-3 max-w-4xl">
+    <details className="mt-3">
       <summary className="cursor-pointer">
         Times are shown in <strong>{zoneName(zone)}</strong> ({zoneAbbreviation(zone, now)}).{" "}
         <span className="underline">Change</span>
@@ -428,7 +428,7 @@ function Filters({ filters }: { filters: Route.ComponentProps["loaderData"]["fil
     <Form
       method="get"
       role="search"
-      className="mt-6 grid max-w-4xl gap-4 rounded-lg border border-[#C9DADC] bg-white p-4 dark:border-[#24363B] dark:bg-[#12201F]"
+      className="mt-6 grid gap-4 rounded-lg border border-[#C9DADC] bg-white p-4 dark:border-[#24363B] dark:bg-[#12201F]"
       // Dropdowns apply as soon as they change; the search waits for Enter or the button.
       onChange={(event) => {
         if ((event.target as HTMLElement).tagName === "SELECT") submit(event.currentTarget);
@@ -485,7 +485,7 @@ function Filters({ filters }: { filters: Route.ComponentProps["loaderData"]["fil
 
 function Legend() {
   return (
-    <details className="mt-4 max-w-4xl" open>
+    <details className="mt-4" open>
       <summary className="cursor-pointer text-sm font-medium">Theme colors</summary>
       <ul className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2 lg:grid-cols-3">
         {THEMES.map((theme) => (

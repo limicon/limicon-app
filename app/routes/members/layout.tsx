@@ -123,12 +123,15 @@ export default function MembersLayout({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
       </aside>
+      {/* One content width for every page, so each page's right edge lines up with the others'. */}
       <main className="min-w-0 px-4 py-8 md:px-10 md:pt-4 md:pb-10">
-        <div className="mb-2 hidden items-center justify-end gap-3 md:flex">
-          <NotificationBell count={loaderData.unreadNotifications} />
-          <ProfileMenu me={loaderData.me} />
+        <div className="max-w-5xl">
+          <div className="mb-2 hidden items-center justify-end gap-3 md:flex">
+            <NotificationBell count={loaderData.unreadNotifications} />
+            <ProfileMenu me={loaderData.me} />
+          </div>
+          <Outlet />
         </div>
-        <Outlet />
       </main>
     </div>
   );

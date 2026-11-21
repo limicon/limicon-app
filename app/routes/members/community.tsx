@@ -169,7 +169,7 @@ export default function Community({ loaderData }: Route.ComponentProps) {
   const oldest = posts.at(-1);
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <header className={`${card} flex flex-wrap items-center gap-4`}>
         <img src={LOGO_SRC} alt="" width={80} height={80} className="size-20 rounded-lg bg-[#0B1417] object-contain" />
         <div className="min-w-0 flex-1">

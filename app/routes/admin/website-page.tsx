@@ -12,6 +12,9 @@ import type { Route } from "./+types/website-page";
 /** Needs the `website` privilege (app/lib/admin-roles.ts). */
 export const middleware: Route.MiddlewareFunction[] = [requirePrivilege("website")];
 
+/** The editor shows the page as the public site lays it out, edge to edge (admin layout). */
+export const handle = { fullWidth: true };
+
 export function meta({ loaderData }: Route.MetaArgs) {
   return [{ title: `${loaderData?.meta.title || "New page"} · Website · Admin · Limicon` }];
 }

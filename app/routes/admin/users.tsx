@@ -94,7 +94,7 @@ export default function AdminUsers({ loaderData, actionData }: Route.ComponentPr
       {done === "role" && !actionData && <Notice>Roles saved. They apply the next time the person opens a page.</Notice>}
       {actionData?.problem && <Notice tone="problem">{actionData.problem}</Notice>}
 
-      <Form method="get" role="search" className="mb-5 flex max-w-5xl flex-wrap items-end gap-3" key={params.toString()}>
+      <Form method="get" role="search" className="mb-5 flex flex-wrap items-end gap-3" key={params.toString()}>
         <div className="w-full sm:w-auto sm:min-w-64 sm:flex-1">
           <label htmlFor="q" className="block text-sm font-medium">Name or email</label>
           <input id="q" name="q" type="search" defaultValue={filters.q} className={`${inputClass} mt-1`} />
@@ -109,7 +109,7 @@ export default function AdminUsers({ loaderData, actionData }: Route.ComponentPr
         </div>
       </Form>
 
-      <div className="mb-3 flex max-w-5xl flex-wrap items-center justify-between gap-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm" role="status">
           {total} {total === 1 ? "person" : "people"}
           {pages > 1 ? ` · page ${filters.page} of ${pages}` : ""}
@@ -120,7 +120,7 @@ export default function AdminUsers({ loaderData, actionData }: Route.ComponentPr
       {users.length === 0 ? (
         <p>Nobody matches.</p>
       ) : (
-        <div className="max-w-5xl overflow-x-auto rounded-lg border border-[#C9DADC] bg-white dark:border-[#24363B] dark:bg-[#12201F]">
+        <div className="overflow-x-auto rounded-lg border border-[#C9DADC] bg-white dark:border-[#24363B] dark:bg-[#12201F]">
           <table className="w-full text-left text-sm">
             <thead className="bg-[#EEF3F3] dark:bg-[#16262A]">
               <tr>
@@ -169,7 +169,7 @@ export default function AdminUsers({ loaderData, actionData }: Route.ComponentPr
       )}
 
       {pages > 1 && (
-        <nav aria-label="Pages" className="mt-4 flex max-w-5xl items-center gap-3 text-sm">
+        <nav aria-label="Pages" className="mt-4 flex items-center gap-3 text-sm">
           {filters.page > 1 && <Link to={pageLink(filters.page - 1)} className="underline">Previous</Link>}
           {filters.page < pages && <Link to={pageLink(filters.page + 1)} className="underline">Next</Link>}
         </nav>

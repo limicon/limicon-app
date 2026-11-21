@@ -72,7 +72,7 @@ export default function ScheduleSession({ loaderData }: Route.ComponentProps) {
         }`;
 
   return (
-    <article className="max-w-3xl">
+    <article>
       <p>
         <Link to="/members/schedule" className="underline">Back to the schedule</Link>
       </p>

@@ -59,7 +59,7 @@ export default function HostEdit({ loaderData, actionData }: Route.ComponentProp
         </span>
       </div>
       {saved && !actionData && (
-        <div role="status" className="mb-6 max-w-3xl rounded-lg border border-[#8CC7D3] bg-[#E6F5F6] p-4 text-[#15383F]">
+        <div role="status" className="mb-6 rounded-lg border border-[#8CC7D3] bg-[#E6F5F6] p-4 text-[#15383F]">
           <p className="font-semibold">
             {saved === "published"
               ? "Saved, and on the calendar."
@@ -72,7 +72,7 @@ export default function HostEdit({ loaderData, actionData }: Route.ComponentProp
         </div>
       )}
       {otherDates.length > 0 && (
-        <section aria-labelledby="other-dates" className="mb-6 max-w-3xl rounded-lg border border-[#C9DADC] bg-white p-4 dark:border-[#24363B] dark:bg-[#12201F]">
+        <section aria-labelledby="other-dates" className="mb-6 rounded-lg border border-[#C9DADC] bg-white p-4 dark:border-[#24363B] dark:bg-[#12201F]">
           <h2 id="other-dates" className="font-semibold">Other dates of this session</h2>
           <p className="text-sm">Each date is its own session. Changes here apply to this date only.</p>
           <ul className="mt-2 grid gap-1">
@@ -96,7 +96,7 @@ export default function HostEdit({ loaderData, actionData }: Route.ComponentProp
         timeZones={loaderData.timeZones}
         hostId={loaderData.hostId}
       />
-      <details className="mt-10 max-w-3xl rounded-lg border border-[#E8B4B0] p-4">
+      <details className="mt-10 rounded-lg border border-[#E8B4B0] p-4">
         <summary className="cursor-pointer font-semibold">Delete this session</summary>
         <p className="mt-3">
           This removes the session for good, and it can't be undone. If members have RSVPed, it's
