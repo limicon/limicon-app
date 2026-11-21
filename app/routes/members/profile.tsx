@@ -103,6 +103,15 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
         </div>
       </header>
 
+      {profile.bio && (
+        <section aria-labelledby="bio-heading" className="mt-10 border-t border-[#C9DADC] pt-6 dark:border-[#24363B]">
+          <h2 id="bio-heading" className={sectionHeading}>Bio</h2>
+          <div className="mt-3 grid max-w-[68ch] gap-4">
+            {profile.bio.split(/\n{2,}/).map((paragraph, i) => <p key={i} className="whitespace-pre-line">{paragraph}</p>)}
+          </div>
+        </section>
+      )}
+
       {(profile.skills.length > 0 || profile.interests.length > 0) && (
         <section aria-labelledby="skills-heading" className="mt-10 border-t border-[#C9DADC] pt-6 dark:border-[#24363B]">
           <h2 id="skills-heading" className={sectionHeading}>Skills and interests</h2>

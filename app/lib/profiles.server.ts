@@ -55,6 +55,7 @@ export type ProfileView = {
   name: string;
   avatarKey: string | null;
   headline: string | null;
+  bio: string | null;
   location: string | null;
   businessName: string | null;
   titles: string[];
@@ -74,7 +75,7 @@ export async function getProfileView(sql: Db, profileId: string): Promise<Profil
   if (!/^[0-9a-f-]{36}$/.test(profileId)) return null;
   const [row] = await sql<(Omit<ProfileView, "skills" | "interests"> & { keywords: (ProfileKeyword & { kind: string })[] })[]>`
     select p.id, coalesce(${sql.unsafe(fullName("p"))}, 'A member') as name, p.avatar_key as "avatarKey",
-           p.headline, p.location, p.business_name as "businessName", p.titles,
+           p.headline, p.bio, p.location, p.business_name as "businessName", p.titles,
            case when p.show_email then u.email end as email, p.allow_messages as "allowMessages",
            coalesce((select json_agg(json_build_object('platform', l.platform, 'value', l.value) order by l.position)
                      from public.profile_links l where l.profile_id = p.id), '[]') as links,
@@ -96,7 +97,7 @@ export async function getProfileView(sql: Db, profileId: string): Promise<Profil
 export async function getProfileForEdit(sql: Db, userId: string): Promise<ProfileEdit | null> {
   const [row] = await sql<(Omit<ProfileEdit, "skills" | "interests"> & { keywords: { kind: string; keyword: string }[] })[]>`
     select coalesce(p.first_name, '') as "firstName", coalesce(p.last_name, '') as "lastName",
-           p.avatar_key as "avatarKey", p.headline, p.location, p.business_name as "businessName", p.titles,
+           p.avatar_key as "avatarKey", p.headline, p.bio, p.location, p.business_name as "businessName", p.titles,
            p.show_email as "showEmail",
            coalesce((select json_agg(json_build_object('platform', l.platform, 'value', l.value) order by l.position)
                      from public.profile_links l where l.profile_id = p.id), '[]') as links,
@@ -119,7 +120,7 @@ export async function saveProfile(sql: Db, userId: string, edit: ProfileEdit): P
     await tx`
       update public.profiles set
         first_name = ${edit.firstName}, last_name = ${edit.lastName || null}, avatar_key = ${edit.avatarKey},
-        headline = ${edit.headline}, location = ${edit.location}, business_name = ${edit.businessName},
+        headline = ${edit.headline}, bio = ${edit.bio}, location = ${edit.location}, business_name = ${edit.businessName},
         titles = ${edit.titles}, show_email = ${edit.showEmail}, updated_at = now()
       where id = ${userId}
     `;

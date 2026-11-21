@@ -8,6 +8,9 @@ import { linkUrl, MAX_LINKS, platformById } from "~/lib/profile-links";
 export const LIMITS = {
   name: 60,
   headline: 150,
+  bioWords: 1000,
+  /** Characters, a backstop well above what 1,000 words take. */
+  bio: 10000,
   location: 100,
   businessName: 150,
   title: 100,
@@ -27,6 +30,8 @@ export type ProfileEdit = {
   lastName: string;
   avatarKey: string | null;
   headline: string | null;
+  /** Plain text; blank lines separate paragraphs. */
+  bio: string | null;
   location: string | null;
   businessName: string | null;
   titles: string[];
@@ -41,6 +46,9 @@ export type ProfileErrors = Partial<Record<string, string>>;
 
 const text = (form: FormData, name: string) => String(form.get(name) ?? "").trim();
 const all = (form: FormData, name: string) => form.getAll(name).map((v) => String(v).trim());
+
+/** How many words `value` has, as the editor's counter shows. */
+export const countWords = (value: string) => value.trim().split(/\s+/).filter(Boolean).length;
 
 /** One space between words, so "Systems  thinking" and "Systems thinking" are one keyword. */
 export const cleanKeyword = (value: string) => value.trim().replace(/^#/, "").replace(/\s+/g, " ");
@@ -73,6 +81,11 @@ export function parseProfileForm(form: FormData): { edit: ProfileEdit; errors: P
 
   const avatar = text(form, "avatarKey");
   if (avatar && !IMAGE_KEY.test(avatar)) errors.avatarKey = "Upload the picture again.";
+
+  // Keeps line breaks, so members can write paragraphs; trims trailing spaces and runs of blank lines.
+  const bio = text(form, "bio").replace(/\r\n?/g, "\n").replace(/[ \t]+$/gm, "").replace(/\n{3,}/g, "\n\n");
+  if (countWords(bio) > LIMITS.bioWords) errors.bio = `Your bio can be up to ${LIMITS.bioWords.toLocaleString("en-US")} words.`;
+  else if (bio.length > LIMITS.bio) errors.bio = `Your bio can be up to ${LIMITS.bio.toLocaleString("en-US")} characters.`;
 
   const titles = all(form, "title").filter(Boolean);
   if (titles.length > LIMITS.titles) errors.titles = `List up to ${LIMITS.titles} titles.`;
@@ -122,6 +135,7 @@ export function parseProfileForm(form: FormData): { edit: ProfileEdit; errors: P
       lastName,
       avatarKey: avatar || null,
       headline: optional("headline", LIMITS.headline, "Your headline"),
+      bio: bio || null,
       location: optional("location", LIMITS.location, "Location"),
       businessName: optional("businessName", LIMITS.businessName, "Business name"),
       titles,

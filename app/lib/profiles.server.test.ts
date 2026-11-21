@@ -43,7 +43,7 @@ async function account(tx: Db, ticket = true) {
 }
 
 const edit = (overrides: Partial<ProfileEdit> = {}): ProfileEdit => ({
-  firstName: "Ada", lastName: "Lovelace", avatarKey: null, headline: "Weaving numbers", location: "London",
+  firstName: "Ada", lastName: "Lovelace", avatarKey: null, headline: "Weaving numbers", bio: "I wrote the first program.\n\nAnd notes.", location: "London",
   businessName: null, titles: ["Analyst"], showEmail: false,
   links: [{ platform: "website", value: "ada.example" }, { platform: "instagram", value: "@ada" }],
   skills: ["Maths", "Poetry"], interests: ["Looms"],
@@ -60,7 +60,7 @@ describe("profiles", () => {
 
       const view = await getProfileView(tx, ada.id);
       expect(view).toMatchObject({
-        name: "Ada Lovelace", headline: "Weaving numbers", email: null, titles: ["Analyst"],
+        name: "Ada Lovelace", headline: "Weaving numbers", bio: "I wrote the first program.\n\nAnd notes.", email: null, titles: ["Analyst"],
         skills: [{ keyword: "Maths", key: "maths" }, { keyword: "Poetry", key: "poetry" }],
         interests: [{ keyword: "Looms", key: "looms" }],
       });

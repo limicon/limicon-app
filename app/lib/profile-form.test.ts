@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { parseProfileForm, splitKeywords } from "./profile-form";
+import { countWords, parseProfileForm, splitKeywords } from "./profile-form";
 
 function form(entries: [string, string][]) {
   const data = new FormData();
@@ -22,6 +22,7 @@ describe("parseProfileForm", () => {
   test("reads a full profile", () => {
     const { edit, errors } = parseProfileForm(form([
       ["firstName", " Ada "], ["lastName", "Lovelace"], ["headline", "Weaving  numbers"], ["location", ""],
+      ["bio", "  I wrote the first program.  \r\n\r\n\r\n\r\nAnd notes on the engine. \n"],
       ["businessName", "Engines Ltd"], ["title", "Analyst"], ["title", ""], ["title", "Writer"],
       ["showEmail", "on"], ["allowMessages", "on"],
       ["linkPlatform", "website"], ["linkValue", "ada.example"],
@@ -32,7 +33,8 @@ describe("parseProfileForm", () => {
     ]));
     expect(errors).toEqual({});
     expect(edit).toEqual({
-      firstName: "Ada", lastName: "Lovelace", avatarKey: null, headline: "Weaving numbers", location: null,
+      firstName: "Ada", lastName: "Lovelace", avatarKey: null, headline: "Weaving numbers",
+      bio: "I wrote the first program.\n\nAnd notes on the engine.", location: null,
       businessName: "Engines Ltd", titles: ["Analyst", "Writer"], showEmail: true,
       links: [{ platform: "website", value: "ada.example" }],
       skills: ["Maths", "poetry"], interests: ["Looms"],
@@ -55,5 +57,18 @@ describe("parseProfileForm", () => {
     const entries: [string, string][] = [["firstName", "Ada"]];
     for (let i = 0; i < 11; i++) entries.push(["linkPlatform", "website"], ["linkValue", `site${i}.example`]);
     expect(parseProfileForm(form(entries)).errors.links).toBe("Add up to 10 links.");
+  });
+
+  test("leaves a blank bio out, and allows up to 1,000 words", () => {
+    expect(parseProfileForm(form([["firstName", "Ada"], ["bio", " \n "]])).edit.bio).toBeNull();
+    expect(parseProfileForm(form([["firstName", "Ada"], ["bio", "word ".repeat(1000)]])).errors.bio).toBeUndefined();
+    expect(parseProfileForm(form([["firstName", "Ada"], ["bio", "word ".repeat(1001)]])).errors.bio).toBe("Your bio can be up to 1,000 words.");
+  });
+});
+
+describe("countWords", () => {
+  test("counts words across spaces and line breaks", () => {
+    expect(countWords("")).toBe(0);
+    expect(countWords("  One two\n\nthree  ")).toBe(3);
   });
 });

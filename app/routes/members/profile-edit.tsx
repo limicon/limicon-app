@@ -6,7 +6,7 @@ import { ImageUploadField } from "~/components/image-upload-field";
 import { KeywordInput } from "~/components/keyword-input";
 import { Icon } from "~/components/profile-ui";
 import { servicesContext } from "~/context";
-import { LIMITS, parseProfileForm, type ProfileErrors } from "~/lib/profile-form";
+import { countWords, LIMITS, parseProfileForm, type ProfileErrors } from "~/lib/profile-form";
 import { MAX_LINKS, PLATFORMS, platformById } from "~/lib/profile-links";
 import { getProfileForEdit, saveProfile } from "~/lib/profiles.server";
 import type { Route } from "./+types/profile-edit";
@@ -39,6 +39,29 @@ const label = "font-medium";
 const help = "text-sm opacity-80";
 const fieldset = `${card} grid gap-5`;
 const legend = "px-1 text-xl font-semibold";
+
+/** The bio box, with a word count that turns into a warning past the limit. */
+function BioField({ initial, error }: { initial: string; error?: string }) {
+  const [words, setWords] = useState(() => countWords(initial));
+  const over = words > LIMITS.bioWords;
+  const limit = LIMITS.bioWords.toLocaleString("en-US");
+  return (
+    <div>
+      <label htmlFor="bio" className={label}>Bio</label>
+      <p id="bio-help" className={help}>
+        Tell members about yourself: your story, what brings you to Limicon, what you hope for. Up to {limit} words. Leave a
+        blank line between paragraphs.
+      </p>
+      <textarea id="bio" name="bio" defaultValue={initial} rows={8} maxLength={LIMITS.bio} onChange={(event) => setWords(countWords(event.target.value))}
+        aria-invalid={error || over ? true : undefined} aria-describedby={["bio-help", "bio-count", error && "bio-error"].filter(Boolean).join(" ")}
+        className={inputClass} />
+      <p id="bio-count" className={`mt-1 text-sm ${over ? "font-medium text-[#B3261E] dark:text-[#F2B8B5]" : "opacity-80"}`}>
+        {words.toLocaleString("en-US")} of {limit} words{over && ". Shorten your bio to save it."}
+      </p>
+      <FieldError id="bio-error" message={error} />
+    </div>
+  );
+}
 
 export default function ProfileEdit({ loaderData, actionData }: Route.ComponentProps) {
   const { profile, email, userId } = loaderData;
@@ -95,6 +118,7 @@ export default function ProfileEdit({ loaderData, actionData }: Route.ComponentP
               aria-invalid={errors.headline ? true : undefined} aria-describedby={describe("headline", "headline-help")} className={inputClass} />
             <FieldError id="headline-error" message={errors.headline} />
           </div>
+          <BioField initial={profile.bio ?? ""} error={errors.bio} />
           <div>
             <label htmlFor="location" className={label}>Location</label>
             <p id="location-help" className={help}>As much or as little as you like, such as a city or region.</p>
