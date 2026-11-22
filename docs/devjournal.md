@@ -6,6 +6,10 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-22 | Lauren (with Opus 5.5) | Admins mark co-creation meetings on the session form
+
+At the top of the editor's About section, admins tick "This is a co-creation meeting", which sets `sessions.is_cocreation_meeting` and starts the title with "Co-Creation Meeting" (a topic can follow a colon). Only admins can change it. Themes stay as they were; the schedule shows a badge and an "Only co-creation meetings" filter.
+
 ## 2026-11-22 | Lauren (with Opus 5.5) | Sessions sync to team@'s Google Calendar, with invites on RSVP
 
 Published sessions go onto a public Limicon Schedule calendar in team@limicon.org's Google account, which members subscribe to from the schedule's Subscribe to the Limicon calendar button. RSVPing, hosting or co-hosting sends a Google invite that follows changes. Database triggers queue syncs; a Cron Trigger retries.
@@ -13,6 +17,10 @@ Published sessions go onto a public Limicon Schedule calendar in team@limicon.or
 ## 2026-11-21 | Lauren (with Opus 5.5) | Session Host Feedback and Session Harvest forms, with voice notes
 
 From last year's Google Forms: when a session ends, hosts owe Host Feedback and registered members a Harvest, shown on Members home with a "New Form" badge; answers stay editable. Any member can harvest any ended session, with an optional voice note. To do: alerting the team to reported tensions, an admin view, and emailing the forms.
+
+## 2026-11-20 | Lauren (with Opus 5.5) | Hosts find their drafts on the Hosting schedule
+
+Hosting shows a Drafts section when the member has unpublished sessions, each with Edit and Publish to Calendar. Publishing there runs the editor's publish checks on the saved draft (`publishDraft`); a draft missing something stays a draft and lists what to add.
 
 ## 2026-11-20 | Lauren (with Opus 5.5) | Every remove or delete asks first
 
@@ -57,6 +65,10 @@ Tabs on Members > Schedule switch between List, 3 Day and Monthly (CAL-1), kept 
 Taking a role away, from the role checkboxes or the Team page's Remove, opens a dialog that asks why; the server refuses a removal without one. Each removal is kept in `admin_role_removals` and shown to admins as Role history on the person's page and Recent removals on the Team page.
 
 ---
+
+## 2026-11-19 | Lauren (with Opus 5.5) | Sessions repeat as separate dates, and hosts are always going
+
+A new session can repeat weekly, every two weeks or on chosen dates: each date is its own session, linked by `sessions.series_id`, with its own RSVPs, keeping its clock time across daylight saving. Co-hosts are registered members picked as tags. Hosts and co-hosts count as going without RSVPing and take no places.
 
 ## 2026-11-19 | Lauren (with Opus 5.5) | Members read, like and comment on Updates
 
