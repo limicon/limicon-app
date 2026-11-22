@@ -15,6 +15,7 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "deploy": "npm run build && wrangler deploy",
+    "calendar:connect": "node scripts/connect-google-calendar.mjs",
     "preview": "npm run build && vite preview",
     "cf-typegen": "wrangler types",
     "postinstall": "wrangler types"

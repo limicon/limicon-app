@@ -6,6 +6,10 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-22 | Lauren (with Opus 5.5) | Sessions sync to team@'s Google Calendar, with invites on RSVP
+
+Published sessions go onto a public Limicon Schedule calendar in team@limicon.org's Google account, which members subscribe to from the schedule's Subscribe to the Limicon calendar button. RSVPing, hosting or co-hosting sends a Google invite that follows changes. Database triggers queue syncs; a Cron Trigger retries.
+
 ## 2026-11-21 | Lauren (with Opus 5.5) | Session Host Feedback and Session Harvest forms, with voice notes
 
 From last year's Google Forms: when a session ends, hosts owe Host Feedback and registered members a Harvest, shown on Members home with a "New Form" badge; answers stay editable. Any member can harvest any ended session, with an optional voice note. To do: alerting the team to reported tensions, an admin view, and emailing the forms.

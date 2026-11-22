@@ -29,10 +29,10 @@ Each entry names the work that calls for reading the doc.
 - [`Limicon Platform PRD.md`](docs/Limicon%20Platform%20PRD.md): what the app must do, for whom and when: requirements, roles, phases, data model and the chosen stack.
 - [`config-cloudflare.md`](docs/config-cloudflare.md): deploying, who can open the hosted app, or the Worker and Hyperdrive settings.
 - [`config-github.md`](docs/config-github.md): GitHub settings, branch protection, CI, Dependabot.
-- [`config-googlecloud.md`](docs/config-googlecloud.md): the Google sign-in client, its secret, or Google's test users.
+- [`config-googlecloud.md`](docs/config-googlecloud.md): the Google sign-in client, the Google Calendar client, their secrets, or Google's test users.
 - [`config-supabase.md`](docs/config-supabase.md): changing the hosted database, the Data API, sign-in email, or the database password.
 - [`feature-admin-console.md`](docs/feature-admin-console.md): the admin console at `/admin`: who can open it, its pages, managing users and admins, deactivation, and the FAQ.
-- [`feature-calendaring.md`](docs/feature-calendaring.md): getting sessions onto members' own calendars, through ICS feeds, invites on RSVP or add-to-calendar links.
+- [`feature-calendaring.md`](docs/feature-calendaring.md): getting sessions onto members' own calendars: the Google Calendar sync, subscribing and invites on RSVP, or ICS feeds and add-to-calendar links.
 - [`feature-community.md`](docs/feature-community.md): the Members area's Community page: members' posts, likes, comments and replies, @mentions and @everyone, search, notifications and the bell, or the profile picture menu.
 - [`feature-profiles.md`](docs/feature-profiles.md): members' profiles, their links and keywords, recent activity, All members, or member Settings, including email notification choices.
 - [`feature-sessions.md`](docs/feature-sessions.md): hosting sessions, session times and time zones, the session lifecycle, repeating sessions, the schedule and its live updates, theme colors, RSVPs, the waitlist, My Schedule, or the Host Feedback and Harvest forms after a session, with voice notes.

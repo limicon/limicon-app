@@ -1,6 +1,6 @@
 # Google Cloud
 
-The Google Cloud OAuth client behind "Continue with Google". [`config-supabase.md`](config-supabase.md) covers the Supabase side of sign-in, and [`process-local-development.md`](process-local-development.md) covers turning it on locally.
+The Google Cloud OAuth clients behind "Continue with Google" and the Google Calendar sync. [`config-supabase.md`](config-supabase.md) covers the Supabase side of sign-in, and [`process-local-development.md`](process-local-development.md) covers turning it on locally.
 
 ## Where things live
 
@@ -13,3 +13,12 @@ The sign-in client lives in the Google Cloud project `limicon-app`, in Limicon's
 - **The button:** `GOOGLE_SIGN_IN_ENABLED` in `wrangler.jsonc` shows "Continue with Google" on the sign-in page.
 
 Google's sign-in screen names `kgvkzvocadtlbntpmutq.supabase.co`, the address that handles sign-in. Showing a Limicon address there needs a Supabase custom domain, a paid add-on.
+
+## Calendar client
+
+The Google Calendar sync ([`feature-calendaring.md`](feature-calendaring.md) → Google Calendar) acts as team@limicon.org through its own OAuth client in the same project.
+
+- **API:** Google Calendar API, enabled in **APIs & Services → Library**.
+- **Client:** `limicon-app (Calendar)`, of type **Desktop app**, so `npm run calendar:connect` can sign in through a page on the developer's own machine without registered redirect addresses.
+- **Scope:** `https://www.googleapis.com/auth/calendar`, a sensitive scope the app isn't verified for, so Google's consent page warns that it's unverified; team@ continues through **Advanced**. Only team@ ever signs in to this client.
+- **Secrets:** the client secret and team@'s refresh token live only in the Worker's secrets, put there by the connect script. Removing the app's access under team@'s Google Account → Security → Third-party connections stops the sync; run the connect script again to restore it.

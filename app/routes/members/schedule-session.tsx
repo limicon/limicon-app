@@ -49,7 +49,7 @@ export async function action({ request, context, params }: Route.ActionArgs) {
   }
   const outcome = await rsvp(services.db(), { sessionId, userId });
   if (outcome === "not-found") throw data("Session not found", { status: 404 });
-  return { outcome };
+  return { outcome, invite: outcome === "registered" && services.settings.calendarInvites };
 }
 
 const label = <T extends { value: string; label: string }>(options: readonly T[], value: string) =>

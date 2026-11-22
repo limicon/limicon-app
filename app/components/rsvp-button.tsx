@@ -24,7 +24,7 @@ export function RsvpButton({
   full?: boolean;
   waitlistEnabled?: boolean;
 }) {
-  const fetcher = useFetcher<{ outcome?: string }>();
+  const fetcher = useFetcher<{ outcome?: string; invite?: boolean }>();
   const pending = fetcher.formData?.get("intent");
   const shown: Status | "pending" =
     pending === "rsvp" ? "pending" : pending === "cancel" ? null : status;
@@ -45,6 +45,9 @@ export function RsvpButton({
         <span className={`rounded-full px-3 py-0.5 text-sm font-semibold ${shown === "registered" ? "bg-[#CDEBE3] text-[#0F4A3C]" : "bg-[#F9DCBD] text-[#5A3612]"}`}>
           {shown === "registered" ? "Going" : "Waitlisted"}
         </span>
+        {shown === "registered" && fetcher.data?.invite && (
+          <span role="status" className="text-sm">A calendar invite is on its way to your email.</span>
+        )}
         <button type="submit" name="intent" value="cancel" onClick={(event) => { if (!confirm(shown === "registered" ? `Cancel your RSVP to ${title}?` : `Leave the waitlist for ${title}?`)) event.preventDefault(); }} className={secondary} aria-label={`Cancel your RSVP to ${title}`}>
           Cancel
         </button>

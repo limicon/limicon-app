@@ -5,16 +5,18 @@ import { servicesContext, type Viewer } from "~/context";
 import type { Privilege } from "~/lib/admin-roles";
 import { getPrivileges } from "~/lib/admin-roles.server";
 import { createDb, type Db } from "~/lib/db.server";
+import { googleCalendarConfig, runCalendarSync } from "~/lib/google-calendar.server";
 import type { Membership } from "~/lib/membership";
 import { getMembership } from "~/lib/membership.server";
 import { createSupabaseClient } from "~/lib/supabase.server";
 
 /**
- * Root middleware, and the only module that reads the Worker's environment: everything else
+ * Root middleware, and the only app module that reads the Worker's environment: everything else
  * gets what it needs from `servicesContext`. It gives every loader and action the request's
  * Supabase client, the signed-in viewer, a lazily opened database connection and the viewer's
- * membership. On the way out it adds any session cookies Supabase wrote, and closes the database
- * connection after the response is sent.
+ * membership. On the way out it adds any session cookies Supabase wrote, and after the response is
+ * sent it syncs Google Calendar with anything a form post changed, then closes the database
+ * connection.
  */
 export const servicesMiddleware: MiddlewareFunction<Response> = async (
   { request, context },
@@ -48,7 +50,11 @@ export const servicesMiddleware: MiddlewareFunction<Response> = async (
       (privileges ??= getMembershipOnce().then((m) =>
         m.isAdmin && viewer ? getPrivileges(db(), viewer.userId) : new Set<Privilege>(),
       )),
-    settings: { googleSignInEnabled: env.GOOGLE_SIGN_IN_ENABLED === "true" },
+    settings: {
+      googleSignInEnabled: env.GOOGLE_SIGN_IN_ENABLED === "true",
+      scheduleCalendarId: (env as unknown as Record<string, string | undefined>).GOOGLE_CALENDAR_ID?.trim() || null,
+      calendarInvites: googleCalendarConfig(env as unknown as Record<string, unknown>) !== null,
+    },
     media: env.MEDIA,
   });
 
@@ -64,7 +70,18 @@ export const servicesMiddleware: MiddlewareFunction<Response> = async (
     if (env.SEARCH_INDEXING !== "on") response.headers.set("X-Robots-Tag", "noindex, nofollow");
     return response;
   } finally {
-    if (sql) waitUntil(sql.end());
+    // Form posts may change sessions or RSVPs, which queue calendar syncs in the database.
+    const calendar = request.method === "POST" ? googleCalendarConfig(env as unknown as Record<string, unknown>) : null;
+    if (calendar) {
+      const connection = db();
+      waitUntil(
+        runCalendarSync(connection, calendar, { maxSessions: 5 })
+          .catch((error) => console.error("Calendar sync failed", error))
+          .finally(() => connection.end()),
+      );
+    } else if (sql) {
+      waitUntil(sql.end());
+    }
   }
 };
 

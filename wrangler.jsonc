@@ -41,8 +41,19 @@
 		"GOOGLE_SIGN_IN_ENABLED": "true",
 		// "on" lets search engines list the site. Off while it's a test site shared by link;
 		// switch it on when limicon.org points here.
-		"SEARCH_INDEXING": "off"
+		"SEARCH_INDEXING": "off",
+		// The app's address, for links to session pages in Google Calendar events.
+		"APP_URL": "https://limicon-app.limicon.workers.dev",
+		// team@limicon.org's Google calendars, from `npm run calendar:connect`
+		// (docs/feature-calendaring.md → Google Calendar): the public Limicon Schedule calendar
+		// members subscribe to, and the one holding members' RSVP invites. The sync also needs the
+		// Worker secrets GOOGLE_CALENDAR_CLIENT_ID, GOOGLE_CALENDAR_CLIENT_SECRET and
+		// GOOGLE_CALENDAR_REFRESH_TOKEN, and does nothing until all are set.
+		"GOOGLE_CALENDAR_ID": "",
+		"GOOGLE_INVITES_CALENDAR_ID": ""
 	},
+	// Retries Google Calendar syncs that didn't finish after a form post.
+	"triggers": { "crons": ["* * * * *"] },
 	"observability": {
 		"enabled": true
 	},

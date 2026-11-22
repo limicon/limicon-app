@@ -2,7 +2,47 @@
 
 How sessions reach members' own calendars (Google, Apple, Outlook and others) and stay in step when they change. [`feature-sessions.md`](feature-sessions.md) covers the sessions themselves: times, lifecycle, repeats and RSVPs. The app's own calendar and My Schedule pages (CAL-1 to CAL-7) are not covered here.
 
-Status: draft, 2026-11-15. Nothing is built yet. Where the team hasn't chosen, the options are listed.
+Status: the [Google Calendar](#google-calendar) sync, the schedule's subscribe button and invites on RSVP are built (2026-11-22). The rest of this doc is the earlier design for app-served feeds, invites by app email and add-to-calendar links; where the team hasn't chosen, the options are listed.
+
+## Google Calendar
+
+What's built. Sessions reach members' calendars through two calendars owned by team@limicon.org, which the app keeps up to date through the Google Calendar API.
+
+| Calendar | Holds | Who sees it |
+|---|---|---|
+| **Limicon Schedule** (public) | One event per published session: title, time, hosts, "Online" or the city, and a link to the session page | Anyone with its address. The schedule's **Subscribe to the Limicon calendar** button explains how to subscribe. |
+| **Limicon** (private) | One event per member per session they're going to, with that member as the only guest: the meeting link or venue, and the session page | team@ only. Each member sees just their own invite. team@ can hide this calendar. |
+
+- **Subscribing.** The button on Members > Schedule opens a panel explaining both ways onto a calendar: RSVP for an invite per session, or subscribe for every session as an overlay that members show or hide with its checkbox in their calendar app. The button says "subscribe", never "add": members who imported a copy of the calendar in past years were left with events that never updated. Its links: Google Calendar's `?cid=<calendar id>` page, a `webcal://` link to the calendar's public iCal address for Apple Calendar and Outlook, and a copy button for that address. Google Calendar shows changes at once; other apps when they next refresh.
+- **The public calendar leaves out the meeting link and description**, which only members see. Its events link to the session page.
+- **Invites.** A member who RSVPs and gets a place, or hosts or co-hosts, gets a Google invite at their sign-in email, marked accepted. Moving the session, or changing its title, link or venue, updates the invite and Google emails the member. Cancelling the RSVP, losing a co-host spot, deactivation, unpublishing or deleting the session cancels it. Waitlisted members get theirs when promoted. Sessions that have ended keep their invites as they are. One event per member, rather than one event with every member as a guest, means no member sees another's address, and adding a member emails nobody else.
+- **Overlaps.** A member who subscribes and RSVPs sees a session twice; the panel says so.
+
+### How the sync works
+
+- Triggers on `sessions`, `session_rsvps`, `session_hosts` and members' names and deactivation queue the session in `calendar_sync_queue`. Every write path is covered, the admin console's included, without the app remembering to.
+- A sync run claims a queued session, compares what each event should say (`app/lib/google-calendar.ts`, pure and unit-tested) with the content hash of what was last sent (`calendar_events`), and makes only the differences. Event ids come from the session's and member's uuids, so a repeated run updates rather than duplicates.
+- Runs start after each form post (`waitUntil`, up to 5 sessions) and every minute from the Worker's Cron Trigger. A session that fails stays queued with `last_error`, and is retried after 1, 2, 4… minutes, up to an hour. A run stops at 40 Google calls, under Workers' limit per invocation, and leaves the rest queued.
+- If Google refuses the app's access (401 or 403), the run stops and every session stays queued until access is fixed: run `npm run calendar:connect` again.
+- The shared calendar's changes email no one (`sendUpdates=none`); invites email their member (`sendUpdates=all`).
+- Don't edit either calendar's events in Google Calendar: the next change to the session overwrites them, and an event deleted there comes back.
+
+### Setup
+
+The sync does nothing until all of these are set. Locally they're unset, so it stays off.
+
+| Setting | Where | Holds |
+|---|---|---|
+| `GOOGLE_CALENDAR_ID`, `GOOGLE_INVITES_CALENDAR_ID` | `wrangler.jsonc` vars | The two calendars' ids. Not secret: the first is the public calendar's address. |
+| `APP_URL` | `wrangler.jsonc` vars | The app's address, for session page links |
+| `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET`, `GOOGLE_CALENDAR_REFRESH_TOKEN` | Worker secrets | The OAuth client and team@'s refresh token |
+
+`npm run calendar:connect` (`scripts/connect-google-calendar.mjs`) sets them all. It asks for the OAuth client's ID and secret ([`config-googlecloud.md`](config-googlecloud.md) → Calendar client), opens Google to sign in as team@limicon.org, finds or creates both calendars, makes Limicon Schedule public, writes the ids into `wrangler.jsonc`, and saves the secrets with `wrangler secret put`. `--dry-run` stops before creating or saving anything. When the sync first runs, it adds every published session, and invites everyone already going to an upcoming one.
+
+### Limits to watch
+
+- Google limits how many invitations an account sends to outside guests a day ([use limits](https://knowledge.workspace.google.com/admin/calendar/avoid-calendar-use-limits)). A failed send stays queued and retries, but check `calendar_sync_queue.last_error` around the day RSVPs open.
+- Gmail adds an invite to the calendar on its own only from a known sender, depending on the member's setting. Otherwise the member adds it from the email.
 
 ## Ways onto a calendar
 

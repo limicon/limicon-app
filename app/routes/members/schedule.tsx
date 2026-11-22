@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Form, Link, redirect, useNavigation, useSearchParams, useSubmit } from "react-router";
 
+import { CalendarSubscribe } from "~/components/calendar-subscribe";
 import { RichText } from "~/components/rich-text";
 import { RsvpButton } from "~/components/rsvp-button";
 import { SessionPhoto } from "~/components/session-photo";
@@ -86,7 +87,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     : [[], "", []];
   const drafts = hosted.filter((session) => !session.published);
   const published = hosted.find((session) => session.published && session.id === params.get("published"))?.title ?? null;
-  return { sessions, drafts, published, version, viewerZone, filters, timeZones: timeZoneNames(), now: filters.now };
+  const calendar = { calendarId: services.settings.scheduleCalendarId, invites: services.settings.calendarInvites };
+  return { sessions, drafts, published, version, viewerZone, filters, timeZones: timeZoneNames(), now: filters.now, calendar };
 }
 
 /** Publishes one of the member's drafts, or saves the time zone they picked. */
@@ -109,7 +111,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function Schedule({ loaderData, actionData }: Route.ComponentProps) {
-  const { sessions, drafts, published, version, viewerZone, filters, timeZones, now } = loaderData;
+  const { sessions, drafts, published, version, viewerZone, filters, timeZones, now, calendar } = loaderData;
   const zone = viewerZone.zone;
   useScheduleRefresh(version);
   useBrowserZone(viewerZone.source, zone);
@@ -121,11 +123,14 @@ export default function Schedule({ loaderData, actionData }: Route.ComponentProp
     <>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold">{VIEWS.find((v) => v.value === filters.view)!.label}</h1>
-        {filters.view === "hosting" && (
-          <Link to="/members/host/new" className={`${primaryButton} px-5 py-2.5`}>
-            <span aria-hidden="true">+ </span>Host a Session
-          </Link>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {calendar.calendarId && <CalendarSubscribe calendarId={calendar.calendarId} invites={calendar.invites} />}
+          {filters.view === "hosting" && (
+            <Link to="/members/host/new" className={`${primaryButton} px-5 py-2.5`}>
+              <span aria-hidden="true">+ </span>Host a Session
+            </Link>
+          )}
+        </div>
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <ScheduleToggle view={filters.view} />

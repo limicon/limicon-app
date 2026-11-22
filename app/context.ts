@@ -17,7 +17,13 @@ export type RequestServices = {
   membership: () => Promise<Membership>;
   /** What the viewer may do in the admin console, from their role; empty for everyone else. */
   privileges: () => Promise<Set<Privilege>>;
-  settings: { googleSignInEnabled: boolean };
+  settings: {
+    googleSignInEnabled: boolean;
+    /** The public Limicon Schedule Google calendar members can subscribe to, once it's set up. */
+    scheduleCalendarId: string | null;
+    /** Whether RSVPing sends a Google Calendar invite: the calendar sync is fully set up. */
+    calendarInvites: boolean;
+  };
   /** The bucket holding uploaded images and files, served at /media/<key>. */
   media: R2Bucket;
 };
