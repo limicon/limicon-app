@@ -49,8 +49,8 @@
 		// members subscribe to, and the one holding members' RSVP invites. The sync also needs the
 		// Worker secrets GOOGLE_CALENDAR_CLIENT_ID, GOOGLE_CALENDAR_CLIENT_SECRET and
 		// GOOGLE_CALENDAR_REFRESH_TOKEN, and does nothing until all are set.
-		"GOOGLE_CALENDAR_ID": "",
-		"GOOGLE_INVITES_CALENDAR_ID": ""
+		"GOOGLE_CALENDAR_ID": "c_9b02ec3ea874091606686ec19f7d43b841cbc201e75fdf3e46c1925809c1c759@group.calendar.google.com",
+		"GOOGLE_INVITES_CALENDAR_ID": "c_5b25430e0d5dd5a6e8ef1b4f0c400e75572afb582fd43b6750df78a6491a471d@group.calendar.google.com"
 	},
 	// Retries Google Calendar syncs that didn't finish after a form post.
 	"triggers": { "crons": ["* * * * *"] },
