@@ -19,13 +19,14 @@ async function editableSession(context: Route.LoaderArgs["context"], sessionId: 
   const { isAdmin, edition } = await services.membership();
   const session = await getEditableSession(services.db(), sessionId, { userId: services.viewer!.userId, isAdmin });
   if (!session) throw data("Session not found", { status: 404 });
-  return { services, session, edition };
+  return { services, session, edition, isAdmin };
 }
 
 export async function loader({ context, params, request }: Route.LoaderArgs) {
-  const { session, edition, services } = await editableSession(context, params.sessionId);
+  const { session, edition, services, isAdmin } = await editableSession(context, params.sessionId);
   const query = new URL(request.url).searchParams;
   return {
+    isAdmin,
     id: session.id,
     title: session.title,
     published: session.published,
@@ -95,6 +96,7 @@ export default function HostEdit({ loaderData, actionData }: Route.ComponentProp
         year={loaderData.year}
         timeZones={loaderData.timeZones}
         hostId={loaderData.hostId}
+        isAdmin={loaderData.isAdmin}
       />
       <details className="mt-10 rounded-lg border border-[#E8B4B0] p-4">
         <summary className="cursor-pointer font-semibold">Delete this session</summary>

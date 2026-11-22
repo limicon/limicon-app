@@ -61,6 +61,13 @@ export async function listHostedSessions(sql: Db, userId: string, editionId: num
   `;
 }
 
+/** Whether a saved session is a co-creation meeting; false for one that doesn't exist. */
+export async function isCocreationMeeting(sql: Db, sessionId: string): Promise<boolean> {
+  if (!UUID.test(sessionId)) return false;
+  const [row] = await sql<{ value: boolean }[]>`select is_cocreation_meeting as value from public.sessions where id = ${sessionId}`;
+  return row?.value ?? false;
+}
+
 /**
  * A session the viewer may edit: one they host or co-host, or any session for an admin.
  * Returns null otherwise, including for ids that don't exist.
@@ -72,7 +79,8 @@ export async function getEditableSession(
 ): Promise<EditableSession | null> {
   if (!UUID.test(sessionId)) return null;
   const [row] = await sql<EditableSession[]>`
-    select s.id, s.published, s.title, s.description, s.description_doc as "descriptionDoc", s.intention, s.theme,
+    select s.id, s.published, s.is_cocreation_meeting as "isCocreationMeeting",
+           s.title, s.description, s.description_doc as "descriptionDoc", s.intention, s.theme,
            s.image_key as "imageKey", s.session_types as "sessionTypes", s.experience,
            s.starts_at as "startsAt", s.ends_at as "endsAt", s.time_zone as "timeZone",
            s.meeting_link as "meetingLink", s.city, s.venue_note as "venueNote",
@@ -122,12 +130,13 @@ export async function createSession(
         insert into public.sessions (
           edition_id, created_by, published, title, description, description_doc, intention, image_key, theme, session_types,
           experience, starts_at, ends_at, time_zone, meeting_link, city, venue_note,
-          max_participants, waitlist_enabled, privacy, ai_assistant_allowed, ai_permissions, series_id
+          max_participants, waitlist_enabled, privacy, ai_assistant_allowed, ai_permissions, series_id, is_cocreation_meeting
         ) values (
           ${editionId}, ${userId}, ${publish}, ${title}, ${description}, ${doc}, ${v.intention}, ${v.imageKey}, ${v.theme},
           ${v.sessionTypes}::text[], ${v.experience}::text[], ${startsAt}, ${endsAt},
           ${v.timeZone}, ${v.meetingLink}, ${v.city}, ${v.venueNote}, ${v.maxParticipants},
-          ${v.waitlistEnabled}, ${v.privacy}, ${v.aiAssistantAllowed}, ${v.aiPermissions}::text[], ${seriesId}
+          ${v.waitlistEnabled}, ${v.privacy}, ${v.aiAssistantAllowed}, ${v.aiPermissions}::text[], ${seriesId},
+          ${v.isCocreationMeeting}
         )
         returning id
       `;
@@ -177,7 +186,7 @@ async function updateColumns(sql: Db, sessionId: string, v: SessionValues, publi
       meeting_link = ${v.meetingLink}, city = ${v.city}, venue_note = ${v.venueNote},
       max_participants = ${v.maxParticipants}, waitlist_enabled = ${v.waitlistEnabled},
       privacy = ${v.privacy}, ai_assistant_allowed = ${v.aiAssistantAllowed},
-      ai_permissions = ${v.aiPermissions}::text[], updated_at = now()
+      ai_permissions = ${v.aiPermissions}::text[], is_cocreation_meeting = ${v.isCocreationMeeting}, updated_at = now()
     where id = ${sessionId}
   `;
 }

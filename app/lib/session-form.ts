@@ -6,6 +6,9 @@ import { cleanRichText, plainToRichText, readRichText, richTextToPlain, type Ric
 import { IMAGE_KEY } from "~/lib/media";
 import { instantToZoned, isValidTimeZone, zonedToInstant } from "~/lib/zoned-time";
 
+/** The title a co-creation meeting starts with; admins may add a colon and what it's about. */
+export const COCREATION_TITLE = "Co-Creation Meeting";
+
 export const THEMES = [
   "Collective Sensemaking and Systems Thinking",
   "Spirituality, Ritual and Contemplative Practice",
@@ -71,6 +74,8 @@ export const LENGTH_MAX = 12 * 60;
 
 /** What the form posts, as plain strings; checkbox groups are arrays. */
 export type SessionFormInput = {
+  /** An Organizing Team co-creation meeting (SES-9). Only admins set it; the server keeps the saved value for anyone else. */
+  cocreation: boolean;
   title: string;
   /** The description editor's document as JSON (plain text is read as one paragraph a line). */
   description: string;
@@ -114,6 +119,7 @@ export type Person = { id: string; name: string };
 
 /** A session's columns, ready to save. */
 export type SessionValues = {
+  isCocreationMeeting: boolean;
   title: string;
   /** The description's plain text, for search; `descriptionDoc` is what members see. */
   description: string | null;
@@ -166,6 +172,7 @@ export function readSessionForm(form: { get(name: string): unknown; getAll(name:
   };
   const list = (name: string) => form.getAll(name).filter((v): v is string => typeof v === "string");
   return {
+    cocreation: text("cocreation") === "on",
     title: text("title"),
     description: text("description"),
     intention: text("intention"),
@@ -323,6 +330,7 @@ export function checkSessionForm(
     ok: true,
     warnings,
     values: {
+      isCocreationMeeting: input.cocreation,
       title: input.title,
       description: description || null,
       descriptionDoc,
@@ -464,6 +472,7 @@ export function sessionToFormInput(session: Omit<SessionValues, "repeats"> & { c
       ? String(Math.round((session.endsAt.getTime() - session.startsAt.getTime()) / 60_000))
       : "";
   return {
+    cocreation: session.isCocreationMeeting,
     title: session.title,
     description: JSON.stringify(session.descriptionDoc ?? plainToRichText(session.description ?? "")),
     intention: session.intention ?? "",

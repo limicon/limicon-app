@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import { checkSessionForm, readSessionForm, repeatRows, sessionToFormInput, type SessionFormInput } from "./session-form";
 
 const complete: SessionFormInput = {
+  cocreation: false,
   title: "Thresholds and transitions",
   description: "We talk about the in-between.",
   intention: "", imageKey: "",
@@ -34,7 +35,7 @@ const draft = (input: Partial<SessionFormInput>) =>
 
 function emptyForm(): SessionFormInput {
   return {
-    title: "", description: "", intention: "", imageKey: "", theme: "", sessionTypes: [], experience: [],
+    cocreation: false, title: "", description: "", intention: "", imageKey: "", theme: "", sessionTypes: [], experience: [],
     date: "", start: "", lengthMinutes: "", timeZone: "America/Toronto", meetingLink: "",
     city: "", venueNote: "", maxParticipants: "", waitlist: false, recorded: "",
     recordingAudience: "", aiAllowed: "", aiPermissions: [], coHosts: [], repeat: "", repeatUntil: "", extraDates: [], extraStarts: [], sameDetails: true, repeatTitles: [], repeatDescriptions: [],
@@ -49,6 +50,19 @@ describe("checkSessionForm", () => {
     expect(result.values.startsAt?.toISOString()).toBe("2027-03-17T16:00:00.000Z");
     expect(result.values.endsAt?.toISOString()).toBe("2027-03-17T17:30:00.000Z");
     expect(result.values.privacy).toBe("members");
+  });
+
+  test("reads the co-creation box, and keeps it through saving and editing", () => {
+    const form = new FormData();
+    form.set("title", "Co-Creation Meeting: AI Use");
+    form.set("cocreation", "on");
+    form.set("timeZone", "America/Toronto");
+    const input = readSessionForm(form);
+    expect(input.cocreation).toBe(true);
+    const result = checkSessionForm(input, { publish: false });
+    expect(result.ok && result.values.isCocreationMeeting).toBe(true);
+    if (result.ok) expect(sessionToFormInput(result.values).cocreation).toBe(true);
+    expect(readSessionForm(new FormData()).cocreation).toBe(false);
   });
 
   test("saves a draft with only a title", () => {

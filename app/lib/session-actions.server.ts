@@ -2,7 +2,7 @@ import { data, redirect } from "react-router";
 
 import type { RequestServices } from "~/context";
 import { checkSessionForm, readSessionForm, sessionToFormInput } from "~/lib/session-form";
-import { createSession, deleteSession, getEditableSession, ineligibleCoHosts, updateSession } from "~/lib/sessions.server";
+import { createSession, deleteSession, getEditableSession, ineligibleCoHosts, isCocreationMeeting, updateSession } from "~/lib/sessions.server";
 
 /**
  * Puts a draft on the calendar as it was saved, for a member who may edit it. It passes the same
@@ -47,7 +47,7 @@ export async function saveSessionForm(
 ) {
   const form = await request.formData();
   const intent = form.get("intent");
-  const { edition } = await services.membership();
+  const { edition, isAdmin } = await services.membership();
   if (!edition) throw data("No Limicon edition is set up yet.", { status: 409 });
 
   if (intent === "delete" && sessionId) {
@@ -57,6 +57,8 @@ export async function saveSessionForm(
 
   const publish = intent === "publish";
   const input = readSessionForm(form);
+  // Only admins mark co-creation meetings; anyone else keeps what the session already has.
+  if (!isAdmin) input.cocreation = sessionId ? await isCocreationMeeting(services.db(), sessionId) : false;
   const result = checkSessionForm(input, {
     publish,
     eventWindow: { first: edition.firstDay, last: edition.lastDay },

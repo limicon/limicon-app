@@ -293,14 +293,6 @@ export async function unpublishSession(sql: Db, editionId: number, sessionId: st
   `;
 }
 
-/** Marks or unmarks a session as an Organizing Team co-creation meeting (SES-9). */
-export async function setCocreationMeeting(sql: Db, editionId: number, sessionId: string, value: boolean) {
-  await sql`
-    update public.sessions set is_cocreation_meeting = ${value}, updated_at = now()
-    where id = ${sessionId} and edition_id = ${editionId}
-  `;
-}
-
 // --- Tickets --------------------------------------------------------------------------------
 
 export type CompResult = "issued" | "no-account" | "has-ticket" | "bad-tier";

@@ -39,6 +39,8 @@ export type ScheduledSession = {
   hostName: string | null;
   /** Whether it's one date of a repeating session, with others on the calendar. */
   recurring: boolean;
+  /** Whether it's an Organizing Team co-creation meeting (SES-9). */
+  cocreation: boolean;
   /** About this session: plain text for the card's preview, and the formatted document. */
   description: string | null;
   descriptionDoc: RichDoc | null;
@@ -76,6 +78,8 @@ export type ScheduleFilters = {
   theme: string | null;
   sessionType: string | null;
   keyword: string | null;
+  /** Only the Organizing Team's co-creation meetings (SES-9). */
+  cocreationOnly?: boolean;
 };
 
 /**
@@ -91,6 +95,7 @@ export async function listScheduledSessions(
   const pattern = filters.keyword ? `%${filters.keyword.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : null;
   return sql<ScheduledSession[]>`
     select s.id, s.title, s.theme, s.session_types as "sessionTypes", ${sql.unsafe(PHOTO_COLUMNS)}, ${sql.unsafe(SERIES_COLUMNS)},
+           s.is_cocreation_meeting as "cocreation",
            s.starts_at as "startsAt", s.ends_at as "endsAt", s.time_zone as "timeZone", s.city,
            coalesce((
              select array_agg(
@@ -118,6 +123,7 @@ export async function listScheduledSessions(
             : sql`s.ends_at > ${filters.now}`
       }
       and (${filters.theme}::text is null or s.theme = ${filters.theme})
+      and (not ${filters.cocreationOnly ?? false} or s.is_cocreation_meeting)
       and (${filters.sessionType}::text is null or ${filters.sessionType} = any (s.session_types))
       and (
         ${pattern}::text is null
@@ -142,6 +148,7 @@ export async function getSessionDetails(
   if (!/^[0-9a-f-]{36}$/i.test(sessionId)) return null;
   const [row] = await sql<SessionDetails[]>`
     select s.id, s.title, s.theme, s.session_types as "sessionTypes", ${sql.unsafe(PHOTO_COLUMNS)}, ${sql.unsafe(SERIES_COLUMNS)},
+           s.is_cocreation_meeting as "cocreation",
            s.starts_at as "startsAt", s.ends_at as "endsAt", s.time_zone as "timeZone", s.city,
            coalesce((
              select array_agg(

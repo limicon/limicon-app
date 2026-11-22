@@ -13,6 +13,7 @@ import {
   REPEATS,
   REPEATS_MAX,
   repeatRows,
+  COCREATION_TITLE,
   SESSION_TYPES,
   THEMES,
   TITLE_MAX,
@@ -102,6 +103,7 @@ export function SessionEditor({
   timeZones,
   hostId,
   lastDay = null,
+  isAdmin = false,
 }: {
   initial: SessionFormInput;
   errors?: FieldErrors;
@@ -112,12 +114,15 @@ export function SessionEditor({
   hostId: string | null;
   /** The event's last day ("YYYY-MM-DD"), where weekly repeats stop unless the host says sooner. */
   lastDay?: string | null;
+  /** Shows the co-creation meeting box, which only admins can tick. */
+  isAdmin?: boolean;
 }) {
   const busy = useNavigation().state !== "idle";
   const formRef = useRef<HTMLFormElement>(null);
   // A saved draft or session starts unchanged; a new one, or one sent back with errors, doesn't.
   const changed = useChanged(formRef, status === "new" || Object.keys(errors).length > 0);
   const [title, setTitle] = useState(initial.title);
+  const [cocreation, setCocreation] = useState(initial.cocreation);
   const [types, setTypes] = useState(initial.sessionTypes);
   const [recorded, setRecorded] = useState(initial.recorded);
   const [aiAllowed, setAiAllowed] = useState(initial.aiAllowed);
@@ -135,6 +140,16 @@ export function SessionEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Ticking puts "Co-Creation Meeting" at the front of the title, keeping anything already typed
+  // after a colon; unticking takes it off again.
+  const toggleCocreation = (on: boolean) => {
+    setCocreation(on);
+    const prefix = `${COCREATION_TITLE}: `;
+    if (on && !title.startsWith(COCREATION_TITLE)) setTitle(title.trim() ? `${prefix}${title.trim()}` : COCREATION_TITLE);
+    if (!on && title === COCREATION_TITLE) setTitle("");
+    if (!on && title.startsWith(prefix)) setTitle(title.slice(prefix.length));
+  };
+
   const inPerson = types.includes("in_person");
   const members = year ? `Limicon ${year} members` : "Limicon members";
   const titleLength = [...title].length;
@@ -142,6 +157,22 @@ export function SessionEditor({
   return (
     <Form ref={formRef} method="post" className="grid gap-6" noValidate>
       <Fieldset legend="About the session">
+        {isAdmin && (
+          <div className="rounded-md border border-[#C9DADC] bg-[#F4F7F7] p-3 dark:border-[#24363B] dark:bg-[#0F1C1E]">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox" name="cocreation" checked={cocreation} onChange={(e) => toggleCocreation(e.target.checked)}
+                aria-describedby="cocreation-help" className="mt-1 size-4 shrink-0"
+              />
+              <span>
+                <span className="block font-medium">This is a co-creation meeting</span>
+                <span id="cocreation-help" className="block text-sm">
+                  For the Organizing Team's meetings, which members can join. The title becomes “{COCREATION_TITLE}”; add a colon and the topic if you like, such as “{COCREATION_TITLE}: AI Use”. Admins only.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
         <div>
           <label htmlFor="title" className="block font-medium">Session title</label>
           <input

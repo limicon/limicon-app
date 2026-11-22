@@ -2,7 +2,7 @@ import { data, Form, Link, redirect, useNavigation } from "react-router";
 
 import { Badge, card, Notice, PageHeading, secondaryButton } from "~/components/admin-ui";
 import { servicesContext } from "~/context";
-import { isUuid, listAllSessions, setCocreationMeeting, unpublishSession, type AdminSession } from "~/lib/admin.server";
+import { isUuid, listAllSessions, unpublishSession, type AdminSession } from "~/lib/admin.server";
 import { requirePrivilege } from "~/middleware/services.server";
 import type { Route } from "./+types/sessions";
 
@@ -49,7 +49,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
   };
 }
 
-/** Admins can take any session off the calendar (SES-4) and mark co-creation meetings (SES-9). */
+/** Admins can take any session off the calendar (SES-4). */
 export async function action({ request, context }: Route.ActionArgs) {
   const { services, edition } = await currentEdition(context);
   const form = await request.formData();
@@ -61,18 +61,12 @@ export async function action({ request, context }: Route.ActionArgs) {
     await unpublishSession(services.db(), edition.id, sessionId);
     throw redirect(`/admin/sessions?show=${back}&done=unpublished`);
   }
-  if (intent === "cocreation-on" || intent === "cocreation-off") {
-    await setCocreationMeeting(services.db(), edition.id, sessionId, intent === "cocreation-on");
-    throw redirect(`/admin/sessions?show=${back}&done=${intent}`);
-  }
   throw data("Unknown action", { status: 400 });
 }
 
 const doneMessages: Record<string, string> = {
   deleted: "Session deleted.",
   unpublished: "Taken off the calendar. Its hosts still have it as a draft.",
-  "cocreation-on": "Marked as an Organizing Team co-creation meeting.",
-  "cocreation-off": "No longer marked as a co-creation meeting.",
 };
 
 export default function AdminSessions({ loaderData }: Route.ComponentProps) {
@@ -130,15 +124,6 @@ export default function AdminSessions({ loaderData }: Route.ComponentProps) {
                   <Link to={`/admin/sessions/${session.id}`} className={secondaryButton}>Edit</Link>
                   <Form method="post" className="contents">
                     <input type="hidden" name="sessionId" value={session.id} />
-                    <button
-                      type="submit"
-                      name="intent"
-                      value={session.isCocreationMeeting ? "cocreation-off" : "cocreation-on"}
-                      disabled={busy}
-                      className={secondaryButton}
-                    >
-                      {session.isCocreationMeeting ? "Unmark co-creation" : "Mark as co-creation"}
-                    </button>
                     {session.published && (
                       <button type="submit" name="intent" value="unpublish" disabled={busy} onClick={(event) => { if (!confirm(`Take “${session.title}” off the calendar? Its hosts keep it as a draft.`)) event.preventDefault(); }} className={secondaryButton}>
                         Take off calendar

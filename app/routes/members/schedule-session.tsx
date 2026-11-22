@@ -7,7 +7,7 @@ import { servicesContext } from "~/context";
 import { fullTimeRange, zoneName } from "~/lib/format-time";
 import { RsvpButton } from "~/components/rsvp-button";
 import { SessionPhoto } from "~/components/session-photo";
-import { SeriesBadge } from "~/components/series-badge";
+import { CocreationBadge, SeriesBadge } from "~/components/series-badge";
 import { cancelRsvp, getRsvpSummary, rsvp } from "~/lib/rsvps.server";
 import { getSessionDetails, scheduleVersion } from "~/lib/schedule.server";
 import { listOtherDates } from "~/lib/sessions.server";
@@ -90,6 +90,7 @@ export default function ScheduleSession({ loaderData }: Route.ComponentProps) {
           {session.hosts.length > 0 && <p className="mt-2">With {session.hosts.join(", ")}</p>}
           <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 items-center">
             <ThemeLabel theme={session.theme} />
+            <CocreationBadge cocreation={session.cocreation} />
             <SeriesBadge recurring={session.recurring} />
             <span>{session.sessionTypes.map((type) => label(SESSION_TYPES, type)).join(", ")}</span>
           </p>

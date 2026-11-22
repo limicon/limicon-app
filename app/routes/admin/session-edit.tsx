@@ -1,9 +1,9 @@
-import { data, Form, Link, redirect } from "react-router";
+import { data, Form, Link } from "react-router";
 
-import { Badge, card, formatWhen, Notice, secondaryButton } from "~/components/admin-ui";
+import { Badge, card, formatWhen, Notice } from "~/components/admin-ui";
 import { SessionEditor } from "~/components/session-editor";
 import { servicesContext } from "~/context";
-import { getAdminSessionMeta, isUuid, setCocreationMeeting } from "~/lib/admin.server";
+import { getAdminSessionMeta, isUuid } from "~/lib/admin.server";
 import { saveSessionForm, type SessionPaths } from "~/lib/session-actions.server";
 import { sessionToFormInput } from "~/lib/session-form";
 import { getEditableSession } from "~/lib/sessions.server";
@@ -52,12 +52,7 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
 }
 
 export async function action({ request, context, params }: Route.ActionArgs) {
-  const { services, edition } = await sessionForAdmin(context, params.sessionId);
-  const intent = (await request.clone().formData()).get("intent");
-  if (intent === "cocreation-on" || intent === "cocreation-off") {
-    await setCocreationMeeting(services.db(), edition.id, params.sessionId, intent === "cocreation-on");
-    throw redirect(`/admin/sessions/${params.sessionId}?saved=${intent}`);
-  }
+  const { services } = await sessionForAdmin(context, params.sessionId);
   return saveSessionForm(request, services, params.sessionId, ADMIN_PATHS);
 }
 
@@ -65,8 +60,6 @@ const savedMessages: Record<string, string> = {
   published: "Saved, and on the calendar.",
   draft: "Saved as a draft. Only its hosts and admins can see it.",
   kept: "Members had RSVPed, so the session is off the calendar but kept as a draft, with its RSVPs.",
-  "cocreation-on": "Marked as an Organizing Team co-creation meeting.",
-  "cocreation-off": "No longer marked as a co-creation meeting.",
 };
 
 /** The hosts' session editor, inside the console, with what only admins see and set. */
@@ -114,19 +107,6 @@ export default function AdminSessionEdit({ loaderData, actionData }: Route.Compo
             Created {formatWhen(meta.createdAt)} · updated {formatWhen(meta.updatedAt)}
           </p>
         </div>
-        <Form method="post" className="sm:col-span-2">
-          <p className="text-sm">
-            Co-creation meetings are Organizing Team meetings, shown on the same calendar and filterable (SES-9).
-          </p>
-          <button
-            type="submit"
-            name="intent"
-            value={meta.isCocreationMeeting ? "cocreation-off" : "cocreation-on"}
-            className={`${secondaryButton} mt-2`}
-          >
-            {meta.isCocreationMeeting ? "Unmark as co-creation meeting" : "Mark as co-creation meeting"}
-          </button>
-        </Form>
       </section>
 
       <SessionEditor
@@ -137,6 +117,7 @@ export default function AdminSessionEdit({ loaderData, actionData }: Route.Compo
         year={loaderData.year}
         timeZones={loaderData.timeZones}
         hostId={loaderData.hostId}
+        isAdmin
       />
       <details className="mt-10 rounded-lg border border-[#E8B4B0] p-4">
         <summary className="cursor-pointer font-semibold">Delete this session</summary>

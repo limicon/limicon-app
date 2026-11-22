@@ -5,7 +5,7 @@ import { CalendarSubscribe } from "~/components/calendar-subscribe";
 import { RichText } from "~/components/rich-text";
 import { RsvpButton } from "~/components/rsvp-button";
 import { SessionPhoto } from "~/components/session-photo";
-import { SeriesBadge } from "~/components/series-badge";
+import { CocreationBadge, SeriesBadge } from "~/components/series-badge";
 import { useBrowserZone, useScheduleRefresh } from "~/components/schedule-refresh";
 import { ThemeLabel } from "~/components/theme-label";
 import { MonthView, ThreeDayView } from "~/components/schedule-calendar";
@@ -76,6 +76,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     theme: theme && (THEMES as readonly string[]).includes(theme) ? theme : null,
     sessionType: sessionType && SESSION_TYPES.some((t) => t.value === sessionType) ? sessionType : null,
     keyword: params.get("q")?.trim().slice(0, 100) || null,
+    cocreationOnly: params.get("cocreation") === "1",
   };
 
   const [sessions, version, hosted] = edition
@@ -117,7 +118,7 @@ export default function Schedule({ loaderData, actionData }: Route.ComponentProp
   useBrowserZone(viewerZone.source, zone);
 
   const days = groupByDay(sessions, zone);
-  const filtered = Boolean(filters.theme || filters.sessionType || filters.keyword);
+  const filtered = Boolean(filters.theme || filters.sessionType || filters.keyword || filters.cocreationOnly);
 
   return (
     <>
@@ -277,6 +278,7 @@ function SessionCard({ session, zone, canRsvp, hosting }: { session: ScheduledSe
           </h3>
           <p className="flex flex-wrap gap-x-4 gap-y-1 items-center text-sm">
             <ThemeLabel theme={session.theme} />
+            <CocreationBadge cocreation={session.cocreation} />
             <SeriesBadge recurring={session.recurring} />
             <span>{session.sessionTypes.map(typeLabel).join(", ")}</span>
             {session.city && <span>In person, {session.city}</span>}
@@ -434,9 +436,10 @@ function Filters({ filters }: { filters: Route.ComponentProps["loaderData"]["fil
       method="get"
       role="search"
       className="mt-6 grid gap-4 rounded-lg border border-[#C9DADC] bg-white p-4 dark:border-[#24363B] dark:bg-[#12201F]"
-      // Dropdowns apply as soon as they change; the search waits for Enter or the button.
+      // Dropdowns and the checkbox apply as soon as they change; the search waits for Enter or the button.
       onChange={(event) => {
-        if ((event.target as HTMLElement).tagName === "SELECT") submit(event.currentTarget);
+        const target = event.target as unknown as HTMLInputElement;
+        if (target.tagName === "SELECT" || target.type === "checkbox") submit(event.currentTarget);
       }}
     >
       {filters.view !== "all" && <input type="hidden" name="view" value={filters.view} />}
@@ -479,6 +482,10 @@ function Filters({ filters }: { filters: Route.ComponentProps["loaderData"]["fil
           </div>
         )}
       </div>
+      <label className="flex items-center gap-2 justify-self-start">
+        <input type="checkbox" name="cocreation" value="1" defaultChecked={filters.cocreationOnly} className="size-4" />
+        Only co-creation meetings
+      </label>
       {[...params.keys()].some((key) => !KEPT_PARAMS.includes(key)) && (
         <Link to={clearHref(params)} className="justify-self-start text-sm underline">
           Clear search and filters

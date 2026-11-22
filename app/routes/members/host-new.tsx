@@ -23,7 +23,7 @@ async function requireGuidelines(context: Route.LoaderArgs["context"]) {
 }
 
 const blank: SessionFormInput = {
-  title: "", description: "", intention: "", imageKey: "", theme: "", sessionTypes: [], experience: [],
+  cocreation: false, title: "", description: "", intention: "", imageKey: "", theme: "", sessionTypes: [], experience: [],
   date: "", start: "", lengthMinutes: "60", timeZone: "America/Toronto", meetingLink: "",
   city: "", venueNote: "", maxParticipants: "", waitlist: false, recorded: "",
   recordingAudience: "", aiAllowed: "", aiPermissions: [], coHosts: [], repeat: "", repeatUntil: "", extraDates: [], extraStarts: [], sameDetails: true, repeatTitles: [], repeatDescriptions: [],
@@ -31,7 +31,8 @@ const blank: SessionFormInput = {
 
 export async function loader({ context }: Route.LoaderArgs) {
   const { edition, services } = await requireGuidelines(context);
-  return { year: edition.year, lastDay: edition.lastDay, timeZones: timeZoneNames(), hostId: services.viewer!.userId };
+  const { isAdmin } = await services.membership();
+  return { year: edition.year, lastDay: edition.lastDay, timeZones: timeZoneNames(), hostId: services.viewer!.userId, isAdmin };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -57,6 +58,7 @@ export default function HostNew({ loaderData, actionData }: Route.ComponentProps
         timeZones={loaderData.timeZones}
         hostId={loaderData.hostId}
         lastDay={loaderData.lastDay}
+        isAdmin={loaderData.isAdmin}
       />
     </>
   );
