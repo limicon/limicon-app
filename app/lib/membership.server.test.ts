@@ -1,31 +1,13 @@
-/// <reference types="node" />
-// Vitest runs this in Node, which the app's own tsconfig doesn't include.
-import postgres from "postgres";
-import { afterAll, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import type { Db } from "./db.server";
 import { getMembership } from "./membership.server";
+import { connectTestDb } from "./test-db";
 
 // Runs against the local Supabase database from `npm run db:start`.
-const sql = postgres(
-  process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
-  { max: 1, onnotice: () => {} },
-);
-
-afterAll(() => sql.end());
+const { inRolledBackTransaction } = connectTestDb();
 
 /** Runs `work` in a transaction that is always rolled back, so tests leave no rows behind. */
-async function inRolledBackTransaction(work: (tx: Db) => Promise<void>) {
-  const rollback = new Error("rollback");
-  await expect(
-    sql.begin(async (tx) => {
-      // A transaction runs the same tagged-template queries as the client getMembership expects.
-      await work(tx as unknown as Db);
-      throw rollback;
-    }),
-  ).rejects.toBe(rollback);
-}
-
 async function newAccount(tx: Db) {
   const [user] = await tx<{ id: string }[]>`
     insert into auth.users (id, email, aud, role)

@@ -1,19 +1,13 @@
-import postgres from "postgres";
 import { expect, test } from "@playwright/test";
 
-import { createAccount, newEmail, setName, signIn } from "./support";
+import { createAccount, newEmail, setName, signIn, withDb } from "./support";
 
 /** Gives the account for `email` the role `role` in the local database. */
 async function giveRole(email: string, role: string) {
-  const sql = postgres(process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres", { max: 1, onnotice: () => {} });
-  try {
-    await sql`
-      insert into public.admin_permissions (profile_id, permission)
-      select id, ${role} from auth.users where email = ${email}
-    `;
-  } finally {
-    await sql.end();
-  }
+  await withDb((sql) => sql`
+    insert into public.admin_permissions (profile_id, permission)
+    select id, ${role} from auth.users where email = ${email}
+  `);
 }
 
 test("removing someone from a role asks why, and the reason shows in the role history", async ({ page, request }) => {

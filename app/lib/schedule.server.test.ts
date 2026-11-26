@@ -1,27 +1,10 @@
-/// <reference types="node" />
-// Vitest runs this in Node, which the app's own tsconfig doesn't include.
-import postgres from "postgres";
-import { afterAll, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import type { Db } from "./db.server";
 import { getSessionDetails, listScheduledSessions, scheduleVersion, type ScheduleFilters } from "./schedule.server";
+import { connectTestDb } from "./test-db";
 
-const sql = postgres(
-  process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
-  { max: 1, fetch_types: false, onnotice: () => {} },
-);
-
-afterAll(() => sql.end());
-
-async function inRolledBackTransaction(work: (tx: Db) => Promise<void>) {
-  const rollback = new Error("rollback");
-  await expect(
-    sql.begin(async (tx) => {
-      await work(tx as unknown as Db);
-      throw rollback;
-    }),
-  ).rejects.toBe(rollback);
-}
+const { inRolledBackTransaction } = connectTestDb();
 
 const now = new Date("2027-03-17T12:00:00Z");
 // A viewer with no RSVPs, unless a test sets one.
