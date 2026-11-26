@@ -82,6 +82,8 @@ test("a poster adds an update, and a member likes it and comments", async ({ bro
   // The member deletes their comment, and the link to comments goes away.
   member.on("dialog", (dialog) => dialog.accept());
   await post.getByRole("button", { name: "Delete" }).click();
+  // Reloading before the delete finishes would cancel it.
+  await expect(post.getByText("Can't wait for Monday!")).toHaveCount(0);
   await member.reload();
   await expect(post.getByRole("button", { name: /View comments/ })).toHaveCount(0);
 });
