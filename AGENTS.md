@@ -46,6 +46,7 @@ Each entry names the work that calls for reading the doc.
 - [`selection-email.md`](docs/selection-email.md): choosing the email service for sign-in, notifications and newsletters, or whether one service sends both.
 - [`selection-frontend.md`](docs/selection-frontend.md): choosing between React Router and Next.js, or setting up rendering, data loading and sign-in in either.
 - [`selection-hosting.md`](docs/selection-hosting.md): choosing or setting up hosting, logging and alerting.
+- [`strategy-security.md`](docs/strategy-security.md): adding a table, route, secret, webhook, upload or third-party grant; where secrets live; what's public; or the known security gaps.
 - [`strategy-testing.md`](docs/strategy-testing.md): deciding what kind of test to write, or how much of each.
 
 ## Writing

@@ -11,7 +11,7 @@ Where limicon-app runs on Cloudflare, who can open it, and how to deploy it. [`c
 | Uploaded images and files | R2 bucket `limicon-media`, bound as `MEDIA` | Holds what admins upload: the event image, and images and files in rich text. The app serves them at `/media/<key>`. Locally, Wrangler keeps the bucket on disk under `.wrangler`. Create the hosted bucket once, before the first deploy that needs it: `npx wrangler r2 bucket create limicon-media`. |
 | Database connection | Hyperdrive configuration `limicon-db` | Reaches Supabase through its session pooler, since Hyperdrive couldn't reach the direct connection. Read caching is off, so every page sees current data, including a member's own change the moment after they make it; with it on, Hyperdrive answered repeated reads from a 60-second cache. The app runs next to the database, so uncached reads cost a few milliseconds. Turn caching back on only with `wrangler hyperdrive update <id> --caching-disabled false`, and only alongside a second, uncached configuration for reads that must be fresh. Holds the database password; [`config-supabase.md`](config-supabase.md) covers changing it. |
 
-The Supabase address and publishable key are `vars` in `wrangler.jsonc`, with `GOOGLE_SIGN_IN_ENABLED` and `SEARCH_INDEXING`. All are public. The app holds no secrets: Hyperdrive keeps the database password.
+The Supabase address and publishable key are `vars` in `wrangler.jsonc`, with `GOOGLE_SIGN_IN_ENABLED` and `SEARCH_INDEXING`. All are public. Hyperdrive keeps the database password, and Worker secrets hold the rest ([`strategy-security.md`](strategy-security.md) → Secrets).
 
 ## Deploying
 
