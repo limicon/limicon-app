@@ -16,6 +16,7 @@ Status: checked against the code on 2026-11-25.
 - **Other sites' forms.** The session cookie is `SameSite=Lax`, so a form another site posts here arrives signed out. Sign-out is a form post too.
 - **What people write.** Rich text is stored as TipTap JSON, cleaned against an allowlist on save (`cleanRichText`), with `https:` links only. Nothing renders raw HTML.
 - **What people upload.** Images and files are checked by size, extension and first bytes, stored in R2 under random keys, and served with the app's own content type and a sandboxing CSP (`app/routes/media.ts`).
+- **What browsers may do.** Every response carries security headers (`app/lib/security-headers.ts`), added by the root middleware, or by the server entry for addresses no route matches, which skip middleware. The CSP runs only the app's own scripts and inline scripts with the response's nonce, which React Router writes into the page (`app/entry.server.tsx`). No other site may frame the app. Form posts may go only to the app, Supabase and Google, the stops on sign-in's redirects. `npm run dev` leaves the CSP off for Vite's hot reloading; the e2e suite runs the built app with it.
 
 ## Secrets
 
@@ -49,7 +50,6 @@ The Cron Trigger has no address; only Cloudflare starts it.
 
 Most pressing first.
 
-- **No site-wide security headers.** No `frame-ancestors` or `X-Frame-Options`, so another site can frame any page, the console included, and trick a click. App pages have no CSP either; only media and voice notes set their own.
 - **The session cookie is readable by page scripts.** `@supabase/ssr` sets `httpOnly: false` by default, and the app keeps it, which matters if a script injection ever gets through. The app has no browser Supabase client, so `httpOnly: true` may work; check sign-in and refresh with it.
 - **Removed photos stay served.** Replacing or removing a profile picture or session photo changes the key in the database but leaves the file in R2, at the same address, cached for a year. The event image and voice notes do delete what they replace.
 - **The calendar grant covers all of team@'s calendars.** A narrower scope, such as `calendar.app.created`, might cover what the sync needs; unconfirmed.
@@ -65,4 +65,5 @@ Most pressing first.
 - **A webhook** authenticates every call (Stripe's signature, Postmark's password), and handles the same event arriving twice.
 - **User-written content** goes through an allowlist cleaner such as `cleanRichText`, never raw HTML.
 - **An upload kind** checks type by first bytes and is served with the app's own content type.
+- **Anything from another site**, such as a script, an embedded frame, a font, or a form post that leaves the app (Stripe Checkout's redirect is one), gets its address added to the CSP in `app/lib/security-headers.ts`, or the browser blocks it.
 - **A Google or other third-party grant** asks for the narrowest scope that works, and its config doc names the account that holds it.

@@ -8,13 +8,15 @@ import { createDb, type Db } from "~/lib/db.server";
 import { googleCalendarConfig, runCalendarSync } from "~/lib/google-calendar.server";
 import type { Membership } from "~/lib/membership";
 import { getMembership } from "~/lib/membership.server";
+import { applySecurityHeaders, createNonce } from "~/lib/security-headers";
 import { createSupabaseClient } from "~/lib/supabase.server";
 
 /**
  * Root middleware, and the only app module that reads the Worker's environment: everything else
  * gets what it needs from `servicesContext`. It gives every loader and action the request's
  * Supabase client, the signed-in viewer, a lazily opened database connection and the viewer's
- * membership. On the way out it adds any session cookies Supabase wrote, and after the response is
+ * membership. On the way out it adds any session cookies Supabase wrote and the security headers
+ * (app/lib/security-headers.ts), and after the response is
  * sent it syncs Google Calendar with anything a form post changed, then closes the database
  * connection.
  */
@@ -34,6 +36,7 @@ export const servicesMiddleware: MiddlewareFunction<Response> = async (
     ? { userId: data.claims.sub, email: data.claims.email ?? null }
     : null;
 
+  const nonce = createNonce();
   let sql: Db | undefined;
   const db = () => (sql ??= createDb(env.HYPERDRIVE.connectionString));
   let membership: Promise<Membership> | undefined;
@@ -56,6 +59,7 @@ export const servicesMiddleware: MiddlewareFunction<Response> = async (
       calendarInvites: googleCalendarConfig(env as unknown as Record<string, unknown>) !== null,
     },
     media: env.MEDIA,
+    nonce,
   });
 
   try {
@@ -66,6 +70,7 @@ export const servicesMiddleware: MiddlewareFunction<Response> = async (
     cookieHeaders.forEach((value, key) => {
       if (key.toLowerCase() !== "set-cookie") response.headers.set(key, value);
     });
+    applySecurityHeaders(response.headers, { nonce, supabaseUrl: env.SUPABASE_URL, csp: !import.meta.env.DEV });
     // Keeps a test site, shared only by link, out of search results.
     if (env.SEARCH_INDEXING !== "on") response.headers.set("X-Robots-Tag", "noindex, nofollow");
     return response;

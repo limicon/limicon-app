@@ -6,6 +6,10 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-25 | James (with Opus 5.5) | Pages send a content security policy
+
+Every response carries security headers, and pages a CSP that runs only the app's own scripts, blocks framing by other sites, and limits where forms post. A new outside script, frame, font or form target needs its address added in `app/lib/security-headers.ts`. `npm run dev` leaves the CSP off; the e2e suite tests with it.
+
 ## 2026-11-25 | James (with Opus 5.5) | Email goes through Postmark
 
 Selecting Postmark (strongest deliverability record) for all the app's email: sign-in links through Supabase's SMTP, ticket and session email, notifications, Updates posts, and newsletters, each in its own stream. $15/mo for 10k, $1.80/k overage.

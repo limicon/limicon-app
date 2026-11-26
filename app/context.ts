@@ -26,6 +26,8 @@ export type RequestServices = {
   };
   /** The bucket holding uploaded images and files, served at /media/<key>. */
   media: R2Bucket;
+  /** This response's CSP nonce, for the inline scripts in the page (app/lib/security-headers.ts). */
+  nonce: string;
 };
 
 export const servicesContext = createContext<RequestServices>();
