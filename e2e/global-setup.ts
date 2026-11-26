@@ -3,7 +3,8 @@ import { execSync } from "node:child_process";
 /**
  * Starts the local Supabase if it isn't running, and stops it again after the tests. A stack
  * that was already running, such as one started for development or by CI, is left as it is.
- * Tests find Mailpit through `process.env.MAILPIT_URL`.
+ * Tests find Mailpit through `process.env.MAILPIT_URL` and the database through
+ * `process.env.DATABASE_URL`.
  */
 export default function globalSetup() {
   let teardown: (() => void) | undefined;
@@ -18,5 +19,6 @@ export default function globalSetup() {
 
   const status = JSON.parse(execSync("npx supabase status -o json", { encoding: "utf8" }));
   process.env.MAILPIT_URL = status.MAILPIT_URL;
+  process.env.DATABASE_URL = status.DB_URL;
   return teardown;
 }

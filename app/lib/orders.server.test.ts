@@ -1,7 +1,5 @@
-/// <reference types="node" />
-// Vitest runs this in Node, which the app's own tsconfig doesn't include.
-import postgres, { type TransactionSql } from "postgres";
-import { afterAll, describe, expect, test } from "vitest";
+import type { TransactionSql } from "postgres";
+import { describe, expect, test } from "vitest";
 
 import { readGuestFilters, readOrderFilters } from "./admin-tables";
 import type { Db } from "./db.server";
@@ -9,24 +7,10 @@ import { getEventDetails, saveEventDetails } from "./event.server";
 import { countGuests, getOrderSummary, listGuests, listOrders } from "./orders.server";
 import { getSiteDocument, saveSiteDocument } from "./site-documents.server";
 import { getPage, listMenuPages, movePage, savePage } from "./site-pages.server";
+import { connectTestDb } from "./test-db";
 
 // Runs against the local Supabase database from `npm run db:start`.
-const sql = postgres(
-  process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54372/postgres",
-  { max: 1, onnotice: () => {} },
-);
-
-afterAll(() => sql.end());
-
-async function inRolledBackTransaction(work: (tx: Db) => Promise<void>) {
-  const rollback = new Error("rollback");
-  await expect(
-    sql.begin(async (tx) => {
-      await work(tx as unknown as Db);
-      throw rollback;
-    }),
-  ).rejects.toBe(rollback);
-}
+const { inRolledBackTransaction } = connectTestDb();
 
 async function person(tx: Db, first: string, last: string) {
   const [user] = await tx<{ id: string }[]>`

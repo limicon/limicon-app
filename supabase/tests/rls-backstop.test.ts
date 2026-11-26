@@ -1,11 +1,10 @@
 import postgres from "postgres";
 import { afterAll, describe, expect, test } from "vitest";
 
+import { LOCAL_DATABASE_URL } from "../local";
+
 // Runs against the local Supabase database from `npm run db:start`.
-const sql = postgres(
-  process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54372/postgres",
-  { max: 1, onnotice: () => {} },
-);
+const sql = postgres(LOCAL_DATABASE_URL, { max: 1, onnotice: () => {} });
 
 afterAll(() => sql.end());
 

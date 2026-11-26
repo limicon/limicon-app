@@ -36,11 +36,10 @@ export async function signInLink(request: APIRequestContext, email: string) {
 }
 
 /** Runs `work` against the local database with a short-lived connection. */
-async function withDb<T>(work: (sql: postgres.Sql) => Promise<T>): Promise<T> {
-  const sql = postgres(
-    process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54372/postgres",
-    { max: 1, onnotice: () => {} },
-  );
+export async function withDb<T>(work: (sql: postgres.Sql) => Promise<T>): Promise<T> {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL is unset; e2e/global-setup.ts sets it");
+  const sql = postgres(url, { max: 1, onnotice: () => {} });
   try {
     return await work(sql);
   } finally {

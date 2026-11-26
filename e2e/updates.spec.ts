@@ -1,19 +1,13 @@
-import postgres from "postgres";
 import { expect, test } from "@playwright/test";
 
-import { giveTicket, newEmail, setName, signIn } from "./support";
+import { giveTicket, newEmail, setName, signIn, withDb } from "./support";
 
 /** Gives the account for `email` the Admin role, which can post updates. */
 async function makeAdmin(email: string) {
-  const sql = postgres(process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54372/postgres", { max: 1, onnotice: () => {} });
-  try {
-    await sql`
-      insert into public.admin_permissions (profile_id, permission)
-      select id, 'full' from auth.users where email = ${email}
-    `;
-  } finally {
-    await sql.end();
-  }
+  await withDb((sql) => sql`
+    insert into public.admin_permissions (profile_id, permission)
+    select id, 'full' from auth.users where email = ${email}
+  `);
 }
 
 test("a poster adds an update, and a member likes it and comments", async ({ browser, request }) => {

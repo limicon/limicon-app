@@ -1,19 +1,13 @@
-/// <reference types="node" />
-// Vitest runs this in Node, which the app's own tsconfig doesn't include.
-import postgres from "postgres";
-import { afterAll, afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import type { Db } from "./db.server";
 import { inviteEventId, publicEventId } from "./google-calendar";
 import { runCalendarSync, type GoogleCalendarConfig } from "./google-calendar.server";
 import { cancelRsvp, rsvp } from "./rsvps.server";
+import { connectTestDb } from "./test-db";
 
-const sql = postgres(
-  process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54372/postgres",
-  { max: 1, fetch_types: false, onnotice: () => {} },
-);
+const db = connectTestDb();
 
-afterAll(() => sql.end());
 afterEach(() => vi.unstubAllGlobals());
 
 const config: GoogleCalendarConfig = {
@@ -26,15 +20,11 @@ const config: GoogleCalendarConfig = {
 };
 
 async function inRolledBackTransaction(work: (tx: Db) => Promise<void>) {
-  const rollback = new Error("rollback");
-  await expect(
-    sql.begin(async (tx) => {
-      // Only this test's sessions are queued.
-      await tx`delete from public.calendar_sync_queue`;
-      await work(tx as unknown as Db);
-      throw rollback;
-    }),
-  ).rejects.toBe(rollback);
+  await db.inRolledBackTransaction(async (tx) => {
+    // Only this test's sessions are queued.
+    await tx`delete from public.calendar_sync_queue`;
+    await work(tx);
+  });
 }
 
 async function account(tx: Db) {
