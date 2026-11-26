@@ -67,6 +67,9 @@ test("a poster adds an update, and a member likes it and comments", async ({ bro
   await post.getByRole("button", { name: "Edit" }).click();
   await post.getByRole("combobox", { name: "Edit your comment" }).fill("Can't wait for Monday!");
   await post.getByRole("button", { name: "Save" }).click();
+  // The open edit box already holds the new text and mentions "edited", so wait for it to close,
+  // which happens once the save succeeds.
+  await expect(post.getByRole("combobox", { name: "Edit your comment" })).toHaveCount(0);
   await expect(post.getByRole("listitem")).toContainText("Can't wait for Monday!");
   await expect(post.getByRole("listitem")).toContainText("edited");
 
