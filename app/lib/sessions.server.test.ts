@@ -1,7 +1,4 @@
-/// <reference types="node" />
-// Vitest runs this in Node, which the app's own tsconfig doesn't include.
-import postgres from "postgres";
-import { afterAll, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import type { Db } from "./db.server";
 import { checkSessionForm, type SessionFormInput, type SessionValues } from "./session-form";
@@ -17,24 +14,10 @@ import {
   listHostedSessions,
   updateSession,
 } from "./sessions.server";
+import { connectTestDb } from "./test-db";
 
 // Runs against the local Supabase database, with the app's own connection options.
-const sql = postgres(
-  process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
-  { max: 1, fetch_types: false, onnotice: () => {} },
-);
-
-afterAll(() => sql.end());
-
-async function inRolledBackTransaction(work: (tx: Db) => Promise<void>) {
-  const rollback = new Error("rollback");
-  await expect(
-    sql.begin(async (tx) => {
-      await work(tx as unknown as Db);
-      throw rollback;
-    }),
-  ).rejects.toBe(rollback);
-}
+const { sql, inRolledBackTransaction } = connectTestDb();
 
 async function setUp(tx: Db) {
   const account = async (name?: [string, string]) => {

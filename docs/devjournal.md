@@ -6,6 +6,10 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-25 | James (with Opus 5.5) | Local Supabase ports moved up by 50
+
+The local Supabase now runs on 54370–54379 (API 54371, database 54372), to avoid conflicting with defaults. After pulling, run `npm run db:stop` then `npm run db:start`, and set `SUPABASE_URL` in `.dev.vars` to `http://127.0.0.1:54371`.
+
 ## 2026-11-25 | James (with Opus 5.5) | Pages send a content security policy
 
 Every response carries security headers, and pages a CSP that runs only the app's own scripts, blocks framing by other sites, and limits where forms post. A new outside script, frame, font or form target needs its address added in `app/lib/security-headers.ts`. `npm run dev` leaves the CSP off; the e2e suite tests with it.
