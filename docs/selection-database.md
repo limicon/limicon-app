@@ -65,7 +65,7 @@ PlanetScale has no Data API, so it supports only the second shape.
 
 ## Sign-in
 
-Supabase Auth keeps users in the app's own Postgres, in a schema of its own, so app tables can link to them directly. Its sign-in token works with Postgres row-level security, so the database itself can check who may read each row. It covers passwords, magic links, one-time codes, about 19 social providers, and SAML single sign-on on Pro. Its built-in email sender is for testing only (2 emails an hour, to team addresses), so production sign-in emails need an email service with SMTP, such as Resend or Cloudflare's Email Sending.
+Supabase Auth keeps users in the app's own Postgres, in a schema of its own, so app tables can link to them directly. Its sign-in token works with Postgres row-level security, so the database itself can check who may read each row. It covers passwords, magic links, one-time codes, about 19 social providers, and SAML single sign-on on Pro. Its built-in email sender is for testing only (2 emails an hour, to team addresses), so production sign-in emails need an email service with SMTP: Postmark ([`selection-email.md`](selection-email.md)).
 
 PlanetScale has no sign-in of its own, so it would pair with Better Auth or Clerk. The three compare like this:
 

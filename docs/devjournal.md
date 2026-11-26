@@ -6,6 +6,10 @@ Each entry: **Date** | **Author** | **Title**, followed by at most 360 character
 
 ---
 
+## 2026-11-25 | James (with Opus 5.5) | Email goes through Postmark
+
+Selecting Postmark (strongest deliverability record) for all the app's email: sign-in links through Supabase's SMTP, ticket and session email, notifications, Updates posts, and newsletters, each in its own stream. $15/mo for 10k, $1.80/k overage.
+
 ## 2026-11-22 | Lauren (with Opus 5.5) | Admins mark co-creation meetings on the session form
 
 At the top of the editor's About section, admins tick "This is a co-creation meeting", which sets `sessions.is_cocreation_meeting` and starts the title with "Co-Creation Meeting" (a topic can follow a colon). Only admins can change it. Themes stay as they were; the schedule shows a badge and an "Only co-creation meetings" filter.

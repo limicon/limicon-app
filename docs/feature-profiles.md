@@ -32,7 +32,7 @@ Settings holds all three choices: "Show my email address on my profile" (off by 
 
 ## Email notifications
 
-Settings asks "Email me notifications" (on by default), and under it which ones: a new post on Updates (on by default; not comments on posts), someone mentions me, someone replies to my comment, someone comments on my post, and an admin tags @everyone (all off by default). `profiles.email_notifications` and `email_notify` hold the choices; `app/lib/email-choices.ts` lists them. Turning email off greys out the list and keeps the saved choices for later. The app doesn't send these emails yet: that waits on choosing an email service (docs/selection-email.md).
+Settings asks "Email me notifications" (on by default), and under it which ones: a new post on Updates (on by default; not comments on posts), someone mentions me, someone replies to my comment, someone comments on my post, and an admin tags @everyone (all off by default). `profiles.email_notifications` and `email_notify` hold the choices; `app/lib/email-choices.ts` lists them. Turning email off greys out the list and keeps the saved choices for later. The app doesn't send these emails yet: that waits on setting up Postmark (docs/selection-email.md).
 
 ## Data
 

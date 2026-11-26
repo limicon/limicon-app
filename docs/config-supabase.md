@@ -56,7 +56,7 @@ notify pgrst;
 
 ## Sign-in email
 
-Hosted Supabase's built-in email sends only to members of the Limicon Supabase organization, about two emails an hour. Other people can't sign in until an email service is set up as Supabase's SMTP sender.
+Hosted Supabase's built-in email sends only to members of the Limicon Supabase organization, about two emails an hour. Other people can't sign in until Postmark is set up as Supabase's SMTP sender ([`config-postmark.md`](config-postmark.md)).
 
 ## Changing the database password
 

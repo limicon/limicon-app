@@ -107,10 +107,10 @@ During the event, admins add relevant Liminal Calendar events to the Limicon cal
 | Database access | Server code connects through Cloudflare Hyperdrive, which reaches Supabase through its session pooler, with an ordinary Postgres driver, and checks permissions itself on every read and write. The browser never queries the database. Row-level security is enabled on every table with no policies, so nothing else can read the tables. |
 | Hosting | Cloudflare Workers, with the placement hint `aws:us-east-1` so the app runs next to the database |
 | Payments | Limicon's existing Stripe account, Stripe Checkout in USD. The statement descriptor stays "Transdisciplinary Lead East York". |
-| Email | Sent from team@limicon.org on the limicon.org domain, which Limicon controls |
+| Email | Postmark, for both transactional and marketing email, in separate message streams. Sent from team@limicon.org on the limicon.org domain, which Limicon controls |
 | App install | PWA |
 
-[`selection-frontend.md`](selection-frontend.md), [`selection-hosting.md`](selection-hosting.md) and [`selection-database.md`](selection-database.md) compare the options in detail.
+[`selection-frontend.md`](selection-frontend.md), [`selection-hosting.md`](selection-hosting.md), [`selection-database.md`](selection-database.md) and [`selection-email.md`](selection-email.md) compare the options in detail.
 
 ## Phase 1A requirements: registration
 
